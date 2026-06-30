@@ -3,6 +3,7 @@ import { writeFile } from 'fs/promises'
 import { join } from 'path'
 import store from './store.ts'
 import opendotaHeroes from '../src/data/opendotaHeroes.json'
+import heroMatchupSnapshot from '../src/data/heroMatchupSnapshot.json'
 import type { AppState, TrainingCycle, MatchLog, PreGameSetup, DailyCheckin, MMRLog, HeroNote, OpenDotaImportedMatch, OpenDotaParseRequestResult, OpenDotaRecentMatch, HeroMatchupCache, HeroMatchupStats, HeroMatchupSyncResult } from '../src/types'
 
 interface OpenDotaPlayer {
@@ -607,6 +608,12 @@ async function syncOpenDotaHeroMatchups(force = false): Promise<HeroMatchupSyncR
   }
   store.set('heroMatchupCache', cache)
 
+  // 开发模式下把最新矩阵写回仓库，方便 git commit 后在其他机器上共享
+  if (!app.isPackaged) {
+    const snapshotPath = join(__dirname, '../../src/data/heroMatchupSnapshot.json')
+    writeFile(snapshotPath, JSON.stringify(cache, null, 2), 'utf-8').catch(() => {})
+  }
+
   return {
     status: errors.length > 0 ? 'partial' : 'synced',
     message: errors.length > 0
@@ -852,6 +859,12 @@ app.whenReady().then(() => {
     }
     store.set('cycles', [defaultCycle])
     store.set('appState', { ...appState, activeCycleId: 'default' })
+  }
+
+  // 全新安装 / 刚从 git pull 下来：本地还没有缓存时，用仓库里的快照兜底
+  const existingMatchupCache = store.get('heroMatchupCache', null) as HeroMatchupCache | null
+  if (!existingMatchupCache?.matchupCount && (heroMatchupSnapshot as HeroMatchupCache).matchupCount > 0) {
+    store.set('heroMatchupCache', heroMatchupSnapshot)
   }
 
   createWindow()
