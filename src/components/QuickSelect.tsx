@@ -30,8 +30,8 @@ export default function QuickSelect({
             onClick={() => { onChange(opt); setCustomMode(false) }}
             className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${
               value === opt && !customMode
-                ? 'border-blue-500 bg-blue-500/20 text-blue-300'
-                : 'border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-secondary)] hover:border-blue-400'
+                ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-strong)]'
+                : 'border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-secondary)] hover:border-[var(--accent-border)]'
             }`}
           >
             {opt}
@@ -43,8 +43,8 @@ export default function QuickSelect({
             onClick={() => setCustomMode(true)}
             className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${
               customMode
-                ? 'border-blue-500 bg-blue-500/20 text-blue-300'
-                : 'border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-muted)] hover:border-blue-400'
+                ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-strong)]'
+                : 'border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-muted)] hover:border-[var(--accent-border)]'
             }`}
           >
             自定义
@@ -58,7 +58,7 @@ export default function QuickSelect({
           value={options.includes(value) ? '' : value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-blue-500"
+          className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-border)]"
         />
       )}
     </div>

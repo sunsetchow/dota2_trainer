@@ -78,7 +78,7 @@ export default function TrainingPlan() {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-[var(--accent)] text-[var(--text-primary)] text-sm font-semibold hover:bg-[var(--accent-strong)] transition-colors"
           >
             今日打卡
           </button>
@@ -129,7 +129,7 @@ export default function TrainingPlan() {
               key={wt.week}
               className={`rounded-xl border p-3 transition-all ${
                 isCurrentWeek
-                  ? 'border-blue-500 bg-blue-500/10'
+                  ? 'border-[var(--accent-border)] bg-[var(--accent-muted)]'
                   : isPast
                     ? 'border-[var(--border)] bg-[var(--surface-1)] opacity-70'
                     : 'border-[var(--border)] bg-[var(--surface-1)]'
@@ -138,7 +138,7 @@ export default function TrainingPlan() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className={`text-xs font-bold px-2 py-0.5 rounded shrink-0 ${
-                    isCurrentWeek ? 'bg-blue-500/20 text-blue-300' : 'bg-[var(--surface-2)] text-[var(--text-muted)]'
+                    isCurrentWeek ? 'bg-[var(--accent-muted)] text-[var(--accent-strong)]' : 'bg-[var(--surface-2)] text-[var(--text-muted)]'
                   }`}>
                     {weekLabel(wt.week)}
                   </span>
@@ -159,14 +159,14 @@ export default function TrainingPlan() {
                         hasCheckin
                           ? 'bg-green-500/20 text-green-300 font-medium'
                           : isToday
-                            ? 'bg-blue-500/20 text-blue-300 font-bold border border-blue-500'
+                            ? 'bg-[var(--accent-muted)] text-[var(--accent-strong)] font-bold border border-[var(--accent-border)]'
                             : isFuture
                               ? 'bg-[var(--surface-2)] text-[var(--text-muted)]'
                               : 'bg-red-500/10 text-red-300/50'
                       }`}
                       title={dateStr}
                     >
-                      {day.getDate()}
+                      {['一', '二', '三', '四', '五', '六', '日'][i]}
                     </div>
                   )
                 })}

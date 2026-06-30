@@ -93,12 +93,24 @@ export default function MatchDetail() {
           <Field label="对线结果" value={laneLabel(log.laneResult)} />
           <Field label="OpenDota 对线明细" value={laneStatsLabel(log.laneEfficiency, log.laneKills)} />
           <Field label="最蠢死亡区域" value={zoneLabel(log.worstDeathZone)} />
+          <Field label="对方 1 号位" value={log.enemyCarry} />
           <Field label="Draft 评分" value={log.draftScore ? `${log.draftScore}/5` : undefined} />
           <Field label="最大错误" value={log.biggestMistake} />
           <Field label="下局唯一改进点" value={log.nextGameFocus} />
           <Field label="备注" value={log.notes} />
         </div>
       </section>
+
+      {(log.reviewClipDeath || log.reviewClipFight || log.reviewClipObjective) && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">3 片段复盘</h2>
+          <div className="grid grid-cols-1 gap-3">
+            <Field label="关键死亡片段" value={log.reviewClipDeath} />
+            <Field label="关键团战片段" value={log.reviewClipFight} />
+            <Field label="关键目标片段" value={log.reviewClipObjective} />
+          </div>
+        </section>
+      )}
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">对局数据</h2>

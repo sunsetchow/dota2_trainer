@@ -18,6 +18,7 @@ export default function Settings() {
   const [newStartDate, setNewStartDate] = useState('')
   const [openDotaAccountId, setOpenDotaAccountId] = useState('')
   const [openDotaApiKey, setOpenDotaApiKey] = useState('')
+  const [matchupMinGames, setMatchupMinGames] = useState('50')
   const [statusMsg, setStatusMsg] = useState('')
   const [syncingMatchups, setSyncingMatchups] = useState(false)
   const [matchupCache, setMatchupCache] = useState<HeroMatchupCache | null>(null)
@@ -27,7 +28,8 @@ export default function Settings() {
   useEffect(() => {
     setOpenDotaAccountId(appState?.openDota?.accountId ?? '')
     setOpenDotaApiKey(appState?.openDota?.apiKey ?? '')
-  }, [appState?.openDota?.accountId, appState?.openDota?.apiKey])
+    setMatchupMinGames(String(appState?.openDota?.matchupMinGames ?? 50))
+  }, [appState?.openDota?.accountId, appState?.openDota?.apiKey, appState?.openDota?.matchupMinGames])
 
   useEffect(() => {
     window.electronStore.getHeroMatchupCache()
@@ -36,6 +38,7 @@ export default function Settings() {
   }, [])
 
   const isActive = (name: string) => heroPool.some(h => h.name === name && h.active)
+  const getHeroConfig = (name: string) => heroPool.find(h => h.name === name)
 
   const toggleHero = async (name: string) => {
     if (!appState) return
@@ -44,10 +47,30 @@ export default function Settings() {
     if (existing) {
       newPool = heroPool.map(h => h.name === name ? { ...h, active: !h.active } : h)
     } else {
-      newPool = [...heroPool, { name, active: true }]
+      newPool = [...heroPool, { name, active: true, tier: 'practice' }]
     }
     await updateAppState({ heroPool: newPool })
   }
+
+  const setHeroTier = async (name: string, tier: HeroConfig['tier']) => {
+    if (!appState) return
+    const existing = heroPool.find(h => h.name === name)
+    const newPool = existing
+      ? heroPool.map(h => h.name === name ? { ...h, active: true, tier } : h)
+      : [...heroPool, { name, active: true, tier }]
+    await updateAppState({ heroPool: newPool })
+  }
+
+  const tierLabel = (tier?: HeroConfig['tier']) => {
+    if (tier === 'main') return '主力'
+    if (tier === 'practice') return '练习'
+    if (tier === 'backup') return '备用'
+    return '未分级'
+  }
+
+  const formatCacheTime = (ts?: number) => ts
+    ? new Date(ts).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+    : '未知'
 
   const handleExport = async () => {
     setExporting(true)
@@ -102,6 +125,7 @@ export default function Settings() {
       openDota: {
         accountId: openDotaAccountId.trim(),
         apiKey: openDotaApiKey.trim(),
+        matchupMinGames: Math.max(1, parseInt(matchupMinGames, 10) || 50),
       },
     })
     setStatusMsg('OpenDota 设置已保存。')
@@ -110,7 +134,7 @@ export default function Settings() {
 
   const handleSyncMatchups = async () => {
     setSyncingMatchups(true)
-    setStatusMsg('正在同步英雄克制数据，首次同步可能需要 1-3 分钟。')
+    setStatusMsg('正在同步本周 matchup 矩阵，限速 1 req/sec，完整同步约 2 分钟。')
     try {
       const result = await window.electronStore.syncOpenDotaHeroMatchups(true)
       setMatchupCache(result.cache)
@@ -139,26 +163,49 @@ export default function Settings() {
       {/* 英雄池配置 */}
       <div className="space-y-3">
         <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">英雄池配置</h2>
-        <p className="text-xs text-[var(--text-muted)]">勾选后，Draft 助手将优先显示池中英雄，HeroSelector 也仅列出已激活英雄。</p>
-        <div className="grid grid-cols-3 gap-2">
-          {ALL_POOL.map(hero => (
-            <label
-              key={hero}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all ${
-                isActive(hero)
-                  ? 'border-blue-500 bg-blue-500/10'
-                  : 'border-[var(--border)] bg-[var(--surface-1)] hover:border-blue-400/50'
-              }`}
-            >
-              <input
-                type="checkbox"
-                checked={isActive(hero)}
-                onChange={() => toggleHero(hero)}
-                className="w-3.5 h-3.5 accent-blue-500"
-              />
-              <span className="text-xs text-[var(--text-primary)] leading-tight">{hero}</span>
-            </label>
-          ))}
+        <p className="text-xs text-[var(--text-muted)]">主力用于冲分优先推荐，练习中正常参与 Draft，备用会降权；关闭后默认不进入 HeroSelector。</p>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {ALL_POOL.map(hero => {
+            const config = getHeroConfig(hero)
+            const active = Boolean(config?.active)
+            return (
+              <div
+                key={hero}
+                className={`space-y-2 rounded-lg border px-3 py-2 transition-all ${
+                  active
+                    ? 'border-[var(--accent-border)] bg-[var(--accent-muted)]'
+                    : 'border-[var(--border)] bg-[var(--surface-1)]'
+                }`}
+              >
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={active}
+                    onChange={() => toggleHero(hero)}
+                    className="h-3.5 w-3.5 accent-red-500"
+                  />
+                  <span className="flex-1 text-xs leading-tight text-[var(--text-primary)]">{hero}</span>
+                  <span className="text-[10px] text-[var(--text-muted)]">{tierLabel(config?.tier)}</span>
+                </label>
+                <div className="grid grid-cols-3 gap-1">
+                  {(['main', 'practice', 'backup'] as const).map(tier => (
+                    <button
+                      key={tier}
+                      type="button"
+                      onClick={() => setHeroTier(hero, tier)}
+                      className={`rounded border px-2 py-1 text-[10px] transition-colors ${
+                        active && config?.tier === tier
+                          ? 'border-[var(--gold)] bg-[var(--gold-muted)] text-[var(--gold-strong)]'
+                          : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent-border)] hover:text-[var(--text-secondary)]'
+                      }`}
+                    >
+                      {tierLabel(tier)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
 
@@ -175,13 +222,13 @@ export default function Settings() {
               type="date"
               value={newStartDate}
               onChange={e => setNewStartDate(e.target.value)}
-              className="flex-1 px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-blue-500"
+              className="flex-1 px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-border)]"
             />
             <button
               type="button"
               onClick={handleNewCycle}
               disabled={!newStartDate}
-              className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 rounded-lg bg-[var(--accent)] text-[var(--text-primary)] text-sm font-semibold hover:bg-[var(--accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               创建
             </button>
@@ -194,7 +241,7 @@ export default function Settings() {
                 key={c.cycleId}
                 className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm ${
                   c.cycleId === appState?.activeCycleId
-                    ? 'border-blue-500 bg-blue-500/10 text-blue-300'
+                    ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-strong)]'
                     : 'border-[var(--border)] text-[var(--text-muted)]'
                 }`}
               >
@@ -205,7 +252,7 @@ export default function Settings() {
                   <button
                     type="button"
                     onClick={() => updateAppState({ activeCycleId: c.cycleId })}
-                    className="text-xs text-blue-400 hover:text-blue-300"
+                    className="text-xs text-[var(--accent-strong)] hover:text-[var(--text-primary)]"
                   >
                     切换
                   </button>
@@ -228,7 +275,7 @@ export default function Settings() {
             value={openDotaAccountId}
             onChange={e => setOpenDotaAccountId(e.target.value)}
             placeholder="如：123456789"
-            className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-blue-500"
+            className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-border)]"
           />
         </div>
         <div className="space-y-2">
@@ -238,29 +285,40 @@ export default function Settings() {
             value={openDotaApiKey}
             onChange={e => setOpenDotaApiKey(e.target.value)}
             placeholder="留空也可以使用公开限额"
-            className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-blue-500"
+            className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-border)]"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="block text-xs text-[var(--text-muted)]">Draft matchup 最小样本量</label>
+          <input
+            type="number"
+            min="1"
+            value={matchupMinGames}
+            onChange={e => setMatchupMinGames(e.target.value)}
+            placeholder="默认 50"
+            className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-border)]"
           />
         </div>
         <button
           type="button"
           onClick={handleSaveOpenDota}
-          className="w-full py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 transition-colors"
+          className="w-full py-2.5 rounded-lg bg-[var(--accent)] text-[var(--text-primary)] text-sm font-semibold hover:bg-[var(--accent-strong)] transition-colors"
         >
           保存 OpenDota 设置
         </button>
         <div className="pt-2 space-y-2">
           <p className="text-xs text-[var(--text-muted)]">
-            英雄克制缓存：{matchupCache
-              ? `${matchupCache.date} · ${matchupCache.heroCount} 个英雄 · ${matchupCache.matchupCount} 条对位`
+            本周 matchup 矩阵：{matchupCache
+              ? `${matchupCache.weekKey ?? matchupCache.date} · ${matchupCache.heroCount} 个英雄 · ${matchupCache.matchupCount} 条对位 · 有效期至 ${formatCacheTime(matchupCache.expiresAt)}`
               : '尚未同步'}
           </p>
           <button
             type="button"
             onClick={handleSyncMatchups}
             disabled={syncingMatchups}
-            className="w-full py-2.5 rounded-lg border border-[var(--border)] text-sm font-medium text-[var(--text-secondary)] hover:border-blue-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="w-full py-2.5 rounded-lg border border-[var(--border)] text-sm font-medium text-[var(--text-secondary)] hover:border-[var(--accent-border)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            {syncingMatchups ? '同步中…' : '立即同步英雄克制数据'}
+            {syncingMatchups ? '同步中…' : '同步本周 matchup 矩阵'}
           </button>
         </div>
       </div>
@@ -273,7 +331,7 @@ export default function Settings() {
             type="button"
             onClick={handleExport}
             disabled={exporting}
-            className="flex-1 py-2.5 rounded-lg border border-[var(--border)] text-sm font-medium text-[var(--text-secondary)] hover:border-blue-400 disabled:opacity-40 transition-colors"
+            className="flex-1 py-2.5 rounded-lg border border-[var(--border)] text-sm font-medium text-[var(--text-secondary)] hover:border-[var(--accent-border)] disabled:opacity-40 transition-colors"
           >
             {exporting ? '导出中…' : '导出 JSON'}
           </button>
@@ -281,7 +339,7 @@ export default function Settings() {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
-            className="flex-1 py-2.5 rounded-lg border border-[var(--border)] text-sm font-medium text-[var(--text-secondary)] hover:border-blue-400 disabled:opacity-40 transition-colors"
+            className="flex-1 py-2.5 rounded-lg border border-[var(--border)] text-sm font-medium text-[var(--text-secondary)] hover:border-[var(--accent-border)] disabled:opacity-40 transition-colors"
           >
             {importing ? '导入中…' : '导入 JSON'}
           </button>

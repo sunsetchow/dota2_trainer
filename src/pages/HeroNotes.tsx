@@ -70,7 +70,7 @@ export default function HeroNotes() {
     setTimeout(() => setStatus(''), 2500)
   }
 
-  const inputCls = 'w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-blue-500'
+  const inputCls = 'w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-border)]'
   const textareaCls = `${inputCls} min-h-20 resize-y`
 
   return (
@@ -88,7 +88,7 @@ export default function HeroNotes() {
             type="button"
             onClick={handleSave}
             disabled={!selectedHero.trim()}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 rounded-lg bg-[var(--accent)] text-[var(--text-primary)] text-sm font-semibold hover:bg-[var(--accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             保存
           </button>

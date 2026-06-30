@@ -17,11 +17,13 @@ export default function PreGame() {
   const { cycles } = useCycles()
 
   // ✅ location.state 空值保护
-  const heroFromDraft: string = (location.state as { hero?: string; enemySupports?: string[] } | null)?.hero ?? ''
-  const supportsFromDraft: string[] = (location.state as { hero?: string; enemySupports?: string[] } | null)?.enemySupports ?? []
+  const heroFromDraft: string = (location.state as { hero?: string; enemyCarry?: string; enemySupports?: string[] } | null)?.hero ?? ''
+  const carryFromDraft: string = (location.state as { hero?: string; enemyCarry?: string; enemySupports?: string[] } | null)?.enemyCarry ?? ''
+  const supportsFromDraft: string[] = (location.state as { hero?: string; enemyCarry?: string; enemySupports?: string[] } | null)?.enemySupports ?? []
 
   const [hero, setHero] = useState(heroFromDraft)
   const [trainingGoal, setTrainingGoal] = useState('')
+  const [enemyCarry, setEnemyCarry] = useState(carryFromDraft)
   const [enemySupport1, setEnemySupport1] = useState(supportsFromDraft[0] ?? '')
   const [enemySupport2, setEnemySupport2] = useState(supportsFromDraft[1] ?? '')
   const [saving, setSaving] = useState(false)
@@ -55,6 +57,7 @@ export default function PreGame() {
         timestamp: Date.now(),
         hero: hero.trim(),
         trainingGoal: trainingGoal.trim(),
+        ...(enemyCarry.trim() && { enemyCarry: enemyCarry.trim() }),
         enemySupports: [enemySupport1, enemySupport2].filter(s => s.trim()),
         cycleId: currentAppState.activeCycleId,
       }
@@ -100,23 +103,30 @@ export default function PreGame() {
         placeholder="自定义目标…"
       />
 
-      {/* 对方辅助 */}
+      {/* 对方阵容 */}
       <div className="space-y-2">
-        <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">对方辅助（可选）</label>
+        <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">对方阵容（可选）</label>
+        <input
+          type="text"
+          value={enemyCarry}
+          onChange={e => setEnemyCarry(e.target.value)}
+          placeholder="对方 1 号位"
+          className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-border)]"
+        />
         <div className="grid grid-cols-2 gap-2">
           <input
             type="text"
             value={enemySupport1}
             onChange={e => setEnemySupport1(e.target.value)}
             placeholder="辅助 1"
-            className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-blue-500"
+            className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-border)]"
           />
           <input
             type="text"
             value={enemySupport2}
             onChange={e => setEnemySupport2(e.target.value)}
             placeholder="辅助 2"
-            className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-blue-500"
+            className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-border)]"
           />
         </div>
       </div>
@@ -126,7 +136,7 @@ export default function PreGame() {
         type="button"
         onClick={handleSave}
         disabled={!canSave || saving}
-        className="w-full py-3 rounded-xl font-semibold text-sm bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="w-full py-3 rounded-xl font-semibold text-sm bg-[var(--accent)] text-[var(--text-primary)] hover:bg-[var(--accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         {saving ? '保存中…' : '开始游戏'}
       </button>

@@ -39,6 +39,7 @@ export interface MMRLog {
 export interface OpenDotaSettings {
   accountId?: string;
   apiKey?: string;
+  matchupMinGames?: number;
 }
 
 // ── 赛前设定
@@ -47,6 +48,7 @@ export interface PreGameSetup {
   timestamp: number;
   hero: string;
   trainingGoal: string;
+  enemyCarry?: string;
   enemySupports?: string[];
   cycleId?: string;
   linkedMatchId?: string;
@@ -77,6 +79,7 @@ export interface MatchLog {
   goodInitiations?: number;
   draftScore?: 1 | 2 | 3 | 4 | 5;
   csAt10?: number;
+  enemyCarry?: string;
   enemySupports?: string[];
   matchId?: string;
   source?: 'manual' | 'opendota';
@@ -98,6 +101,22 @@ export interface MatchLog {
   isRadiant?: boolean;
   opendotaImportedAt?: number;
   notes?: string;
+  reviewClipDeath?: string;
+  reviewClipFight?: string;
+  reviewClipObjective?: string;
+}
+
+export interface OpenDotaRecentMatch {
+  matchId: string;
+  heroId?: number;
+  heroName?: string;
+  timestamp?: number;
+  durationMin?: number;
+  result?: 'win' | 'loss';
+  kills?: number;
+  deaths?: number;
+  assists?: number;
+  recorded?: boolean;
 }
 
 // ── 每日打卡
@@ -159,7 +178,7 @@ export interface OpenDotaParseRequestResult {
   jobId?: string;
 }
 
-// ── 英雄克制缓存（OpenDota 每日同步）
+// ── 英雄克制缓存（OpenDota 每周矩阵）
 export interface HeroMatchupStats {
   gamesPlayed: number;
   wins: number;
@@ -169,8 +188,12 @@ export interface HeroMatchupStats {
 
 export interface HeroMatchupCache {
   source: 'opendota';
+  version?: number;
   syncedAt: number;
   date: string;
+  weekKey?: string;
+  expiresAt?: number;
+  complete?: boolean;
   heroCount: number;
   matchupCount: number;
   matchups: Record<string, Record<string, HeroMatchupStats>>;
@@ -178,7 +201,7 @@ export interface HeroMatchupCache {
 }
 
 export interface HeroMatchupSyncResult {
-  status: 'fresh' | 'synced' | 'partial';
+  status: 'fresh' | 'synced' | 'partial' | 'stale';
   message: string;
   cache: HeroMatchupCache;
 }
@@ -225,6 +248,8 @@ declare global {
       addCycle(cycle: TrainingCycle): Promise<void>;
       getCycles(): Promise<TrainingCycle[]>;
       importOpenDotaMatch(matchId: string): Promise<OpenDotaImportedMatch>;
+      autoImportLatestOpenDotaMatch(existingMatchIds?: string[]): Promise<OpenDotaImportedMatch>;
+      getRecentOpenDotaMatches(existingMatchIds?: string[]): Promise<OpenDotaRecentMatch[]>;
       analyzeAndImportOpenDotaMatch(matchId: string): Promise<OpenDotaImportedMatch>;
       requestOpenDotaParse(matchId: string): Promise<OpenDotaParseRequestResult>;
       getHeroMatchupCache(): Promise<HeroMatchupCache | null>;

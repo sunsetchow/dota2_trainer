@@ -3,7 +3,7 @@ import { writeFile } from 'fs/promises'
 import { join } from 'path'
 import store from './store.ts'
 import opendotaHeroes from '../src/data/opendotaHeroes.json'
-import type { AppState, TrainingCycle, MatchLog, PreGameSetup, DailyCheckin, MMRLog, HeroNote, OpenDotaImportedMatch, OpenDotaParseRequestResult, HeroMatchupCache, HeroMatchupStats, HeroMatchupSyncResult } from '../src/types'
+import type { AppState, TrainingCycle, MatchLog, PreGameSetup, DailyCheckin, MMRLog, HeroNote, OpenDotaImportedMatch, OpenDotaParseRequestResult, OpenDotaRecentMatch, HeroMatchupCache, HeroMatchupStats, HeroMatchupSyncResult } from '../src/types'
 
 interface OpenDotaPlayer {
   account_id?: number;
@@ -66,6 +66,18 @@ interface OpenDotaHeroMatchupResponseItem {
   hero_id?: number;
   games_played?: number;
   wins?: number;
+}
+
+interface OpenDotaRecentMatchResponseItem {
+  match_id?: number;
+  hero_id?: number;
+  start_time?: number;
+  duration?: number;
+  radiant_win?: boolean;
+  player_slot?: number;
+  kills?: number;
+  deaths?: number;
+  assists?: number;
 }
 
 const OPEN_DOTA_HEROES = opendotaHeroes as OpenDotaHeroMeta[]
@@ -362,6 +374,61 @@ async function fetchOpenDotaImportedMatch(matchId: string, accountId: string, ti
   }
 }
 
+async function autoImportLatestOpenDotaMatch(existingMatchIds: string[] = []): Promise<OpenDotaImportedMatch> {
+  const accountId = getOpenDotaAccountId()
+  const known = new Set(existingMatchIds.map(String))
+  const recent = await fetchOpenDotaJson<OpenDotaRecentMatchResponseItem[]>(`/players/${accountId}/recentMatches`, 15_000)
+  const candidates = recent
+    .map(row => row.match_id)
+    .filter((id): id is number => typeof id === 'number' && Number.isFinite(id))
+    .map(String)
+    .filter(matchId => !known.has(matchId))
+
+  if (candidates.length === 0) {
+    throw new Error('OpenDota 最近对局里没有找到未记录的新比赛。')
+  }
+
+  let lastError: Error | null = null
+  for (const matchId of candidates.slice(0, 5)) {
+    try {
+      return await fetchOpenDotaImportedMatch(matchId, accountId, 20_000)
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+    }
+  }
+
+  throw new Error(lastError?.message ?? '最近几场比赛暂时无法导入，可能还没有解析。')
+}
+
+async function listRecentOpenDotaMatches(existingMatchIds: string[] = []): Promise<OpenDotaRecentMatch[]> {
+  const accountId = getOpenDotaAccountId()
+  const known = new Set(existingMatchIds.map(String))
+  const recent = await fetchOpenDotaJson<OpenDotaRecentMatchResponseItem[]>(`/players/${accountId}/recentMatches`, 15_000)
+
+  return recent
+    .filter(row => typeof row.match_id === 'number' && Number.isFinite(row.match_id))
+    .slice(0, 10)
+    .map(row => {
+      const isRadiant = typeof row.player_slot === 'number' ? row.player_slot < 128 : undefined
+      const result = typeof row.radiant_win === 'boolean' && isRadiant !== undefined
+        ? (row.radiant_win === isRadiant ? 'win' as const : 'loss' as const)
+        : undefined
+      const matchId = String(row.match_id)
+      return {
+        matchId,
+        heroId: row.hero_id,
+        heroName: row.hero_id ? openDotaHeroNameById.get(row.hero_id) : undefined,
+        timestamp: row.start_time ? row.start_time * 1000 : undefined,
+        durationMin: row.duration ? Math.max(1, Math.round(row.duration / 60)) : undefined,
+        result,
+        kills: row.kills,
+        deaths: row.deaths,
+        assists: row.assists,
+        recorded: known.has(matchId),
+      }
+    })
+}
+
 async function requestOpenDotaParse(matchId: string, timeoutMs = 15_000): Promise<OpenDotaParseRequestResult> {
   const url = getOpenDotaUrl(`/request/${matchId}`)
   const controller = new AbortController()
@@ -430,6 +497,22 @@ function dateKeyFromDate(date: Date): string {
   return `${year}-${month}-${day}`
 }
 
+const HERO_MATCHUP_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+function getIsoWeekKey(date = new Date()): string {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const day = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - day)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  const week = Math.ceil((((d.getTime() - yearStart.getTime()) / 86_400_000) + 1) / 7)
+  return `${d.getUTCFullYear()}-W${String(week).padStart(2, '0')}`
+}
+
+function formatDateTime(ts?: number): string {
+  if (!ts) return '未知'
+  return new Date(ts).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
+
 async function runLimited<T>(items: T[], limit: number, task: (item: T) => Promise<void>): Promise<void> {
   let index = 0
   const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
@@ -437,7 +520,7 @@ async function runLimited<T>(items: T[], limit: number, task: (item: T) => Promi
       const item = items[index]
       index += 1
       await task(item)
-      await sleep(250)
+      await sleep(1100)
     }
   })
   await Promise.all(workers)
@@ -446,18 +529,29 @@ async function runLimited<T>(items: T[], limit: number, task: (item: T) => Promi
 async function syncOpenDotaHeroMatchups(force = false): Promise<HeroMatchupSyncResult> {
   const current = store.get('heroMatchupCache', null) as HeroMatchupCache | null
   const date = todayKey()
-  if (!force && current?.date === date && current.matchupCount > 0) {
+  const weekKey = getIsoWeekKey()
+  const now = Date.now()
+  const currentExpiresAt = current?.expiresAt ?? (current?.syncedAt ? current.syncedAt + HERO_MATCHUP_CACHE_TTL_MS : 0)
+  const isFresh = Boolean(current?.matchupCount && currentExpiresAt > now)
+
+  if (!force && current?.matchupCount) {
     return {
-      status: 'fresh',
-      message: `今日英雄克制数据已同步（${current.heroCount} 个英雄，${current.matchupCount} 条对位）。`,
+      status: isFresh ? 'fresh' : 'stale',
+      message: isFresh
+        ? `本周 matchup 矩阵仍有效（${current.heroCount} 个英雄，${current.matchupCount} 条对位，有效期至 ${formatDateTime(currentExpiresAt)}）。`
+        : `matchup 矩阵已过期，继续使用上次缓存（${current.date}）。建议在设置页手动同步本周矩阵。`,
       cache: current,
     }
+  }
+
+  if (!force && !current?.matchupCount) {
+    throw new Error('本地还没有 OpenDota matchup 矩阵。请先在设置页点击“同步本周 matchup 矩阵”。')
   }
 
   const matchups: HeroMatchupCache['matchups'] = {}
   const errors: string[] = []
 
-  await runLimited(OPEN_DOTA_HEROES, 3, async hero => {
+  await runLimited(OPEN_DOTA_HEROES, 1, async hero => {
     const heroName = openDotaHeroNameById.get(hero.id)
     if (!heroName) return
 
@@ -489,18 +583,23 @@ async function syncOpenDotaHeroMatchups(force = false): Promise<HeroMatchupSyncR
   if (matchupCount === 0) {
     if (current) {
       return {
-        status: 'fresh',
+        status: 'stale',
         message: `OpenDota 同步失败，继续使用上一次缓存（${current.date}）。`,
         cache: current,
       }
     }
-    throw new Error('OpenDota 英雄克制数据同步失败，且本地没有可用缓存。')
+    throw new Error('OpenDota matchup 矩阵同步失败，且本地没有可用缓存。')
   }
 
+  const syncedAt = Date.now()
   const cache: HeroMatchupCache = {
     source: 'opendota',
-    syncedAt: Date.now(),
+    version: 1,
+    syncedAt,
     date,
+    weekKey,
+    expiresAt: syncedAt + HERO_MATCHUP_CACHE_TTL_MS,
+    complete: errors.length === 0 && Object.keys(matchups).length === OPEN_DOTA_HEROES.length,
     heroCount: Object.keys(matchups).length,
     matchupCount,
     matchups,
@@ -511,8 +610,8 @@ async function syncOpenDotaHeroMatchups(force = false): Promise<HeroMatchupSyncR
   return {
     status: errors.length > 0 ? 'partial' : 'synced',
     message: errors.length > 0
-      ? `已部分同步英雄克制数据（${cache.heroCount}/${OPEN_DOTA_HEROES.length} 个英雄）。`
-      : `已同步英雄克制数据（${cache.heroCount} 个英雄，${cache.matchupCount} 条对位）。`,
+      ? `已部分同步本周 matchup 矩阵（${cache.heroCount}/${OPEN_DOTA_HEROES.length} 个英雄，限速 1 req/sec）。`
+      : `已同步本周 matchup 矩阵（${cache.weekKey}，${cache.heroCount} 个英雄，${cache.matchupCount} 条对位）。`,
     cache,
   }
 }
@@ -668,6 +767,14 @@ ipcMain.handle('store:getCycles', () => store.get('cycles', []))
 ipcMain.handle('opendota:importMatch', async (_, matchIdInput: string): Promise<OpenDotaImportedMatch> => {
   const matchId = normalizeMatchId(matchIdInput)
   return fetchOpenDotaImportedMatch(matchId, getOpenDotaAccountId())
+})
+
+ipcMain.handle('opendota:autoImportLatestMatch', async (_, existingMatchIds?: string[]): Promise<OpenDotaImportedMatch> => {
+  return autoImportLatestOpenDotaMatch(Array.isArray(existingMatchIds) ? existingMatchIds : [])
+})
+
+ipcMain.handle('opendota:getRecentMatches', async (_, existingMatchIds?: string[]): Promise<OpenDotaRecentMatch[]> => {
+  return listRecentOpenDotaMatches(Array.isArray(existingMatchIds) ? existingMatchIds : [])
 })
 
 ipcMain.handle('opendota:requestParse', async (_, matchIdInput: string): Promise<OpenDotaParseRequestResult> => {
