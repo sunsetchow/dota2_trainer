@@ -68,6 +68,10 @@ export default function Settings() {
     return '未分级'
   }
 
+  const formatCacheTime = (ts?: number) => ts
+    ? new Date(ts).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+    : '未知'
+
   const handleExport = async () => {
     setExporting(true)
     try {
@@ -130,7 +134,7 @@ export default function Settings() {
 
   const handleSyncMatchups = async () => {
     setSyncingMatchups(true)
-    setStatusMsg('正在同步英雄克制数据，首次同步可能需要 1-3 分钟。')
+    setStatusMsg('正在同步本周 matchup 矩阵，限速 1 req/sec，完整同步约 2 分钟。')
     try {
       const result = await window.electronStore.syncOpenDotaHeroMatchups(true)
       setMatchupCache(result.cache)
@@ -304,8 +308,8 @@ export default function Settings() {
         </button>
         <div className="pt-2 space-y-2">
           <p className="text-xs text-[var(--text-muted)]">
-            英雄克制缓存：{matchupCache
-              ? `${matchupCache.date} · ${matchupCache.heroCount} 个英雄 · ${matchupCache.matchupCount} 条对位`
+            本周 matchup 矩阵：{matchupCache
+              ? `${matchupCache.weekKey ?? matchupCache.date} · ${matchupCache.heroCount} 个英雄 · ${matchupCache.matchupCount} 条对位 · 有效期至 ${formatCacheTime(matchupCache.expiresAt)}`
               : '尚未同步'}
           </p>
           <button
@@ -314,7 +318,7 @@ export default function Settings() {
             disabled={syncingMatchups}
             className="w-full py-2.5 rounded-lg border border-[var(--border)] text-sm font-medium text-[var(--text-secondary)] hover:border-[var(--accent-border)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            {syncingMatchups ? '同步中…' : '立即同步英雄克制数据'}
+            {syncingMatchups ? '同步中…' : '同步本周 matchup 矩阵'}
           </button>
         </div>
       </div>

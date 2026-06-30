@@ -228,7 +228,7 @@ export default function DraftAssistant() {
       })
       .catch(() => undefined)
 
-    setSyncStatus('正在检查今日英雄克制数据')
+    setSyncStatus('正在检查本周 matchup 矩阵缓存')
     window.electronStore.syncOpenDotaHeroMatchups(false)
       .then(result => {
         if (cancelled) return
@@ -313,7 +313,7 @@ export default function DraftAssistant() {
           <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="mb-2 flex flex-wrap items-center gap-2">
-                <Badge tone={matchupCache ? 'info' : 'neutral'}>{matchupCache ? `OpenDota ${matchupCache.date}` : '本地克制表'}</Badge>
+                <Badge tone={matchupCache ? 'info' : 'neutral'}>{matchupCache ? `矩阵 ${matchupCache.weekKey ?? matchupCache.date}` : '本地克制表'}</Badge>
                 {enemyHeroes.length > 0 && <Badge tone="accent">已识别 {enemyHeroes.length} 个敌方英雄</Badge>}
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] md:text-3xl">三号位 Draft 助手</h1>

@@ -178,7 +178,7 @@ export interface OpenDotaParseRequestResult {
   jobId?: string;
 }
 
-// ── 英雄克制缓存（OpenDota 每日同步）
+// ── 英雄克制缓存（OpenDota 每周矩阵）
 export interface HeroMatchupStats {
   gamesPlayed: number;
   wins: number;
@@ -188,8 +188,12 @@ export interface HeroMatchupStats {
 
 export interface HeroMatchupCache {
   source: 'opendota';
+  version?: number;
   syncedAt: number;
   date: string;
+  weekKey?: string;
+  expiresAt?: number;
+  complete?: boolean;
   heroCount: number;
   matchupCount: number;
   matchups: Record<string, Record<string, HeroMatchupStats>>;
@@ -197,7 +201,7 @@ export interface HeroMatchupCache {
 }
 
 export interface HeroMatchupSyncResult {
-  status: 'fresh' | 'synced' | 'partial';
+  status: 'fresh' | 'synced' | 'partial' | 'stale';
   message: string;
   cache: HeroMatchupCache;
 }

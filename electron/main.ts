@@ -497,6 +497,22 @@ function dateKeyFromDate(date: Date): string {
   return `${year}-${month}-${day}`
 }
 
+const HERO_MATCHUP_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+function getIsoWeekKey(date = new Date()): string {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const day = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - day)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  const week = Math.ceil((((d.getTime() - yearStart.getTime()) / 86_400_000) + 1) / 7)
+  return `${d.getUTCFullYear()}-W${String(week).padStart(2, '0')}`
+}
+
+function formatDateTime(ts?: number): string {
+  if (!ts) return '未知'
+  return new Date(ts).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
+
 async function runLimited<T>(items: T[], limit: number, task: (item: T) => Promise<void>): Promise<void> {
   let index = 0
   const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
@@ -504,7 +520,7 @@ async function runLimited<T>(items: T[], limit: number, task: (item: T) => Promi
       const item = items[index]
       index += 1
       await task(item)
-      await sleep(250)
+      await sleep(1100)
     }
   })
   await Promise.all(workers)
@@ -513,18 +529,29 @@ async function runLimited<T>(items: T[], limit: number, task: (item: T) => Promi
 async function syncOpenDotaHeroMatchups(force = false): Promise<HeroMatchupSyncResult> {
   const current = store.get('heroMatchupCache', null) as HeroMatchupCache | null
   const date = todayKey()
-  if (!force && current?.date === date && current.matchupCount > 0) {
+  const weekKey = getIsoWeekKey()
+  const now = Date.now()
+  const currentExpiresAt = current?.expiresAt ?? (current?.syncedAt ? current.syncedAt + HERO_MATCHUP_CACHE_TTL_MS : 0)
+  const isFresh = Boolean(current?.matchupCount && currentExpiresAt > now)
+
+  if (!force && current?.matchupCount) {
     return {
-      status: 'fresh',
-      message: `今日英雄克制数据已同步（${current.heroCount} 个英雄，${current.matchupCount} 条对位）。`,
+      status: isFresh ? 'fresh' : 'stale',
+      message: isFresh
+        ? `本周 matchup 矩阵仍有效（${current.heroCount} 个英雄，${current.matchupCount} 条对位，有效期至 ${formatDateTime(currentExpiresAt)}）。`
+        : `matchup 矩阵已过期，继续使用上次缓存（${current.date}）。建议在设置页手动同步本周矩阵。`,
       cache: current,
     }
+  }
+
+  if (!force && !current?.matchupCount) {
+    throw new Error('本地还没有 OpenDota matchup 矩阵。请先在设置页点击“同步本周 matchup 矩阵”。')
   }
 
   const matchups: HeroMatchupCache['matchups'] = {}
   const errors: string[] = []
 
-  await runLimited(OPEN_DOTA_HEROES, 3, async hero => {
+  await runLimited(OPEN_DOTA_HEROES, 1, async hero => {
     const heroName = openDotaHeroNameById.get(hero.id)
     if (!heroName) return
 
@@ -556,18 +583,23 @@ async function syncOpenDotaHeroMatchups(force = false): Promise<HeroMatchupSyncR
   if (matchupCount === 0) {
     if (current) {
       return {
-        status: 'fresh',
+        status: 'stale',
         message: `OpenDota 同步失败，继续使用上一次缓存（${current.date}）。`,
         cache: current,
       }
     }
-    throw new Error('OpenDota 英雄克制数据同步失败，且本地没有可用缓存。')
+    throw new Error('OpenDota matchup 矩阵同步失败，且本地没有可用缓存。')
   }
 
+  const syncedAt = Date.now()
   const cache: HeroMatchupCache = {
     source: 'opendota',
-    syncedAt: Date.now(),
+    version: 1,
+    syncedAt,
     date,
+    weekKey,
+    expiresAt: syncedAt + HERO_MATCHUP_CACHE_TTL_MS,
+    complete: errors.length === 0 && Object.keys(matchups).length === OPEN_DOTA_HEROES.length,
     heroCount: Object.keys(matchups).length,
     matchupCount,
     matchups,
@@ -578,8 +610,8 @@ async function syncOpenDotaHeroMatchups(force = false): Promise<HeroMatchupSyncR
   return {
     status: errors.length > 0 ? 'partial' : 'synced',
     message: errors.length > 0
-      ? `已部分同步英雄克制数据（${cache.heroCount}/${OPEN_DOTA_HEROES.length} 个英雄）。`
-      : `已同步英雄克制数据（${cache.heroCount} 个英雄，${cache.matchupCount} 条对位）。`,
+      ? `已部分同步本周 matchup 矩阵（${cache.heroCount}/${OPEN_DOTA_HEROES.length} 个英雄，限速 1 req/sec）。`
+      : `已同步本周 matchup 矩阵（${cache.weekKey}，${cache.heroCount} 个英雄，${cache.matchupCount} 条对位）。`,
     cache,
   }
 }
