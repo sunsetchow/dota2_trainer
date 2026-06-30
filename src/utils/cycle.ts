@@ -14,8 +14,12 @@ export function dateFromDateKey(dateKey: string): Date {
 }
 
 export function getWeekForTimestamp(ts: number, cycle: TrainingCycle): number {
-  const start = new Date(cycle.startDate).getTime()
-  const diffDays = Math.floor((ts - start) / 86_400_000)
+  const startDate = dateFromDateKey(cycle.startDate)
+  startDate.setHours(0, 0, 0, 0)
+  const targetDate = new Date(ts)
+  targetDate.setHours(0, 0, 0, 0)
+  const start = startDate.getTime()
+  const diffDays = Math.floor((targetDate.getTime() - start) / 86_400_000)
   return Math.max(0, Math.floor(diffDays / 7))
 }
 
@@ -24,8 +28,12 @@ export function getCurrentWeek(cycle: TrainingCycle): number {
 }
 
 export function getDaysElapsed(cycle: TrainingCycle): number {
-  const start = new Date(cycle.startDate).getTime()
-  return Math.max(0, Math.floor((Date.now() - start) / 86_400_000))
+  const startDate = dateFromDateKey(cycle.startDate)
+  startDate.setHours(0, 0, 0, 0)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const diffDays = Math.floor((today.getTime() - startDate.getTime()) / 86_400_000)
+  return diffDays < 0 ? 0 : diffDays + 1
 }
 
 // calcStreak: 今日未打卡时沿用昨天的 streak 而非归零

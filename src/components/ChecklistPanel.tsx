@@ -62,7 +62,7 @@ export default function ChecklistPanel({ cycle, existingCheckin, onSave }: Check
   }
 
   const dimensionColor: Record<string, string> = {
-    ops: 'text-blue-400',
+    ops: 'text-[var(--text-info)]',
     pregame: 'text-purple-400',
     economy: 'text-yellow-400',
     combat: 'text-red-400',
@@ -82,8 +82,8 @@ export default function ChecklistPanel({ cycle, existingCheckin, onSave }: Check
             onClick={() => handleSessionTypeChange(type)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-all ${
               sessionType === type
-                ? 'border-blue-500 bg-blue-500/20 text-blue-300'
-                : 'border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-secondary)] hover:border-blue-400'
+                ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-strong)]'
+                : 'border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-secondary)] hover:border-[var(--accent-border)]'
             }`}
           >
             {type}
@@ -96,13 +96,13 @@ export default function ChecklistPanel({ cycle, existingCheckin, onSave }: Check
         {visibleItems.map(item => (
           <label
             key={item.id}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] cursor-pointer hover:border-blue-400/50 transition-colors"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] cursor-pointer hover:border-[var(--accent-border)] transition-colors"
           >
             <input
               type="checkbox"
               checked={checkedItems.includes(item.id)}
               onChange={() => toggle(item.id)}
-              className="w-4 h-4 rounded accent-blue-500"
+              className="w-4 h-4 rounded accent-[var(--accent)]"
             />
             <span className="flex-1 text-sm text-[var(--text-primary)]">{item.label}</span>
             <span className={`text-xs font-medium ${dimensionColor[item.dimension] ?? 'text-[var(--text-muted)]'}`}>
@@ -127,7 +127,7 @@ export default function ChecklistPanel({ cycle, existingCheckin, onSave }: Check
           <button
             type="button"
             onClick={handleSave}
-            className="px-4 py-1.5 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-500 transition-colors"
+            className="px-4 py-1.5 rounded-lg text-sm font-semibold bg-[var(--accent)] text-[var(--text-primary)] hover:bg-[var(--accent-strong)] transition-colors"
           >
             保存打卡
           </button>

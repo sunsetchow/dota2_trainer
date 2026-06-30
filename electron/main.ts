@@ -3,7 +3,7 @@ import { writeFile } from 'fs/promises'
 import { join } from 'path'
 import store from './store.ts'
 import opendotaHeroes from '../src/data/opendotaHeroes.json'
-import type { AppState, TrainingCycle, MatchLog, PreGameSetup, DailyCheckin, MMRLog, HeroNote, OpenDotaImportedMatch, OpenDotaParseRequestResult, HeroMatchupCache, HeroMatchupStats, HeroMatchupSyncResult } from '../src/types'
+import type { AppState, TrainingCycle, MatchLog, PreGameSetup, DailyCheckin, MMRLog, HeroNote, OpenDotaImportedMatch, OpenDotaParseRequestResult, OpenDotaRecentMatch, HeroMatchupCache, HeroMatchupStats, HeroMatchupSyncResult } from '../src/types'
 
 interface OpenDotaPlayer {
   account_id?: number;
@@ -66,6 +66,18 @@ interface OpenDotaHeroMatchupResponseItem {
   hero_id?: number;
   games_played?: number;
   wins?: number;
+}
+
+interface OpenDotaRecentMatchResponseItem {
+  match_id?: number;
+  hero_id?: number;
+  start_time?: number;
+  duration?: number;
+  radiant_win?: boolean;
+  player_slot?: number;
+  kills?: number;
+  deaths?: number;
+  assists?: number;
 }
 
 const OPEN_DOTA_HEROES = opendotaHeroes as OpenDotaHeroMeta[]
@@ -360,6 +372,61 @@ async function fetchOpenDotaImportedMatch(matchId: string, accountId: string, ti
   } finally {
     clearTimeout(timeout)
   }
+}
+
+async function autoImportLatestOpenDotaMatch(existingMatchIds: string[] = []): Promise<OpenDotaImportedMatch> {
+  const accountId = getOpenDotaAccountId()
+  const known = new Set(existingMatchIds.map(String))
+  const recent = await fetchOpenDotaJson<OpenDotaRecentMatchResponseItem[]>(`/players/${accountId}/recentMatches`, 15_000)
+  const candidates = recent
+    .map(row => row.match_id)
+    .filter((id): id is number => typeof id === 'number' && Number.isFinite(id))
+    .map(String)
+    .filter(matchId => !known.has(matchId))
+
+  if (candidates.length === 0) {
+    throw new Error('OpenDota 最近对局里没有找到未记录的新比赛。')
+  }
+
+  let lastError: Error | null = null
+  for (const matchId of candidates.slice(0, 5)) {
+    try {
+      return await fetchOpenDotaImportedMatch(matchId, accountId, 20_000)
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+    }
+  }
+
+  throw new Error(lastError?.message ?? '最近几场比赛暂时无法导入，可能还没有解析。')
+}
+
+async function listRecentOpenDotaMatches(existingMatchIds: string[] = []): Promise<OpenDotaRecentMatch[]> {
+  const accountId = getOpenDotaAccountId()
+  const known = new Set(existingMatchIds.map(String))
+  const recent = await fetchOpenDotaJson<OpenDotaRecentMatchResponseItem[]>(`/players/${accountId}/recentMatches`, 15_000)
+
+  return recent
+    .filter(row => typeof row.match_id === 'number' && Number.isFinite(row.match_id))
+    .slice(0, 10)
+    .map(row => {
+      const isRadiant = typeof row.player_slot === 'number' ? row.player_slot < 128 : undefined
+      const result = typeof row.radiant_win === 'boolean' && isRadiant !== undefined
+        ? (row.radiant_win === isRadiant ? 'win' as const : 'loss' as const)
+        : undefined
+      const matchId = String(row.match_id)
+      return {
+        matchId,
+        heroId: row.hero_id,
+        heroName: row.hero_id ? openDotaHeroNameById.get(row.hero_id) : undefined,
+        timestamp: row.start_time ? row.start_time * 1000 : undefined,
+        durationMin: row.duration ? Math.max(1, Math.round(row.duration / 60)) : undefined,
+        result,
+        kills: row.kills,
+        deaths: row.deaths,
+        assists: row.assists,
+        recorded: known.has(matchId),
+      }
+    })
 }
 
 async function requestOpenDotaParse(matchId: string, timeoutMs = 15_000): Promise<OpenDotaParseRequestResult> {
@@ -668,6 +735,14 @@ ipcMain.handle('store:getCycles', () => store.get('cycles', []))
 ipcMain.handle('opendota:importMatch', async (_, matchIdInput: string): Promise<OpenDotaImportedMatch> => {
   const matchId = normalizeMatchId(matchIdInput)
   return fetchOpenDotaImportedMatch(matchId, getOpenDotaAccountId())
+})
+
+ipcMain.handle('opendota:autoImportLatestMatch', async (_, existingMatchIds?: string[]): Promise<OpenDotaImportedMatch> => {
+  return autoImportLatestOpenDotaMatch(Array.isArray(existingMatchIds) ? existingMatchIds : [])
+})
+
+ipcMain.handle('opendota:getRecentMatches', async (_, existingMatchIds?: string[]): Promise<OpenDotaRecentMatch[]> => {
+  return listRecentOpenDotaMatches(Array.isArray(existingMatchIds) ? existingMatchIds : [])
 })
 
 ipcMain.handle('opendota:requestParse', async (_, matchIdInput: string): Promise<OpenDotaParseRequestResult> => {

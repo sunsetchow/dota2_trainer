@@ -25,8 +25,8 @@ export default function History() {
   const heroes = [...new Set(matchLogs.map(l => l.hero))].sort()
 
   const btnBase = "px-3 py-1 rounded-lg text-xs font-medium border transition-all"
-  const btnActive = "border-blue-500 bg-blue-500/20 text-blue-300"
-  const btnInactive = "border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-muted)] hover:border-blue-400"
+  const btnActive = "border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-strong)]"
+  const btnInactive = "border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-muted)] hover:border-[var(--accent-border)]"
 
   return (
     <div className="p-6 space-y-4 max-w-2xl mx-auto">
@@ -98,7 +98,7 @@ export default function History() {
             type="button"
             key={log.id}
             onClick={() => navigate(`/history/${log.id}`)}
-            className="w-full text-left p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] hover:border-blue-400 transition-all space-y-2"
+            className="w-full text-left p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] hover:border-[var(--accent-border)] transition-all space-y-2"
           >
             <div className="flex items-center gap-3">
               <span className={`text-xs font-bold px-2 py-0.5 rounded ${
@@ -110,7 +110,7 @@ export default function History() {
               </span>
               <span className="font-medium text-[var(--text-primary)] flex-1">{log.hero}</span>
               {log.source === 'opendota' && (
-                <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/30">
+                <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--bg-info)] text-[var(--text-info)] border border-[var(--border-info)]">
                   OpenDota
                 </span>
               )}
@@ -137,7 +137,7 @@ export default function History() {
                   </span>
                 )}
                 {log.reviewDimension && (
-                  <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-300">
+                  <span className="px-1.5 py-0.5 rounded bg-[var(--bg-info)] text-[var(--text-info)]">
                     复盘：{getReviewDimensionLabel(log.reviewDimension)}{log.reviewTopic ? ` · ${log.reviewTopic}` : ''}
                   </span>
                 )}

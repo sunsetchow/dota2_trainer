@@ -1,97 +1,195 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppState } from '../store/useStore.ts'
 import { resolve, getSugg, getPool, getSupMap, getCounters, getCountered } from '../utils/heroes.ts'
-import type { HeroMatchupCache } from '../types'
+import type { HeroConfig, HeroMatchupCache } from '../types'
+import Button from '../components/ui/Button.tsx'
+import Card from '../components/ui/Card.tsx'
+import Badge from '../components/ui/Badge.tsx'
+import Banner from '../components/ui/Banner.tsx'
 
 const POOL = getPool()
 const SUP_MAP = getSupMap()
 const COUNTERS = getCounters()
 const COUNTERED = getCountered()
 
-const Badge = ({ val, type }: { val: number; type: 'good' | 'bad' }) => {
-  const s = type === 'good'
-    ? { bg: 'var(--bg-success)', color: 'var(--text-success)' }
-    : { bg: 'var(--bg-danger)', color: 'var(--text-danger)' }
-  return (
-    <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 4, background: s.bg, color: s.color, fontWeight: 500 }}>
-      {val > 0 ? '+' : ''}{val.toFixed(1)}%
-    </span>
-  )
-}
-
-interface HeroCardProps {
+interface RankedHero {
   hero: string
   threat: number
   cScore: number
-  counters: Record<string, number>
-  threats: Record<string, number>
-  topIdx: number
-  onSelect: (hero: string) => void
-  isInPool: boolean
+  poolTier?: HeroConfig['tier']
+  poolWeight: number
 }
 
-const HeroCard = ({ hero, threat, cScore, counters, threats, topIdx, onSelect, isInPool }: HeroCardProps) => {
-  const [open, setOpen] = useState(false)
-  const cList = Object.entries(counters).sort((a, b) => b[1] - a[1]).slice(0, 6)
-  const tList = Object.entries(threats).sort((a, b) => b[1] - a[1]).slice(0, 5)
-  const isTop = topIdx === 0 && !threat
-  const isTh = threat > 0
-  const bc = isTop ? 'var(--border-success)' : isTh ? 'var(--border-danger)' : 'var(--border)'
-  const bg = isTop ? 'var(--bg-success)' : isTh ? 'var(--bg-danger)' : 'var(--surface-1)'
+function tierLabel(tier?: HeroConfig['tier']): string {
+  if (tier === 'main') return '主力'
+  if (tier === 'practice') return '练习'
+  if (tier === 'backup') return '备用'
+  return '池外'
+}
+
+function getPoolWeight(tier?: HeroConfig['tier'], active = false): number {
+  if (!active) return -12
+  if (tier === 'main') return 8
+  if (tier === 'practice' || !tier) return 3
+  if (tier === 'backup') return -4
+  return 0
+}
+
+function PercentBadge({ value, tone }: { value: number; tone: 'success' | 'danger' }) {
+  return <Badge tone={tone} className="number">{value > 0 ? '+' : ''}{value.toFixed(1)}%</Badge>
+}
+
+function getRecommendationTone(item: RankedHero, index: number): 'success' | 'accent' | 'warning' {
+  if (index <= 2 && item.threat <= 0) return 'success'
+  if (item.threat > 0) return 'warning'
+  return 'accent'
+}
+
+function getRecommendationLabel(item: RankedHero, index: number): string {
+  if (index <= 2 && item.threat <= 0) return '推荐'
+  if (item.threat > 0) return '谨慎'
+  return '可选'
+}
+
+function buildReason(item: RankedHero, enemyCount: number, hasCarry: boolean): string[] {
+  const reasons: string[] = []
+  if (item.poolTier === 'main') reasons.push('主力英雄，适合冲分优先考虑')
+  if (item.poolTier === 'backup') reasons.push('备用英雄，仅在阵容特别适合时选择')
+  if (item.threat <= 0 && enemyCount > 0) reasons.push(hasCarry ? '当前核心/辅助没有形成明显克制压力' : '当前输入的辅助没有形成明显克制压力')
+  if (item.cScore > 0) reasons.push('对常见核心有可用的 counter 价值')
+  if (item.threat > 0) reasons.push('这局存在被辅助针对的风险，需要更稳的对线计划')
+  if (reasons.length === 0) reasons.push('数据不足，优先按英雄熟练度和本周训练目标判断')
+  return reasons.slice(0, 2)
+}
+
+function buildRisk(item: RankedHero): string {
+  if (item.threat > 0) return '开局先保经验和关键补刀，不要为了换血把线打崩。'
+  if (item.cScore <= 0) return '缺少足够对位数据，锁定前先确认自己是否熟练。'
+  return '如果对方后续补出高机动核心，第一件关键装前不要硬接无视野团。'
+}
+
+function SuggestionBox({ items, onSelect }: { items: string[]; onSelect: (hero: string) => void }) {
+  if (!items.length) return null
+  return (
+    <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-2)] shadow-lg">
+      {items.map(item => (
+        <button
+          key={item}
+          type="button"
+          onMouseDown={() => onSelect(item)}
+          className="block w-full px-3 py-2 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-1)]"
+        >
+          {item}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function EnemyInput({
+  label,
+  value,
+  suggestions,
+  focused,
+  setFocused,
+  onChange,
+}: {
+  label: string
+  value: string
+  suggestions: string[]
+  focused: boolean
+  setFocused: (value: boolean) => void
+  onChange: (value: string) => void
+}) {
+  return (
+    <div className="relative">
+      <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">{label}</label>
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setTimeout(() => setFocused(false), 150)}
+        placeholder="如：屠夫、先知、AA、CM"
+        className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-border)] focus:outline-none"
+      />
+      {focused && <SuggestionBox items={suggestions} onSelect={hero => { onChange(hero); setFocused(false) }} />}
+    </div>
+  )
+}
+
+function DraftHeroCard({
+  item,
+  index,
+  selected,
+  isInPool,
+  tier,
+  enemyCount,
+  hasCarry,
+  onClick,
+}: {
+  item: RankedHero
+  index: number
+  selected: boolean
+  isInPool: boolean
+  tier?: HeroConfig['tier']
+  enemyCount: number
+  hasCarry: boolean
+  onClick: () => void
+}) {
+  const tone = getRecommendationTone(item, index)
+  const reasons = buildReason(item, enemyCount, hasCarry)
 
   return (
-    <div
-      style={{ cursor: 'pointer', border: `0.5px solid ${bc}`, borderRadius: 10, padding: '12px 14px', marginBottom: 8, background: bg }}
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full rounded-[var(--radius-lg)] border p-4 text-left transition-all active:translate-y-px ${
+        selected
+          ? 'border-[var(--accent-border)] bg-[var(--accent-muted)]'
+          : 'border-[var(--border)] bg-[var(--surface-1)] hover:border-[var(--accent-border)] hover:bg-[var(--surface-2)]'
+      }`}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }} onClick={() => setOpen(o => !o)}>
-          <span style={{ width: 30, height: 30, borderRadius: 6, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>
-            {hero.slice(0, 1)}
-          </span>
-          <span style={{ fontWeight: 500, fontSize: 15, color: 'var(--text-primary)' }}>{hero}</span>
-          {isTh && <Badge val={-threat} type="bad" />}
-          {isTop && (
-            <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 4, background: 'var(--bg-success)', color: 'var(--text-success)', fontWeight: 500 }}>推荐</span>
-          )}
-          {!isInPool && (
-            <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 4, background: 'var(--bg-warning)', color: 'var(--text-warning)', fontWeight: 500 }}>不在池中</span>
-          )}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--surface-2)] text-sm font-semibold text-[var(--text-secondary)]">
+              {item.hero.slice(0, 1)}
+            </span>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold text-[var(--text-primary)]">{item.hero}</div>
+              <div className="number mt-0.5 text-xs text-[var(--text-muted)]">综合 {Math.round(item.cScore - item.threat * 2)}</div>
+            </div>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>counter强度</span>
-          <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-success)' }}>{cScore.toFixed(1)}%</span>
-          <button
-            type="button"
-            onClick={() => onSelect(hero)}
-            style={{ fontSize: 11, padding: '2px 10px', borderRadius: 6, background: 'var(--border)', color: 'var(--text-primary)', border: '0.5px solid var(--border)', cursor: 'pointer' }}
-          >
-            选择 →
-          </button>
-          <span style={{ color: 'var(--text-muted)', fontSize: 11 }} onClick={() => setOpen(o => !o)}>{open ? '▲' : '▼'}</span>
+        <div className="flex shrink-0 flex-wrap justify-end gap-1">
+          <Badge tone={tone}>{getRecommendationLabel(item, index)}</Badge>
+          <Badge tone={isInPool ? 'neutral' : 'warning'}>{tierLabel(tier)}</Badge>
         </div>
       </div>
-      {open && (
-        <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, borderTop: '0.5px solid var(--border)', paddingTop: 12 }}>
-          <div>
-            <div style={{ fontSize: 11, color: 'var(--text-success)', fontWeight: 500, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>克制对手</div>
-            {cList.map(([h, v]) => (
-              <div key={h} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '0.5px solid var(--border)' }}>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{h}</span>
-                <Badge val={v} type="good" />
-              </div>
-            ))}
-          </div>
-          <div>
-            <div style={{ fontSize: 11, color: 'var(--text-danger)', fontWeight: 500, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>注意被克</div>
-            {tList.map(([h, v]) => (
-              <div key={h} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '0.5px solid var(--border)' }}>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{h}</span>
-                <Badge val={-v} type="bad" />
-              </div>
-            ))}
-          </div>
+      <div className="mt-3 space-y-1 text-xs leading-5 text-[var(--text-secondary)]">
+        {reasons.map(reason => <div key={reason}>{reason}</div>)}
+      </div>
+    </button>
+  )
+}
+
+function DetailList({ title, data, tone }: { title: string; data: Record<string, number>; tone: 'success' | 'danger' }) {
+  const entries = Object.entries(data).sort((a, b) => b[1] - a[1]).slice(0, 6)
+  return (
+    <div>
+      <div className={`mb-2 text-xs font-semibold ${tone === 'success' ? 'text-[var(--text-success)]' : 'text-[var(--text-danger)]'}`}>{title}</div>
+      {entries.length > 0 ? (
+        <div className="space-y-1">
+          {entries.map(([hero, value]) => (
+            <div key={hero} className="flex items-center justify-between gap-2 rounded-[var(--radius-sm)] bg-[var(--surface-2)] px-2 py-1.5">
+              <span className="truncate text-xs text-[var(--text-secondary)]">{hero}</span>
+              <PercentBadge value={tone === 'success' ? value : -value} tone={tone} />
+            </div>
+          ))}
         </div>
+      ) : (
+        <div className="rounded-[var(--radius-sm)] border border-dashed border-[var(--border)] px-3 py-4 text-xs text-[var(--text-muted)]">暂无数据</div>
       )}
     </div>
   )
@@ -100,18 +198,26 @@ const HeroCard = ({ hero, threat, cScore, counters, threats, topIdx, onSelect, i
 export default function DraftAssistant() {
   const navigate = useNavigate()
   const { appState } = useAppState()
+  const [carry, setCarry] = useState('')
   const [s1, setS1] = useState('')
   const [s2, setS2] = useState('')
+  const [fCarry, setFCarry] = useState(false)
   const [f1, setF1] = useState(false)
   const [f2, setF2] = useState(false)
   const [matchupCache, setMatchupCache] = useState<HeroMatchupCache | null>(null)
   const [syncStatus, setSyncStatus] = useState('')
+  const [selectedHero, setSelectedHero] = useState<string>('')
 
-  // 当前英雄池（只显示已激活的英雄）
-  const activePool = appState?.heroPool.filter(h => h.active).map(h => h.name) ?? POOL
-
+  const configuredPool = appState?.heroPool ?? []
+  const activePool = configuredPool.filter(h => h.active).map(h => h.name)
+  const poolByHero = new Map(configuredPool.map(item => [item.name, item]))
+  const minGames = appState?.openDota?.matchupMinGames ?? 50
+  const sgCarry = carry ? getSugg(carry) : []
   const sg1 = s1 ? getSugg(s1) : []
   const sg2 = s2 ? getSugg(s2) : []
+  const enemyCarry = resolve(carry)
+  const enemySupports = [resolve(s1), resolve(s2)].filter(Boolean) as string[]
+  const enemyHeroes = [enemyCarry, ...enemySupports].filter(Boolean) as string[]
 
   useEffect(() => {
     let cancelled = false
@@ -122,7 +228,7 @@ export default function DraftAssistant() {
       })
       .catch(() => undefined)
 
-    setSyncStatus('正在检查今日英雄克制数据…')
+    setSyncStatus('正在检查今日英雄克制数据')
     window.electronStore.syncOpenDotaHeroMatchups(false)
       .then(result => {
         if (cancelled) return
@@ -134,14 +240,12 @@ export default function DraftAssistant() {
         setSyncStatus(error instanceof Error ? error.message : String(error))
       })
 
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
 
   const getDynamicAdvantage = (hero: string, enemy: string): number | null => {
     const stats = matchupCache?.matchups[hero]?.[enemy]
-    if (!stats || stats.gamesPlayed < 50) return null
+    if (!stats || stats.gamesPlayed < minGames) return null
     return stats.advantage
   }
 
@@ -149,7 +253,7 @@ export default function DraftAssistant() {
     const matchups = matchupCache?.matchups[hero]
     if (!matchups) return 0
     const topAdvantages = Object.values(matchups)
-      .filter(stats => stats.gamesPlayed >= 50 && stats.advantage > 0)
+      .filter(stats => stats.gamesPlayed >= minGames && stats.advantage > 0)
       .sort((a, b) => b.advantage - a.advantage)
       .slice(0, 10)
       .map(stats => stats.advantage)
@@ -159,119 +263,155 @@ export default function DraftAssistant() {
 
   const threatMap = useMemo(() => {
     const c1 = resolve(s1), c2 = resolve(s2)
-    const enemies = [c1, c2].filter((item): item is string => Boolean(item))
+    const c0 = resolve(carry)
+    const enemies = [c0, c1, c2].filter((item): item is string => Boolean(item))
     const m1 = c1 ? (SUP_MAP[c1] || {}) : {}
     const m2 = c2 ? (SUP_MAP[c2] || {}) : {}
     const out: Record<string, number> = {}
-    for (const h of POOL) {
+    for (const hero of POOL) {
       const dynamicThreat = enemies.reduce((sum, enemy) => {
-        const advantage = getDynamicAdvantage(h, enemy)
+        const advantage = getDynamicAdvantage(hero, enemy)
         return sum + (advantage === null ? 0 : Math.max(0, -advantage))
       }, 0)
-      const staticThreat = (m1[h] || 0) + (m2[h] || 0)
-      const sc = dynamicThreat > 0 ? dynamicThreat : staticThreat
-      if (sc > 0) out[h] = sc
+      const staticThreat = (m1[hero] || 0) + (m2[hero] || 0)
+      const score = dynamicThreat > 0 ? dynamicThreat : staticThreat
+      if (score > 0) out[hero] = score
     }
     return out
-  }, [s1, s2, matchupCache])
+  }, [carry, s1, s2, matchupCache, minGames])
 
-  const ranked = useMemo(() =>
-    POOL.map(h => ({
-      hero: h,
-      threat: threatMap[h] || 0,
-      cScore: getDynamicCounterScore(h) || Object.values(COUNTERS[h] || {}).reduce((a: number, b: number) => a + b, 0),
-    })).sort((a, b) => (b.cScore - b.threat * 2) - (a.cScore - a.threat * 2)),
-    [threatMap, matchupCache]
+  const ranked = useMemo<RankedHero[]>(() =>
+    POOL.map(hero => {
+      const config = poolByHero.get(hero)
+      const carryAdvantage = enemyCarry ? getDynamicAdvantage(hero, enemyCarry) ?? 0 : 0
+      const staticScore = Object.values(COUNTERS[hero] || {}).reduce((a: number, b: number) => a + b, 0)
+      return {
+        hero,
+        threat: threatMap[hero] || 0,
+        cScore: (getDynamicCounterScore(hero) || staticScore) + Math.max(0, carryAdvantage) * 1.4,
+        poolTier: config?.tier,
+        poolWeight: getPoolWeight(config?.tier, Boolean(config?.active)),
+      }
+    }).sort((a, b) => ((b.cScore - b.threat * 2) + b.poolWeight) - ((a.cScore - a.threat * 2) + a.poolWeight)),
+    [threatMap, matchupCache, configuredPool, enemyCarry, minGames]
   )
 
+  useEffect(() => {
+    if (!selectedHero && ranked.length > 0) setSelectedHero(ranked[0].hero)
+  }, [ranked, selectedHero])
+
+  const selected = ranked.find(item => item.hero === selectedHero) ?? ranked[0]
+
   const handleSelectHero = (hero: string) => {
-    const enemySupports = [resolve(s1), resolve(s2)].filter(Boolean) as string[]
-    navigate('/pre-game', { state: { hero, enemySupports } })
+    navigate('/pre-game', { state: { hero, enemySupports, enemyCarry } })
   }
-
-  const inp = {
-    width: '100%', boxSizing: 'border-box' as const, padding: '9px 12px',
-    border: '0.5px solid var(--border)', borderRadius: 'var(--radius)',
-    background: 'var(--surface-1)', color: 'var(--text-primary)', fontSize: 14,
-  }
-
-  const SuggBox = ({ items, onSelect }: { items: string[]; onSelect: (h: string) => void }) =>
-    !items.length ? null : (
-      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, background: 'var(--surface-2)', border: '0.5px solid var(--border)', borderRadius: 'var(--radius)', marginTop: 2, maxHeight: 180, overflowY: 'auto' }}>
-        {items.map(h => (
-          <div
-            key={h}
-            onMouseDown={() => onSelect(h)}
-            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: 'var(--text-primary)' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-1)')}
-            onMouseLeave={e => (e.currentTarget.style.background = '')}
-          >{h}</div>
-        ))}
-      </div>
-    )
 
   return (
-    <div style={{ padding: '0 0 24px', maxWidth: 700, margin: '0 auto' }}>
-      <div style={{ padding: '24px 24px 0' }}>
-        <div style={{ marginBottom: 18 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: 4 }}>
-            {matchupCache ? `OpenDota · ${matchupCache.date}` : '本地克制数据'}
-          </div>
-          <div style={{ fontSize: 20, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 2 }}>三号位 Draft 助手</div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>输入对方两个辅助（支持昵称：屠夫/先知/奶骑/冰女/AA/CM…）</div>
-          {syncStatus && (
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>{syncStatus}</div>
-          )}
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-          {([[s1, setS1, sg1, f1, setF1], [s2, setS2, sg2, f2, setF2]] as const).map(([val, setVal, sg, focus, setFocus], i) => (
-            <div key={i} style={{ position: 'relative' }}>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, marginBottom: 5 }}>对方辅助 {i + 1}</div>
-              <input
-                value={val}
-                onChange={e => setVal(e.target.value)}
-                onFocus={() => setFocus(true)}
-                onBlur={() => setTimeout(() => setFocus(false), 150)}
-                placeholder={i === 0 ? '如：屠夫、先知、奶骑…' : '如：AA、大树、CM…'}
-                style={inp}
-              />
-              {focus && <SuggBox items={sg} onSelect={h => { setVal(h); setFocus(false) }} />}
+    <div className="mx-auto max-w-[1280px] space-y-6 px-4 py-6 md:px-6">
+      <section className="grid gap-4 lg:grid-cols-[1.35fr_0.95fr]">
+        <Card className="p-5 md:p-6">
+          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <Badge tone={matchupCache ? 'info' : 'neutral'}>{matchupCache ? `OpenDota ${matchupCache.date}` : '本地克制表'}</Badge>
+                {enemyHeroes.length > 0 && <Badge tone="accent">已识别 {enemyHeroes.length} 个敌方英雄</Badge>}
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] md:text-3xl">三号位 Draft 助手</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">输入对方 1 号位和辅助，先看推荐理由，再锁定本局英雄和训练目标。</p>
             </div>
-          ))}
-        </div>
+          </div>
 
-        {Object.keys(threatMap).length > 0 && (
-          <div style={{ background: 'var(--bg-danger)', border: '0.5px solid var(--border-danger)', borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 14, fontSize: 13, color: 'var(--text-danger)' }}>
-            <strong>辅助克制警告：</strong>
-            {Object.entries(threatMap).sort((a, b) => b[1] - a[1]).map(([h, v]) => (
-              <span key={h} style={{ marginRight: 10 }}><b>{h}</b> <span style={{ color: 'var(--text-danger)' }}>-{v.toFixed(1)}%</span></span>
+          <div className="grid gap-3 md:grid-cols-3">
+            <EnemyInput label="对方 1 号位（可选）" value={carry} suggestions={sgCarry} focused={fCarry} setFocused={setFCarry} onChange={setCarry} />
+            <EnemyInput label="对方辅助 1" value={s1} suggestions={sg1} focused={f1} setFocused={setF1} onChange={setS1} />
+            <EnemyInput label="对方辅助 2" value={s2} suggestions={sg2} focused={f2} setFocused={setF2} onChange={setS2} />
+          </div>
+        </Card>
+
+        <Card className="p-5 md:p-6">
+          <div className="text-sm font-semibold text-[var(--text-primary)]">数据源状态</div>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{syncStatus || '等待同步状态'}</p>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="rounded-[var(--radius-md)] bg-[var(--surface-2)] p-3">
+              <div className="number text-lg font-semibold text-[var(--text-primary)]">{ranked.length}</div>
+              <div className="text-xs text-[var(--text-muted)]">候选英雄</div>
+            </div>
+            <div className="rounded-[var(--radius-md)] bg-[var(--surface-2)] p-3">
+              <div className="number text-lg font-semibold text-[var(--text-primary)]">{activePool.length}</div>
+              <div className="text-xs text-[var(--text-muted)]">英雄池内</div>
+            </div>
+          </div>
+        </Card>
+      </section>
+
+      {Object.keys(threatMap).length > 0 && (
+        <Banner tone="danger">
+          克制风险警告：{Object.entries(threatMap).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([hero, value]) => `${hero} -${value.toFixed(1)}%`).join('，')}
+        </Banner>
+      )}
+
+      <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold text-[var(--text-primary)]">推荐列表</h2>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">先读原因，再看数字。池外英雄会保留但降权处理。</p>
+            </div>
+          </div>
+          <div className="grid gap-3">
+            {ranked.map((item, index) => (
+              <DraftHeroCard
+                key={item.hero}
+                item={item}
+                index={index}
+                selected={selected?.hero === item.hero}
+                isInPool={activePool.includes(item.hero)}
+                enemyCount={enemyHeroes.length}
+                hasCarry={Boolean(enemyCarry)}
+                tier={item.poolTier}
+                onClick={() => setSelectedHero(item.hero)}
+              />
             ))}
           </div>
-        )}
-
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-          推荐选人（点击展开 · 点"选择"跳转赛前设定）
         </div>
-      </div>
 
-      <div style={{ padding: '0 24px' }}>
-        {ranked.map((r, i) => (
-          <HeroCard
-            key={r.hero}
-            {...r}
-            counters={COUNTERS[r.hero] || {}}
-            threats={COUNTERED[r.hero] || {}}
-            topIdx={i}
-            onSelect={handleSelectHero}
-            isInPool={activePool.includes(r.hero)}
-          />
-        ))}
-      </div>
+        <div className="lg:sticky lg:top-6 lg:self-start">
+          {selected ? (
+            <Card tone="raised" className="p-5 md:p-6">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <Badge tone={getRecommendationTone(selected, ranked.findIndex(item => item.hero === selected.hero))}>{getRecommendationLabel(selected, ranked.findIndex(item => item.hero === selected.hero))}</Badge>
+                  <h2 className="mt-3 text-2xl font-bold tracking-tight text-[var(--text-primary)]">{selected.hero}</h2>
+                  <p className="number mt-1 text-sm text-[var(--text-muted)]">counter {selected.cScore.toFixed(1)} / threat {selected.threat.toFixed(1)}</p>
+                </div>
+                <Badge tone={activePool.includes(selected.hero) ? 'neutral' : 'warning'}>{tierLabel(selected.poolTier)}</Badge>
+              </div>
 
-      <div style={{ marginTop: 16, fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
-        数据来源：{matchupCache ? `OpenDota 英雄对位缓存 · ${new Date(matchupCache.syncedAt).toLocaleString('zh-CN')}` : '本地手工克制表'}
-      </div>
+              <div className="mt-5 space-y-4">
+                <div>
+                  <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">为什么适合这局</div>
+                  <div className="space-y-2 text-sm leading-6 text-[var(--text-secondary)]">
+                    {buildReason(selected, enemyHeroes.length, Boolean(enemyCarry)).map(reason => <div key={reason}>{reason}</div>)}
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">需要注意</div>
+                  <p className="text-sm leading-6 text-[var(--text-secondary)]">{buildRisk(selected)}</p>
+                </div>
+
+                <Button variant="primary" size="lg" fullWidth onClick={() => handleSelectHero(selected.hero)}>锁定并进入赛前</Button>
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                <DetailList title="克制对手" data={COUNTERS[selected.hero] || {}} tone="success" />
+                <DetailList title="注意被克" data={COUNTERED[selected.hero] || {}} tone="danger" />
+              </div>
+            </Card>
+          ) : (
+            <Card className="p-6 text-sm text-[var(--text-muted)]">暂无推荐结果。</Card>
+          )}
+        </div>
+      </section>
     </div>
   )
 }

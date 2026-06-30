@@ -5,7 +5,7 @@ import { useAppState, useHeroNotes, useMatchLogs, useCycles } from '../store/use
 import HeroSelector from '../components/HeroSelector.tsx'
 import QuickSelect from '../components/QuickSelect.tsx'
 import { REVIEW_DIMENSIONS } from '../data/reviewDimensions.ts'
-import type { HeroNote, MatchLog, PreGameSetup, OpenDotaImportedMatch, TrainingDimension } from '../types'
+import type { HeroNote, MatchLog, PreGameSetup, OpenDotaImportedMatch, OpenDotaRecentMatch, TrainingDimension } from '../types'
 import { getCurrentWeek } from '../utils/cycle.ts'
 import { getOpenDotaHeroName } from '../utils/opendotaHeroes.ts'
 
@@ -239,14 +239,21 @@ export default function PostGame() {
   const [csAt10, setCsAt10] = useState('')
   const [matchId, setMatchId] = useState('')
   const [notes, setNotes] = useState('')
+  const [reviewClipDeath, setReviewClipDeath] = useState('')
+  const [reviewClipFight, setReviewClipFight] = useState('')
+  const [reviewClipObjective, setReviewClipObjective] = useState('')
 
   const [pendingSetup, setPendingSetup] = useState<PreGameSetup | null>(null)
   const [saving, setSaving] = useState(false)
   const [importingOpenDota, setImportingOpenDota] = useState(false)
+  const [autoImportingOpenDota, setAutoImportingOpenDota] = useState(false)
   const [analyzingOpenDota, setAnalyzingOpenDota] = useState(false)
   const [openDotaStatus, setOpenDotaStatus] = useState('')
   const [canRequestParse, setCanRequestParse] = useState(false)
   const [importedMatch, setImportedMatch] = useState<OpenDotaImportedMatch | null>(null)
+  const [recentMatches, setRecentMatches] = useState<OpenDotaRecentMatch[]>([])
+  const [loadingRecentMatches, setLoadingRecentMatches] = useState(false)
+  const [autoImportAttempted, setAutoImportAttempted] = useState(false)
 
   // 加载 pending 赛前设定
   useEffect(() => {
@@ -328,6 +335,7 @@ export default function PostGame() {
         ...(goodInitiations && { goodInitiations: parseInt(goodInitiations, 10) }),
         ...(draftScore > 0 && { draftScore: draftScore as 1 | 2 | 3 | 4 | 5 }),
         ...(csAt10 && { csAt10: parseInt(csAt10, 10) }),
+        ...(pendingSetup?.enemyCarry && { enemyCarry: pendingSetup.enemyCarry }),
         ...(cleanMatchId && { matchId: cleanMatchId }),
         ...(imported && {
           source: 'opendota' as const,
@@ -349,6 +357,9 @@ export default function PostGame() {
           opendotaImportedAt: Date.now(),
         }),
         ...(notes.trim() && { notes: notes.trim() }),
+        ...(reviewClipDeath.trim() && { reviewClipDeath: reviewClipDeath.trim() }),
+        ...(reviewClipFight.trim() && { reviewClipFight: reviewClipFight.trim() }),
+        ...(reviewClipObjective.trim() && { reviewClipObjective: reviewClipObjective.trim() }),
       }
 
       // 关联赛前设定
@@ -395,6 +406,71 @@ export default function PostGame() {
     }
   }
 
+  const handleAutoImportOpenDota = async (silent = false) => {
+    if (autoImportingOpenDota || importingOpenDota || analyzingOpenDota || importedMatch) return
+    if (!appState?.openDota?.accountId?.trim()) {
+      if (!silent) setOpenDotaStatus('请先在设置页填写 OpenDota Account ID。')
+      return
+    }
+
+    setAutoImportingOpenDota(true)
+    setCanRequestParse(false)
+    if (!silent) setOpenDotaStatus('正在从 OpenDota 自动同步最近一局未记录比赛…')
+    try {
+      const existingMatchIds = matchLogs.map(log => log.matchId).filter((id): id is string => Boolean(id))
+      const data = await window.electronStore.autoImportLatestOpenDotaMatch(existingMatchIds)
+      applyImportedOpenDota(data)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e)
+      setImportedMatch(null)
+      if (!silent || !message.includes('请先在设置页填写')) setOpenDotaStatus(message)
+    } finally {
+      setAutoImportingOpenDota(false)
+    }
+  }
+
+  const handleLoadRecentOpenDotaMatches = async () => {
+    if (!appState?.openDota?.accountId?.trim()) {
+      setOpenDotaStatus('请先在设置页填写 OpenDota Account ID。')
+      return
+    }
+    setLoadingRecentMatches(true)
+    setOpenDotaStatus('正在拉取 OpenDota 最近 10 场…')
+    try {
+      const existingMatchIds = matchLogs.map(log => log.matchId).filter((id): id is string => Boolean(id))
+      const rows = await window.electronStore.getRecentOpenDotaMatches(existingMatchIds)
+      setRecentMatches(rows)
+      setOpenDotaStatus(rows.length ? '已拉取最近 10 场，可选择一场导入。' : 'OpenDota 没有返回最近对局。')
+    } catch (e) {
+      setRecentMatches([])
+      setOpenDotaStatus(e instanceof Error ? e.message : String(e))
+    } finally {
+      setLoadingRecentMatches(false)
+    }
+  }
+
+  const handleImportRecentMatch = async (row: OpenDotaRecentMatch) => {
+    if (row.recorded || matchLogs.some(l => l.matchId === row.matchId)) {
+      setOpenDotaStatus('这场比赛已经记录过了。')
+      return
+    }
+    setMatchId(row.matchId)
+    setImportingOpenDota(true)
+    setCanRequestParse(false)
+    setOpenDotaStatus(`正在导入 ${row.heroName ?? '这场比赛'}…`)
+    try {
+      const data = await window.electronStore.importOpenDotaMatch(row.matchId)
+      applyImportedOpenDota(data)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e)
+      setImportedMatch(null)
+      setCanRequestParse(message.includes('解析') || message.includes('HTTP 500') || message.includes('HTTP 404'))
+      setOpenDotaStatus(message)
+    } finally {
+      setImportingOpenDota(false)
+    }
+  }
+
   const applyImportedOpenDota = (data: OpenDotaImportedMatch) => {
     setImportedMatch(data)
     setMatchId(data.matchId)
@@ -417,6 +493,13 @@ export default function PostGame() {
       : ''
     setOpenDotaStatus(`已导入：${getOpenDotaHeroName(data.heroId)} · ${data.result === 'win' ? '胜利' : '失败'} · KDA ${kda}${laneText}${keyItem}`)
   }
+
+  useEffect(() => {
+    if (autoImportAttempted || importedMatch || matchId.trim()) return
+    if (!appState?.openDota?.accountId?.trim()) return
+    setAutoImportAttempted(true)
+    handleAutoImportOpenDota(true)
+  }, [autoImportAttempted, importedMatch, matchId, appState?.openDota?.accountId, matchLogs])
 
   const handleAnalyzeAndImportOpenDota = async () => {
     const cleanMatchId = matchId.trim()
@@ -445,10 +528,10 @@ export default function PostGame() {
     }
   }
 
-  const inputCls = "w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-blue-500"
+  const inputCls = "w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-border)]"
   const btnBase = "px-4 py-2 rounded-lg text-sm font-medium border transition-all"
-  const btnActive = "border-blue-500 bg-blue-500/20 text-blue-300"
-  const btnInactive = "border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-secondary)] hover:border-blue-400"
+  const btnActive = "border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-strong)]"
+  const btnInactive = "border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-secondary)] hover:border-[var(--accent-border)]"
 
   return (
     <div className="p-6 space-y-6 max-w-lg mx-auto pb-24">
@@ -458,8 +541,8 @@ export default function PostGame() {
         </button>
         <h1 className="text-xl font-bold text-[var(--text-primary)]">赛后记录</h1>
         {pendingSetup && (
-          <p className="text-sm text-blue-400 mt-1">
-            关联赛前设定：{pendingSetup.hero} · {pendingSetup.trainingGoal}
+          <p className="text-sm text-[var(--accent-strong)] mt-1">
+            关联赛前设定：{pendingSetup.hero} · {pendingSetup.trainingGoal}{pendingSetup.enemyCarry ? ` · 对方1号位 ${pendingSetup.enemyCarry}` : ''}
           </p>
         )}
       </div>
@@ -469,15 +552,15 @@ export default function PostGame() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">OpenDota</h2>
-            <p className="text-xs text-[var(--text-muted)] mt-1">用 Match ID 自动填充客观数据</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">进入页面会尝试同步最近一局；也可手动输入 Match ID</p>
           </div>
           {importedMatch && (
-            <span className="text-xs px-2 py-1 rounded bg-blue-500/10 text-blue-300 border border-blue-500/30">
+            <span className="text-xs px-2 py-1 rounded bg-[var(--bg-info)] text-[var(--text-info)] border border-[var(--border-info)]">
               已导入
             </span>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
           <input
             type="text"
             inputMode="numeric"
@@ -492,22 +575,59 @@ export default function PostGame() {
           <button
             type="button"
             onClick={handleImportOpenDota}
-            disabled={importingOpenDota || analyzingOpenDota || !matchId.trim()}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+            disabled={importingOpenDota || autoImportingOpenDota || analyzingOpenDota || !matchId.trim()}
+            className="px-4 py-2 rounded-lg bg-[var(--accent)] text-[var(--text-primary)] text-sm font-semibold hover:bg-[var(--accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
           >
             {importingOpenDota ? '导入中…' : '导入'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAutoImportOpenDota(false)}
+            disabled={importingOpenDota || autoImportingOpenDota || analyzingOpenDota}
+            className="px-4 py-2 rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-strong)] text-sm font-medium hover:bg-[var(--surface-2)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+          >
+            {autoImportingOpenDota ? '同步中…' : '同步最近一局'}
           </button>
         </div>
         <button
           type="button"
+          onClick={handleLoadRecentOpenDotaMatches}
+          disabled={loadingRecentMatches || importingOpenDota || autoImportingOpenDota || analyzingOpenDota}
+          className="w-full py-2 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] text-sm font-medium hover:border-[var(--accent-border)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          {loadingRecentMatches ? '拉取中…' : '查看最近 10 场'}
+        </button>
+        {recentMatches.length > 0 && (
+          <div className="max-h-72 space-y-2 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-2">
+            {recentMatches.map(row => (
+              <button
+                key={row.matchId}
+                type="button"
+                onClick={() => handleImportRecentMatch(row)}
+                disabled={row.recorded || importingOpenDota || analyzingOpenDota}
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-left transition-colors hover:border-[var(--accent-border)] disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="font-semibold text-[var(--text-primary)]">{row.heroName ?? `英雄 ${row.heroId ?? '-'}`}</span>
+                  <span className={`text-xs ${row.result === 'win' ? 'text-[var(--text-success)]' : row.result === 'loss' ? 'text-[var(--text-danger)]' : 'text-[var(--text-muted)]'}`}>{row.recorded ? '已记录' : row.result === 'win' ? '胜' : row.result === 'loss' ? '败' : '未知'}</span>
+                </div>
+                <div className="number mt-1 text-xs text-[var(--text-muted)]">
+                  {row.timestamp ? new Date(row.timestamp).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '时间未知'} · {row.durationMin ? `${row.durationMin}m` : '时长未知'} · KDA {row.kills ?? '-'}/{row.deaths ?? '-'}/{row.assists ?? '-'} · {row.matchId}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+        <button
+          type="button"
           onClick={handleAnalyzeAndImportOpenDota}
           disabled={importingOpenDota || analyzingOpenDota || !matchId.trim()}
-          className="w-full py-2 rounded-lg border border-blue-500/50 bg-blue-500/10 text-blue-300 text-sm font-medium hover:bg-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="w-full py-2 rounded-lg border border-[var(--border-info)] bg-[var(--bg-info)] text-[var(--text-info)] text-sm font-medium hover:bg-[var(--surface-2)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           {analyzingOpenDota ? '分析并等待数据中…' : '请求分析并自动导入'}
         </button>
         {openDotaStatus && (
-          <p className={`text-xs ${importedMatch ? 'text-blue-300' : 'text-[var(--text-warning)]'}`}>
+          <p className={`text-xs ${importedMatch ? 'text-[var(--text-info)]' : 'text-[var(--text-warning)]'}`}>
             {openDotaStatus}
           </p>
         )}
@@ -573,7 +693,7 @@ export default function PostGame() {
       <div className="space-y-2">
         <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
           训练目标完成了吗？*
-          {pendingSetup && <span className="ml-2 text-blue-400 font-normal normal-case">目标：{pendingSetup.trainingGoal}</span>}
+          {pendingSetup && <span className="ml-2 text-[var(--accent-strong)] font-normal normal-case">目标：{pendingSetup.trainingGoal}</span>}
         </label>
         <div className="flex gap-2">
           {(['yes', 'partial', 'no'] as const).map(v => (
@@ -647,6 +767,26 @@ export default function PostGame() {
           <span className="ml-1">（{new Date(lastSameHeroMatch.timestamp).toLocaleDateString('zh-CN')}）</span>
         </p>
       )}
+
+      {/* P1：3 片段复盘 */}
+      <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-4">
+        <div>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">3 片段复盘</h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">每个片段只写时间点和一句判断，下次复盘才有抓手。</p>
+        </div>
+        <label className="block space-y-1">
+          <span className="block text-xs font-medium text-[var(--text-muted)]">关键死亡片段</span>
+          <textarea value={reviewClipDeath} onChange={e => setReviewClipDeath(e.target.value)} placeholder="如：18:40 红区收线没看到双辅助，应该先等线进塔。" rows={2} className={`${inputCls} resize-none`} />
+        </label>
+        <label className="block space-y-1">
+          <span className="block text-xs font-medium text-[var(--text-muted)]">关键团战片段</span>
+          <textarea value={reviewClipFight} onChange={e => setReviewClipFight(e.target.value)} placeholder="如：26:10 先手目标错了，应该等对方核心露头。" rows={2} className={`${inputCls} resize-none`} />
+        </label>
+        <label className="block space-y-1">
+          <span className="block text-xs font-medium text-[var(--text-muted)]">关键目标片段</span>
+          <textarea value={reviewClipObjective} onChange={e => setReviewClipObjective(e.target.value)} placeholder="如：32:00 赢团后追人，没有转 Roshan 或推塔。" rows={2} className={`${inputCls} resize-none`} />
+        </label>
+      </div>
 
       {/* 选填折叠 */}
       <div>
@@ -764,7 +904,7 @@ export default function PostGame() {
           type="button"
           onClick={handleSave}
           disabled={!canSave || saving}
-          className="w-full py-3 rounded-xl font-semibold text-sm bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="w-full py-3 rounded-xl font-semibold text-sm bg-[var(--accent)] text-[var(--text-primary)] hover:bg-[var(--accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           {saving ? '保存中…' : '保存对局记录'}
         </button>
