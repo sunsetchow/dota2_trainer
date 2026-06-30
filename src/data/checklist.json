@@ -1,0 +1,22 @@
+[
+  { "id": "cs-10min",        "label": "10 分钟补刀训练",       "dimension": "ops",       "sessionTypes": ["30min","90min","3hr"] },
+  { "id": "watch-video",     "label": "看 10 分钟教学视频",    "dimension": "review",    "sessionTypes": ["30min","90min"] },
+  { "id": "replay-0-10",     "label": "复盘一局 0–10 分钟",    "dimension": "review",    "sessionTypes": ["30min"] },
+  { "id": "watch-replay",    "label": "看高分录像 10 分钟",    "dimension": "review",    "sessionTypes": ["90min"] },
+  { "id": "ranked-2",        "label": "2 把 ranked",           "dimension": "combat",    "sessionTypes": ["90min"] },
+  { "id": "stop-2loss",      "label": "连输 2 把停止",         "dimension": "discipline","sessionTypes": ["90min","3hr"] },
+  { "id": "death-replay",    "label": "赛后看一次死亡回放",    "dimension": "review",    "sessionTypes": ["90min"] },
+  { "id": "warmup-15",       "label": "15 分钟热身",           "dimension": "ops",       "sessionTypes": ["3hr"] },
+  { "id": "ranked-3",        "label": "3 把 ranked",           "dimension": "combat",    "sessionTypes": ["3hr"] },
+  { "id": "postmatch-review","label": "每把后 5-10 分钟复盘",  "dimension": "review",    "sessionTypes": ["3hr"] },
+  { "id": "key-10min",       "label": "看最后一局关键 10 分钟","dimension": "review",    "sessionTypes": ["3hr"] },
+  { "id": "tomorrow-goal",   "label": "写明天目标",            "dimension": "review",    "sessionTypes": ["3hr"] },
+  { "id": "as-stop-drill",   "label": "练 A/S/右键 hold/stop", "dimension": "ops",       "sessionTypes": ["30min","90min","3hr"], "weekRange": [1,2] },
+  { "id": "tower-cs",        "label": "练塔下补刀",            "dimension": "ops",       "sessionTypes": ["30min","90min","3hr"], "weekRange": [1,2] },
+  { "id": "replay-lane",     "label": "只看录像对线阶段",      "dimension": "pregame",   "sessionTypes": ["30min","90min","3hr"], "weekRange": [1,2] },
+  { "id": "lane-mistake",    "label": "记录 1 个对线错误",     "dimension": "pregame",   "sessionTypes": ["30min","90min","3hr"], "weekRange": [1,2] },
+  { "id": "death-zone",      "label": "标记死亡区域颜色",      "dimension": "economy",   "sessionTypes": ["30min","90min","3hr"], "weekRange": [3,4] },
+  { "id": "safe-farm-first", "label": "先推线再刷野",          "dimension": "economy",   "sessionTypes": ["90min","3hr"],        "weekRange": [3,4] },
+  { "id": "wave-30s",        "label": "中期每 30 秒问兵线",    "dimension": "objective", "sessionTypes": ["90min","3hr"],        "weekRange": [5,6] },
+  { "id": "hero-pool-note",  "label": "更新英雄笔记",          "dimension": "pregame",   "sessionTypes": ["30min","90min","3hr"],"weekRange": [7,7] }
+]

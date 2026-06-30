@@ -1,0 +1,28 @@
+import { contextBridge, ipcRenderer } from 'electron'
+
+contextBridge.exposeInMainWorld('electronStore', {
+  getAppState:          ()         => ipcRenderer.invoke('store:getAppState'),
+  setAppState:          (p: unknown)       => ipcRenderer.invoke('store:setAppState', p),
+  addMatchLog:          (l: unknown)       => ipcRenderer.invoke('store:addMatchLog', l),
+  getMatchLogs:         ()         => ipcRenderer.invoke('store:getMatchLogs'),
+  updateMatchLog:       (id: string, p: unknown)    => ipcRenderer.invoke('store:updateMatchLog', id, p),
+  addPreGameSetup:      (s: unknown)       => ipcRenderer.invoke('store:addPreGameSetup', s),
+  getPreGameSetups:     ()         => ipcRenderer.invoke('store:getPreGameSetups'),
+  updatePreGameSetup:   (id: string, p: unknown)    => ipcRenderer.invoke('store:updatePreGameSetup', id, p),
+  upsertDailyCheckin:   (c: unknown)       => ipcRenderer.invoke('store:upsertDailyCheckin', c),
+  addDailyCheckin:      (c: unknown)       => ipcRenderer.invoke('store:addDailyCheckin', c),
+  getDailyCheckins:     ()         => ipcRenderer.invoke('store:getDailyCheckins'),
+  addMMRLog:            (l: unknown)       => ipcRenderer.invoke('store:addMMRLog', l),
+  getMMRLogs:           ()         => ipcRenderer.invoke('store:getMMRLogs'),
+  getHeroNotes:         ()         => ipcRenderer.invoke('store:getHeroNotes'),
+  upsertHeroNote:       (n: unknown)       => ipcRenderer.invoke('store:upsertHeroNote', n),
+  addCycle:             (c: unknown)       => ipcRenderer.invoke('store:addCycle', c),
+  getCycles:            ()         => ipcRenderer.invoke('store:getCycles'),
+  importOpenDotaMatch:  (matchId: string)  => ipcRenderer.invoke('opendota:importMatch', matchId),
+  analyzeAndImportOpenDotaMatch: (matchId: string) => ipcRenderer.invoke('opendota:analyzeAndImportMatch', matchId),
+  requestOpenDotaParse: (matchId: string)  => ipcRenderer.invoke('opendota:requestParse', matchId),
+  getHeroMatchupCache: () => ipcRenderer.invoke('opendota:getHeroMatchupCache'),
+  syncOpenDotaHeroMatchups: (force?: boolean) => ipcRenderer.invoke('opendota:syncHeroMatchups', force),
+  exportAll:            ()         => ipcRenderer.invoke('store:exportAll'),
+  importAll:            (json: string)     => ipcRenderer.invoke('store:importAll', json),
+})

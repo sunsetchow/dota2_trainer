@@ -1,0 +1,18 @@
+node_modules/
+dist/
+release/
+out/
+
+*.log
+*.tsbuildinfo
+.DS_Store
+
+electron.vite.config.*.mjs
+
+# Generated artifacts accidentally emitted beside TypeScript sources.
+src/**/*.js
+src/**/*.d.ts
+electron/**/*.js
+electron/**/*.d.ts
+vite.config.js
+vite.config.d.ts
