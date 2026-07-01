@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppState, useCycles } from '../store/useStore.ts'
 import { getPool } from '../utils/heroes.ts'
-import type { HeroConfig, HeroMatchupCache, StratzRankBracket, TrainingCycle } from '../types'
+import positionMetaJson from '../data/positionMetaHeroes.json'
+import type { HeroConfig, HeroMatchupCache, PositionMetaSnapshot, StratzRankBracket, TrainingCycle } from '../types'
 
 const STRATZ_RANK_BRACKETS: Array<{ value: StratzRankBracket; label: string }> = [
   { value: 'ALL', label: '全部分段' },
@@ -14,6 +15,7 @@ const STRATZ_RANK_BRACKETS: Array<{ value: StratzRankBracket; label: string }> =
 import { nanoid } from 'nanoid'
 
 const ALL_POOL = getPool()
+const POSITION_META = positionMetaJson as PositionMetaSnapshot
 
 export default function Settings() {
   const navigate = useNavigate()
@@ -395,6 +397,18 @@ export default function Settings() {
             {syncingMatchups ? '同步中…' : '同步本周 matchup 矩阵'}
           </button>
         </div>
+      </div>
+
+      {/* 位置热门英雄 */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">位置热门英雄</h2>
+        <p className="text-xs leading-5 text-[var(--text-muted)]">
+          Draft 未知位置预期使用 {POSITION_META.source === 'stratz' ? 'Stratz' : '本地默认'} · {POSITION_META.rankBracket ?? 'ALL'} · {POSITION_META.weekKey}；
+          每位置数量：{(['1', '2', '3', '4', '5'] as const).map(position => `${position}号位 ${POSITION_META.positions[position]?.length ?? 0}`).join(' / ')}。
+        </p>
+        <p className="text-xs leading-5 text-[var(--text-muted)]">
+          维护方式：Stratz 负责位置热门度，英雄池 matchup 关系负责判断这些热门英雄对你的候选三号位是机会还是风险。
+        </p>
       </div>
 
       {/* 数据备份 */}

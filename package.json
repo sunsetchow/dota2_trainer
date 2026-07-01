@@ -1,6 +1,6 @@
 {
   "name": "dota2-trainer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Dota2 三号位个人训练工具",
   "main": "dist/main/main.js",
   "scripts": {
@@ -10,7 +10,9 @@
     "update:matchups": "node scripts/updateHeroMatchupSnapshot.mjs",
     "validate:matchups": "node scripts/updateHeroMatchupSnapshot.mjs --validate-only",
     "pack": "npm run build && electron-builder --dir",
-    "dist": "npm run build && electron-builder"
+    "dist": "npm run build && electron-builder",
+    "update:position-meta": "node scripts/updatePositionMetaHeroes.mjs",
+    "validate:position-meta": "node scripts/validatePositionMetaHeroes.mjs"
   },
   "dependencies": {
     "electron-store": "^8.2.0",

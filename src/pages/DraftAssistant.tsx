@@ -2,7 +2,16 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppState } from '../store/useStore.ts'
 import { resolve, getSugg, getPool, getSupMap, getCounters, getCountered } from '../utils/heroes.ts'
-import type { HeroConfig, HeroMatchupCache } from '../types'
+import {
+  POSITIONS,
+  POSITION_LABELS,
+  recommendationLabel,
+  recommendationTone,
+  rankDraftHeroes,
+  scoreFormula,
+} from '../utils/draftScoring.ts'
+import positionMetaJson from '../data/positionMetaHeroes.json'
+import type { DotaPosition, EnemyByPosition, HeroConfig, HeroMatchupCache, PositionMetaSnapshot, RankedDraftHero } from '../types'
 import Button from '../components/ui/Button.tsx'
 import Card from '../components/ui/Card.tsx'
 import Badge from '../components/ui/Badge.tsx'
@@ -12,93 +21,29 @@ const POOL = getPool()
 const SUP_MAP = getSupMap()
 const COUNTERS = getCounters()
 const COUNTERED = getCountered()
+const POSITION_META = positionMetaJson as PositionMetaSnapshot
 
-// 样本量低于这个数就完全不采信（噪声太大）；介于此值和 minGames 之间时按比例打折
-// 而不是硬阈值直接归零——具体某个英雄对某个英雄的样本量大多数达不到 minGames（默认 50），
-// 硬阈值会导致换敌方英雄时分数几乎不变。
-const MIN_SAMPLE_FLOOR = 10
-
-interface MatchupNote {
-  enemy: string
-  advantage: number
-  gamesPlayed?: number
-  source: 'dynamic' | 'static'
-  kind: 'counter' | 'risk'
-}
-
-interface RankedHero {
-  hero: string
-  threat: number
-  cScore: number
-  totalScore: number
-  matchupNotes: MatchupNote[]
-  poolTier?: HeroConfig['tier']
-  poolWeight: number
-}
-
-function tierLabel(tier?: HeroConfig['tier']): string {
+function tierLabel(tier?: HeroConfig['tier'], active = false): string {
+  if (!active) return '池外'
   if (tier === 'main') return '主力'
-  if (tier === 'practice') return '练习'
+  if (tier === 'practice' || !tier) return '练习'
   if (tier === 'backup') return '备用'
   return '池外'
 }
 
-function getPoolWeight(tier?: HeroConfig['tier'], active = false): number {
-  if (!active) return -12
-  if (tier === 'main') return 8
-  if (tier === 'practice' || !tier) return 3
-  if (tier === 'backup') return -4
-  return 0
+function signed(value: number): string {
+  return `${value >= 0 ? '+' : ''}${value.toFixed(1)}`
 }
 
 function PercentBadge({ value, tone }: { value: number; tone: 'success' | 'danger' }) {
   return <Badge tone={tone} className="number">{value > 0 ? '+' : ''}{value.toFixed(1)}%</Badge>
 }
 
-function scoreFormula(item: RankedHero): string {
-  const cScoreText = item.cScore.toFixed(1)
-  const riskText = (item.threat * 2).toFixed(1)
-  const poolText = item.poolWeight === 0 ? '0' : `${item.poolWeight > 0 ? '+' : ''}${item.poolWeight}`
-  // 用这里实际展示的三个数字（都已 toFixed(1)）重新算"综合"，而不是直接四舍五入
-  // 未截断的 item.totalScore——否则两边精度不一致，手动验算会对不上。
-  const displayedTotal = Number(cScoreText) - Number(riskText) + item.poolWeight
-  return `综合 ${Math.round(displayedTotal)} = 反制 ${cScoreText} - 风险 ${riskText} + 英雄池 ${poolText}`
-}
-
-function formatMatchupNote(note: MatchupNote): string {
-  const sign = note.advantage > 0 ? '+' : ''
-  const games = note.gamesPlayed ? `（${note.gamesPlayed}局）` : ''
-  return `对 ${note.enemy} 胜率 ${sign}${note.advantage.toFixed(1)}%${games}`
-}
-
-function getRecommendationTone(item: RankedHero, index: number): 'success' | 'accent' | 'warning' {
-  if (index <= 2 && item.threat <= 0) return 'success'
-  if (item.threat > 0) return 'warning'
-  return 'accent'
-}
-
-function getRecommendationLabel(item: RankedHero, index: number): string {
-  if (index <= 2 && item.threat <= 0) return '推荐'
-  if (item.threat > 0) return '谨慎'
-  return '可选'
-}
-
-function buildReason(item: RankedHero, enemyCount: number, hasCarry: boolean): string[] {
-  const reasons: string[] = []
-  if (item.poolTier === 'main') reasons.push('主力英雄，适合冲分优先考虑')
-  if (item.poolTier === 'backup') reasons.push('备用英雄，仅在阵容特别适合时选择')
-  if (item.threat <= 0 && enemyCount > 0) reasons.push(hasCarry ? '当前核心/辅助没有形成明显克制压力' : '当前输入的辅助没有形成明显克制压力')
-  if (item.cScore > 0) reasons.push('对常见核心有可用的 counter 价值')
-  if (item.threat > 0) reasons.push('这局存在被辅助针对的风险，需要更稳的对线计划')
-  if (reasons.length === 0) reasons.push('数据不足，优先按英雄熟练度和本周训练目标判断')
-  return reasons.slice(0, 2)
-}
-
-function buildRisk(item: RankedHero): string {
-  if (item.threat > 0) return '开局先保经验和关键补刀，不要为了换血把线打崩。'
-  if (item.cScore < 0) return '对当前这套敌方阵容数据上偏劣势，锁定前想清楚打法调整。'
-  if (item.cScore === 0) return '缺少足够对位数据，锁定前先确认自己是否熟练。'
-  return '如果对方后续补出高机动核心，第一件关键装前不要硬接无视野团。'
+function buildRisk(item: RankedDraftHero): string {
+  if (item.knownRiskScore >= 5) return '已知阵容里有明显克制压力，开局先保经验和关键补刀，不要为了换血把线打崩。'
+  if (item.unknownRiskScore >= 2) return '未知位置热门英雄对这个选择有潜在风险，后续看到高机动/强消耗英雄时要及时调整出装。'
+  if (item.totalScore < 0) return '综合分偏低，除非这是今天明确要练的英雄，否则锁定前再确认熟练度和打法。'
+  return '分数结构健康；如果对方后续补出高机动核心，第一件关键装前不要硬接无视野团。'
 }
 
 function SuggestionBox({ items, onSelect }: { items: string[]; onSelect: (hero: string) => void }) {
@@ -142,7 +87,7 @@ function EnemyInput({
         onChange={e => onChange(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 150)}
-        placeholder="如：屠夫、先知、AA、CM"
+        placeholder="如：敌法师、帕克、拉比克、CM"
         className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-border)] focus:outline-none"
       />
       {focused && <SuggestionBox items={suggestions} onSelect={hero => { onChange(hero); setFocused(false) }} />}
@@ -156,21 +101,17 @@ function DraftHeroCard({
   selected,
   isInPool,
   tier,
-  enemyCount,
-  hasCarry,
   onClick,
 }: {
-  item: RankedHero
+  item: RankedDraftHero
   index: number
   selected: boolean
   isInPool: boolean
   tier?: HeroConfig['tier']
-  enemyCount: number
-  hasCarry: boolean
   onClick: () => void
 }) {
-  const tone = getRecommendationTone(item, index)
-  const reasons = buildReason(item, enemyCount, hasCarry)
+  const tone = recommendationTone(item, index)
+  const visibleReasons = item.reasons.slice(0, 3)
 
   return (
     <button
@@ -195,15 +136,17 @@ function DraftHeroCard({
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-1">
-          <Badge tone={tone}>{getRecommendationLabel(item, index)}</Badge>
-          <Badge tone={isInPool ? 'neutral' : 'warning'}>{tierLabel(tier)}</Badge>
+          <Badge tone={tone}>{recommendationLabel(item, index)}</Badge>
+          <Badge tone={isInPool ? 'neutral' : 'warning'}>{tierLabel(tier, isInPool)}</Badge>
         </div>
       </div>
       <div className="mt-3 space-y-1 text-xs leading-5 text-[var(--text-secondary)]">
-        {reasons.map(reason => <div key={reason}>{reason}</div>)}
-        {item.matchupNotes.slice(0, 3).map(note => (
-          <div key={`${note.enemy}-${note.kind}`} className={note.kind === 'counter' ? 'text-[var(--text-success)]' : 'text-[var(--text-danger)]'}>
-            {note.kind === 'counter' ? '反制' : '风险'}：{formatMatchupNote(note)}
+        {visibleReasons.map(reason => (
+          <div
+            key={`${reason.type}-${reason.position ?? ''}-${reason.enemy ?? ''}-${reason.label}`}
+            className={reason.score < 0 ? 'text-[var(--text-danger)]' : reason.type === 'proficiency' ? 'text-[var(--text-muted)]' : 'text-[var(--text-success)]'}
+          >
+            {reason.label}
           </div>
         ))}
       </div>
@@ -232,15 +175,17 @@ function DetailList({ title, data, tone }: { title: string; data: Record<string,
   )
 }
 
+function reasonClass(score: number, type: string): string {
+  if (score < 0) return 'text-[var(--text-danger)]'
+  if (type === 'proficiency') return 'text-[var(--text-secondary)]'
+  return 'text-[var(--text-success)]'
+}
+
 export default function DraftAssistant() {
   const navigate = useNavigate()
   const { appState } = useAppState()
-  const [carry, setCarry] = useState('')
-  const [s1, setS1] = useState('')
-  const [s2, setS2] = useState('')
-  const [fCarry, setFCarry] = useState(false)
-  const [f1, setF1] = useState(false)
-  const [f2, setF2] = useState(false)
+  const [enemyByPosition, setEnemyByPosition] = useState<EnemyByPosition>({})
+  const [focusedPosition, setFocusedPosition] = useState<DotaPosition | null>(null)
   const [matchupCache, setMatchupCache] = useState<HeroMatchupCache | null>(null)
   const [syncStatus, setSyncStatus] = useState('')
   const [selectedHero, setSelectedHero] = useState<string>('')
@@ -248,15 +193,22 @@ export default function DraftAssistant() {
 
   const configuredPool = appState?.heroPool ?? []
   const activePool = configuredPool.filter(h => h.active).map(h => h.name)
-  const poolByHero = new Map(configuredPool.map(item => [item.name, item]))
   const minGames = appState?.openDota?.matchupMinGames ?? 50
-  const sgCarry = fCarry || carry ? getSugg(carry, 200) : []
-  const sg1 = f1 || s1 ? getSugg(s1, 200) : []
-  const sg2 = f2 || s2 ? getSugg(s2, 200) : []
-  const enemyCarry = resolve(carry)
-  const enemySupports = [resolve(s1), resolve(s2)].filter(Boolean) as string[]
-  const enemyHeroes = [enemyCarry, ...enemySupports].filter(Boolean) as string[]
-  const enemyKey = enemyHeroes.join('|')
+
+  const resolvedEnemyByPosition = useMemo<EnemyByPosition>(() => {
+    const result: EnemyByPosition = {}
+    for (const position of POSITIONS) {
+      const resolved = resolve(enemyByPosition[position] ?? '')
+      if (resolved) result[position] = resolved
+    }
+    return result
+  }, [enemyByPosition])
+
+  const enemyHeroes = POSITIONS.map(position => resolvedEnemyByPosition[position]).filter(Boolean) as string[]
+  const unknownPositions = POSITIONS.filter(position => !resolvedEnemyByPosition[position])
+  const enemyKey = POSITIONS.map(position => `${position}:${resolvedEnemyByPosition[position] ?? ''}`).join('|')
+  const enemyCarry = resolvedEnemyByPosition['1']
+  const enemySupports = [resolvedEnemyByPosition['4'], resolvedEnemyByPosition['5']].filter(Boolean) as string[]
 
   useEffect(() => {
     let cancelled = false
@@ -282,94 +234,17 @@ export default function DraftAssistant() {
     return () => { cancelled = true }
   }, [])
 
-  const getDynamicAdvantage = (hero: string, enemy: string): number | null => {
-    const stats = matchupCache?.matchups[hero]?.[enemy]
-    if (!stats || stats.gamesPlayed < MIN_SAMPLE_FLOOR) return null
-    const confidence = Math.min(1, stats.gamesPlayed / minGames)
-    return stats.advantage * confidence
-  }
-
-  const getDynamicCounterScore = (hero: string): number | null => {
-    const matchups = matchupCache?.matchups[hero]
-    if (!matchups) return null
-    const topAdvantages = Object.values(matchups)
-      .filter(stats => stats.gamesPlayed >= minGames && stats.advantage > 0)
-      .sort((a, b) => b.advantage - a.advantage)
-      .slice(0, 10)
-      .map(stats => stats.advantage)
-    if (topAdvantages.length === 0) return 0
-    return topAdvantages.reduce((sum, value) => sum + value, 0) / topAdvantages.length
-  }
-
-  const getMatchupNote = (hero: string, enemy: string): MatchupNote | null => {
-    const stats = matchupCache?.matchups[hero]?.[enemy]
-    if (stats && stats.gamesPlayed >= MIN_SAMPLE_FLOOR && stats.advantage !== 0) {
-      return {
-        enemy,
-        advantage: stats.advantage,
-        gamesPlayed: stats.gamesPlayed,
-        source: 'dynamic',
-        kind: stats.advantage > 0 ? 'counter' : 'risk',
-      }
-    }
-
-    const staticCounter = COUNTERS[hero]?.[enemy]
-    if (staticCounter) return { enemy, advantage: staticCounter, source: 'static', kind: 'counter' }
-
-    const staticRisk = SUP_MAP[enemy]?.[hero]
-    if (staticRisk) return { enemy, advantage: -staticRisk, source: 'static', kind: 'risk' }
-
-    return null
-  }
-
-  const getMatchupNotes = (hero: string): MatchupNote[] => enemyHeroes
-    .map(enemy => getMatchupNote(hero, enemy))
-    .filter((note): note is MatchupNote => Boolean(note))
-    .sort((a, b) => Math.abs(b.advantage) - Math.abs(a.advantage))
-
-  const threatMap = useMemo(() => {
-    const c1 = resolve(s1), c2 = resolve(s2)
-    const c0 = resolve(carry)
-    const enemies = [c0, c1, c2].filter((item): item is string => Boolean(item))
-    const m1 = c1 ? (SUP_MAP[c1] || {}) : {}
-    const m2 = c2 ? (SUP_MAP[c2] || {}) : {}
-    const out: Record<string, number> = {}
-    for (const hero of POOL) {
-      const dynamicThreat = enemies.reduce((sum, enemy) => {
-        const advantage = getDynamicAdvantage(hero, enemy)
-        return sum + (advantage === null ? 0 : Math.max(0, -advantage))
-      }, 0)
-      const staticThreat = (m1[hero] || 0) + (m2[hero] || 0)
-      const score = dynamicThreat > 0 ? dynamicThreat : staticThreat
-      if (score > 0) out[hero] = score
-    }
-    return out
-  }, [carry, s1, s2, matchupCache, minGames])
-
-  const ranked = useMemo<RankedHero[]>(() =>
-    POOL.map(hero => {
-      const config = poolByHero.get(hero)
-      const carryAdvantage = enemyCarry ? getDynamicAdvantage(hero, enemyCarry) ?? 0 : 0
-      const staticScore = Object.values(COUNTERS[hero] || {}).reduce((a: number, b: number) => a + b, 0)
-      const dynamicScore = getDynamicCounterScore(hero)
-      // 不再 clamp 到 >= 0：被当前敌方 1 号位克制应该实打实地拉低分数，
-      // 否则换一个敌方核心时分数只会涨不会跌，观感上"分数没反应"。
-      // dynamicScore === 0 是有效动态结果，不能用 || 回退到本地静态表。
-      const cScore = (dynamicScore ?? staticScore) + carryAdvantage * 1.4
-      const threat = threatMap[hero] || 0
-      const poolWeight = getPoolWeight(config?.tier, Boolean(config?.active))
-      return {
-        hero,
-        threat,
-        cScore,
-        totalScore: cScore - threat * 2 + poolWeight,
-        matchupNotes: getMatchupNotes(hero),
-        poolTier: config?.tier,
-        poolWeight,
-      }
-    }).sort((a, b) => b.totalScore - a.totalScore),
-    [threatMap, matchupCache, configuredPool, enemyCarry, enemyKey, minGames]
-  )
+  const ranked = useMemo<RankedDraftHero[]>(() => rankDraftHeroes({
+    candidates: POOL,
+    enemyByPosition: resolvedEnemyByPosition,
+    heroPool: configuredPool,
+    matchupCache,
+    positionMeta: POSITION_META,
+    matchupMinGames: minGames,
+    counters: COUNTERS,
+    countered: COUNTERED,
+    supportMap: SUP_MAP,
+  }), [resolvedEnemyByPosition, configuredPool, matchupCache, minGames])
 
   useEffect(() => {
     const topHero = ranked[0]?.hero
@@ -410,15 +285,27 @@ export default function DraftAssistant() {
   const hasDynamicCountered = Object.keys(dynamicCountered).length > 0
   const selectedCounters = hasDynamicCounters ? dynamicCounters : (selected ? COUNTERS[selected.hero] || {} : {})
   const selectedCountered = hasDynamicCountered ? dynamicCountered : (selected ? COUNTERED[selected.hero] || {} : {})
-  // 两个列表各自独立判断数据来源，不能共用一个标签——否则其中一个列表回退到本地表时，
-  // 仍会被贴上动态数据标签，误导数据可信度。
   const matchupSourceLabel = matchupCache?.source === 'stratz' ? 'Stratz' : 'OpenDota'
   const counterSource = hasDynamicCounters ? `${matchupSourceLabel} ≥${minGames} 局` : '本地表'
   const counteredSource = hasDynamicCountered ? `${matchupSourceLabel} ≥${minGames} 局` : '本地表'
+  const positionMetaSource = `${POSITION_META.source === 'stratz' ? 'Stratz' : '本地默认'} ${POSITION_META.rankBracket ?? 'ALL'} ${POSITION_META.weekKey}`
+
+  const handleEnemyChange = (position: DotaPosition, value: string) => {
+    setEnemyByPosition(current => ({ ...current, [position]: value }))
+  }
 
   const handleSelectHero = (hero: string) => {
-    navigate('/pre-game', { state: { hero, enemySupports, enemyCarry } })
+    navigate('/pre-game', { state: { hero, enemySupports, enemyCarry, enemyByPosition: resolvedEnemyByPosition } })
   }
+
+  const riskItems = ranked
+    .filter(item => item.knownRiskScore > 0)
+    .sort((a, b) => b.knownRiskScore - a.knownRiskScore)
+    .slice(0, 5)
+
+  const knownReasons = selected?.reasons.filter(reason => reason.type === 'known-counter' || reason.type === 'known-risk') ?? []
+  const unknownReasons = selected?.reasons.filter(reason => reason.type === 'unknown-counter' || reason.type === 'unknown-risk') ?? []
+  const proficiencyReasons = selected?.reasons.filter(reason => reason.type === 'proficiency') ?? []
 
   return (
     <div className="mx-auto max-w-[1280px] space-y-6 px-4 py-6 md:px-6">
@@ -427,24 +314,41 @@ export default function DraftAssistant() {
           <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="mb-2 flex flex-wrap items-center gap-2">
-                <Badge tone={matchupCache ? 'info' : 'neutral'}>{matchupCache ? `矩阵 ${matchupCache.weekKey ?? matchupCache.date}` : '本地克制表'}</Badge>
-                {enemyHeroes.length > 0 && <Badge tone="accent">已识别 {enemyHeroes.length} 个敌方英雄</Badge>}
+                <Badge tone={matchupCache ? 'info' : 'neutral'}>{matchupCache ? `Matchup ${matchupCache.weekKey ?? matchupCache.date}` : '本地克制表'}</Badge>
+                <Badge tone="accent">已识别 {enemyHeroes.length}/5 个敌方位置</Badge>
+                {unknownPositions.length > 0 && <Badge tone="neutral">未知：{unknownPositions.map(position => POSITION_LABELS[position]).join('、')}</Badge>}
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] md:text-3xl">三号位 Draft 助手</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">输入对方 1 号位和辅助，先看推荐理由，再锁定本局英雄和训练目标。</p>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">输入对方 1–5 号位；空缺位置会用 Stratz/本地热门英雄和你的英雄池 matchup 关系估算风险。</p>
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
-            <EnemyInput label="对方 1 号位（可选）" value={carry} suggestions={sgCarry} focused={fCarry} setFocused={setFCarry} onChange={setCarry} />
-            <EnemyInput label="对方辅助 1" value={s1} suggestions={sg1} focused={f1} setFocused={setF1} onChange={setS1} />
-            <EnemyInput label="对方辅助 2" value={s2} suggestions={sg2} focused={f2} setFocused={setF2} onChange={setS2} />
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            {POSITIONS.map(position => {
+              const value = enemyByPosition[position] ?? ''
+              const focused = focusedPosition === position
+              return (
+                <EnemyInput
+                  key={position}
+                  label={`对方 ${POSITION_LABELS[position]}`}
+                  value={value}
+                  suggestions={focused || value ? getSugg(value, 200) : []}
+                  focused={focused}
+                  setFocused={isFocused => setFocusedPosition(isFocused ? position : null)}
+                  onChange={nextValue => handleEnemyChange(position, nextValue)}
+                />
+              )
+            })}
           </div>
         </Card>
 
         <Card className="p-5 md:p-6">
           <div className="text-sm font-semibold text-[var(--text-primary)]">数据源状态</div>
           <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{syncStatus || '等待同步状态'}</p>
+          <div className="mt-3 space-y-1 text-xs text-[var(--text-muted)]">
+            <div>Matchup：{matchupCache ? `${matchupSourceLabel} ${matchupCache.rankBracket ?? ''} ${matchupCache.weekKey ?? matchupCache.date}` : '本地表'}</div>
+            <div>位置热门：{positionMetaSource}</div>
+          </div>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <div className="rounded-[var(--radius-md)] bg-[var(--surface-2)] p-3">
               <div className="number text-lg font-semibold text-[var(--text-primary)]">{ranked.length}</div>
@@ -458,9 +362,9 @@ export default function DraftAssistant() {
         </Card>
       </section>
 
-      {Object.keys(threatMap).length > 0 && (
+      {riskItems.length > 0 && (
         <Banner tone="danger">
-          克制风险警告：{Object.entries(threatMap).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([hero, value]) => `${hero} -${value.toFixed(1)}%`).join('，')}
+          已知克制风险警告：{riskItems.map(item => `${item.hero} -${item.knownRiskScore.toFixed(1)}`).join('，')}
         </Banner>
       )}
 
@@ -469,7 +373,7 @@ export default function DraftAssistant() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-semibold text-[var(--text-primary)]">推荐列表</h2>
-              <p className="mt-1 text-sm text-[var(--text-muted)]">先读原因，再看数字。池外英雄会保留但降权处理。</p>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">综合已知对手、未知位置热门预期和自身熟练度；池外英雄保留但大幅降权。</p>
             </div>
           </div>
           <div className="grid gap-3">
@@ -480,8 +384,6 @@ export default function DraftAssistant() {
                 index={index}
                 selected={selected?.hero === item.hero}
                 isInPool={activePool.includes(item.hero)}
-                enemyCount={enemyHeroes.length}
-                hasCarry={Boolean(enemyCarry)}
                 tier={item.poolTier}
                 onClick={() => setSelectedHero(item.hero)}
               />
@@ -494,34 +396,48 @@ export default function DraftAssistant() {
             <Card tone="raised" className="p-5 md:p-6">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <Badge tone={getRecommendationTone(selected, ranked.findIndex(item => item.hero === selected.hero))}>{getRecommendationLabel(selected, ranked.findIndex(item => item.hero === selected.hero))}</Badge>
+                  <Badge tone={recommendationTone(selected, ranked.findIndex(item => item.hero === selected.hero))}>{recommendationLabel(selected, ranked.findIndex(item => item.hero === selected.hero))}</Badge>
                   <h2 className="mt-3 text-2xl font-bold tracking-tight text-[var(--text-primary)]">{selected.hero}</h2>
                   <p className="number mt-1 text-sm text-[var(--text-muted)]">{scoreFormula(selected)}</p>
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <Badge tone={selected.cScore >= 0 ? 'success' : 'danger'}>反制 {selected.cScore >= 0 ? '+' : ''}{selected.cScore.toFixed(1)}</Badge>
-                    <Badge tone={selected.threat > 0 ? 'danger' : 'neutral'}>风险 -{(selected.threat * 2).toFixed(1)}</Badge>
-                    <Badge tone={selected.poolWeight >= 0 ? 'accent' : 'warning'}>英雄池 {selected.poolWeight > 0 ? '+' : ''}{selected.poolWeight}</Badge>
+                    <Badge tone={selected.knownScore >= 0 ? 'success' : 'danger'}>已知 {signed(selected.knownScore)}</Badge>
+                    <Badge tone={selected.unknownScore >= 0 ? 'accent' : 'warning'}>未知 {signed(selected.unknownScore)}</Badge>
+                    <Badge tone={selected.proficiencyScore >= 0 ? 'accent' : 'warning'}>熟练度 {signed(selected.proficiencyScore)}</Badge>
                   </div>
                 </div>
-                <Badge tone={activePool.includes(selected.hero) ? 'neutral' : 'warning'}>{tierLabel(selected.poolTier)}</Badge>
+                <Badge tone={activePool.includes(selected.hero) ? 'neutral' : 'warning'}>{tierLabel(selected.poolTier, activePool.includes(selected.hero))}</Badge>
               </div>
 
               <div className="mt-5 space-y-4">
                 <div>
-                  <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">为什么适合这局</div>
-                  <div className="space-y-2 text-sm leading-6 text-[var(--text-secondary)]">
-                    {buildReason(selected, enemyHeroes.length, Boolean(enemyCarry)).map(reason => <div key={reason}>{reason}</div>)}
-                    {selected.matchupNotes.length > 0 && (
-                      <div className="space-y-1 rounded-[var(--radius-sm)] bg-[var(--surface-2)] p-2 text-xs leading-5">
-                        {selected.matchupNotes.map(note => (
-                          <div key={`${note.enemy}-${note.kind}`} className={note.kind === 'counter' ? 'text-[var(--text-success)]' : 'text-[var(--text-danger)]'}>
-                            {note.kind === 'counter' ? '反制' : '风险'}：{formatMatchupNote(note)}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                  <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">已知对手 matchup</div>
+                  {knownReasons.length > 0 ? (
+                    <div className="space-y-1 rounded-[var(--radius-sm)] bg-[var(--surface-2)] p-2 text-xs leading-5">
+                      {knownReasons.map(reason => <div key={reason.label} className={reasonClass(reason.score, reason.type)}>{reason.label}</div>)}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[var(--text-muted)]">还没有足够已知对手数据。</p>
+                  )}
+                </div>
+
+                <div>
+                  <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">未知位置预期</div>
+                  {unknownReasons.length > 0 ? (
+                    <div className="space-y-1 rounded-[var(--radius-sm)] bg-[var(--surface-2)] p-2 text-xs leading-5">
+                      {unknownReasons.map(reason => <div key={reason.label} className={reasonClass(reason.score, reason.type)}>{reason.label}</div>)}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[var(--text-muted)]">敌方 5 个位置已完整，或缺少热门英雄 matchup 数据。</p>
+                  )}
+                </div>
+
+                <div>
+                  <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">熟练度</div>
+                  <div className="space-y-1 rounded-[var(--radius-sm)] bg-[var(--surface-2)] p-2 text-xs leading-5">
+                    {proficiencyReasons.map(reason => <div key={reason.label} className={reasonClass(reason.score, reason.type)}>{reason.label}</div>)}
                   </div>
                 </div>
+
                 <div>
                   <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">需要注意</div>
                   <p className="text-sm leading-6 text-[var(--text-secondary)]">{buildRisk(selected)}</p>

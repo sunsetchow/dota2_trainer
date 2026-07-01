@@ -1,0 +1,79 @@
+{
+  "source": "manual",
+  "rankBracket": "ALL",
+  "weekKey": "2026-W27",
+  "syncedAt": 1782923932024,
+  "topN": 12,
+  "positions": {
+    "1": [
+      { "hero": "敌法师", "weight": 1.0 },
+      { "hero": "斯拉克", "weight": 0.95 },
+      { "hero": "主宰", "weight": 0.9 },
+      { "hero": "幻影刺客", "weight": 0.86 },
+      { "hero": "噬魂鬼", "weight": 0.82 },
+      { "hero": "虚空假面", "weight": 0.78 },
+      { "hero": "熊战士", "weight": 0.74 },
+      { "hero": "卓尔游侠", "weight": 0.7 },
+      { "hero": "变体精灵", "weight": 0.68 },
+      { "hero": "幽鬼", "weight": 0.65 },
+      { "hero": "幻影长矛手", "weight": 0.62 },
+      { "hero": "娜迦海妖", "weight": 0.6 }
+    ],
+    "2": [
+      { "hero": "帕克", "weight": 1.0 },
+      { "hero": "风暴之灵", "weight": 0.95 },
+      { "hero": "痛苦女王", "weight": 0.9 },
+      { "hero": "灰烬之灵", "weight": 0.86 },
+      { "hero": "虚无之灵", "weight": 0.84 },
+      { "hero": "莉娜", "weight": 0.8 },
+      { "hero": "祈求者", "weight": 0.76 },
+      { "hero": "死亡先知", "weight": 0.72 },
+      { "hero": "拉席克", "weight": 0.7 },
+      { "hero": "殁境神蚀者", "weight": 0.66 },
+      { "hero": "修补匠", "weight": 0.62 },
+      { "hero": "圣堂刺客", "weight": 0.6 }
+    ],
+    "3": [
+      { "hero": "斧王", "weight": 1.0 },
+      { "hero": "半人马战行者", "weight": 0.95 },
+      { "hero": "潮汐猎人", "weight": 0.9 },
+      { "hero": "军团指挥官", "weight": 0.86 },
+      { "hero": "末日使者", "weight": 0.84 },
+      { "hero": "玛尔斯", "weight": 0.8 },
+      { "hero": "孽主", "weight": 0.76 },
+      { "hero": "伐木机", "weight": 0.74 },
+      { "hero": "暗夜魔王", "weight": 0.7 },
+      { "hero": "破晓辰星", "weight": 0.68 },
+      { "hero": "兽王", "weight": 0.64 },
+      { "hero": "酒仙", "weight": 0.6 }
+    ],
+    "4": [
+      { "hero": "拉比克", "weight": 1.0 },
+      { "hero": "巨牙海民", "weight": 0.95 },
+      { "hero": "森海飞霞", "weight": 0.9 },
+      { "hero": "暗影萨满", "weight": 0.86 },
+      { "hero": "撼地者", "weight": 0.84 },
+      { "hero": "发条技师", "weight": 0.8 },
+      { "hero": "天涯墨客", "weight": 0.76 },
+      { "hero": "莱恩", "weight": 0.74 },
+      { "hero": "米拉娜", "weight": 0.7 },
+      { "hero": "凤凰", "weight": 0.66 },
+      { "hero": "裂魂人", "weight": 0.64 },
+      { "hero": "大地之灵", "weight": 0.6 }
+    ],
+    "5": [
+      { "hero": "水晶室女", "weight": 1.0 },
+      { "hero": "巫医", "weight": 0.95 },
+      { "hero": "术士", "weight": 0.9 },
+      { "hero": "暗影萨满", "weight": 0.86 },
+      { "hero": "戴泽", "weight": 0.82 },
+      { "hero": "树精卫士", "weight": 0.78 },
+      { "hero": "远古冰魄", "weight": 0.74 },
+      { "hero": "巫妖", "weight": 0.7 },
+      { "hero": "沉默术士", "weight": 0.66 },
+      { "hero": "神谕者", "weight": 0.64 },
+      { "hero": "全能骑士", "weight": 0.62 },
+      { "hero": "寒冬飞龙", "weight": 0.6 }
+    ]
+  }
+}

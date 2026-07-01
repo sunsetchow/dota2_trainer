@@ -44,10 +44,53 @@ export interface OpenDotaSettings {
 
 // ── Stratz 设置（英雄克制矩阵可选数据源，天梯分段数据，比 OpenDota /matchups 只有职业赛数据样本大得多）
 export type StratzRankBracket = 'ALL' | 'HERALD_GUARDIAN' | 'CRUSADER_ARCHON' | 'LEGEND_ANCIENT' | 'DIVINE_IMMORTAL';
+export type DotaPosition = '1' | '2' | '3' | '4' | '5';
+export type EnemyByPosition = Partial<Record<DotaPosition, string>>;
 
 export interface StratzSettings {
   apiKey?: string;
   rankBracket?: StratzRankBracket;
+}
+
+export interface PositionMetaHero {
+  hero: string;
+  weight: number;
+  pickRate?: number;
+  matchCount?: number;
+}
+
+export interface PositionMetaSnapshot {
+  source: 'stratz' | 'manual';
+  rankBracket?: StratzRankBracket;
+  weekKey: string;
+  syncedAt: number;
+  topN: number;
+  positions: Record<DotaPosition, PositionMetaHero[]>;
+}
+
+export interface DraftReason {
+  type: 'known-counter' | 'known-risk' | 'unknown-counter' | 'unknown-risk' | 'proficiency';
+  label: string;
+  score: number;
+  position?: DotaPosition;
+  enemy?: string;
+  gamesPlayed?: number;
+  source?: 'stratz' | 'opendota' | 'static' | 'meta';
+}
+
+export interface RankedDraftHero {
+  hero: string;
+  knownScore: number;
+  unknownScore: number;
+  proficiencyScore: number;
+  totalScore: number;
+  knownCounterScore: number;
+  knownRiskScore: number;
+  unknownCounterScore: number;
+  unknownRiskScore: number;
+  reasons: DraftReason[];
+  poolTier?: HeroConfig['tier'];
+  proficiencyLabel: string;
 }
 
 // ── 赛前设定
