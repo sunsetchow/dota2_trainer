@@ -1,6 +1,6 @@
 {
   "name": "dota2-trainer",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Dota2 三号位个人训练工具",
   "main": "dist/main/main.js",
   "scripts": {
@@ -12,7 +12,8 @@
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder",
     "update:position-meta": "node scripts/updatePositionMetaHeroes.mjs",
-    "validate:position-meta": "node scripts/validatePositionMetaHeroes.mjs"
+    "validate:position-meta": "node scripts/validatePositionMetaHeroes.mjs",
+    "validate:position-pools": "node scripts/validatePositionHeroPools.mjs"
   },
   "dependencies": {
     "electron-store": "^8.2.0",

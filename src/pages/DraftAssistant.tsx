@@ -11,6 +11,7 @@ import {
   scoreFormula,
 } from '../utils/draftScoring.ts'
 import positionMetaJson from '../data/positionMetaHeroes.json'
+import positionHeroPoolsJson from '../data/positionHeroPools.json'
 import type { DotaPosition, EnemyByPosition, HeroConfig, HeroMatchupCache, PositionMetaSnapshot, RankedDraftHero } from '../types'
 import Button from '../components/ui/Button.tsx'
 import Card from '../components/ui/Card.tsx'
@@ -22,6 +23,7 @@ const SUP_MAP = getSupMap()
 const COUNTERS = getCounters()
 const COUNTERED = getCountered()
 const POSITION_META = positionMetaJson as PositionMetaSnapshot
+const POSITION_HERO_POOLS = positionHeroPoolsJson as Record<DotaPosition, string[]>
 
 function tierLabel(tier?: HeroConfig['tier'], active = false): string {
   if (!active) return '池外'
@@ -184,6 +186,7 @@ function reasonClass(score: number, type: string): string {
 export default function DraftAssistant() {
   const navigate = useNavigate()
   const { appState } = useAppState()
+  const [targetPosition, setTargetPosition] = useState<DotaPosition>('3')
   const [enemyByPosition, setEnemyByPosition] = useState<EnemyByPosition>({})
   const [focusedPosition, setFocusedPosition] = useState<DotaPosition | null>(null)
   const [matchupCache, setMatchupCache] = useState<HeroMatchupCache | null>(null)
@@ -205,8 +208,14 @@ export default function DraftAssistant() {
   }, [enemyByPosition])
 
   const enemyHeroes = POSITIONS.map(position => resolvedEnemyByPosition[position]).filter(Boolean) as string[]
+  const enemyHeroKey = enemyHeroes.join('|')
+  const enemyKey = `${targetPosition}|${POSITIONS.map(position => `${position}:${resolvedEnemyByPosition[position] ?? ''}`).join('|')}`
+  const candidatePool = useMemo(() => {
+    const pickedHeroes = new Set(enemyHeroKey ? enemyHeroKey.split('|') : [])
+    return (POSITION_HERO_POOLS[targetPosition] ?? POOL).filter(hero => !pickedHeroes.has(hero))
+  }, [targetPosition, enemyHeroKey])
+  const activeCandidateCount = candidatePool.filter(hero => activePool.includes(hero)).length
   const unknownPositions = POSITIONS.filter(position => !resolvedEnemyByPosition[position])
-  const enemyKey = POSITIONS.map(position => `${position}:${resolvedEnemyByPosition[position] ?? ''}`).join('|')
   const enemyCarry = resolvedEnemyByPosition['1']
   const enemySupports = [resolvedEnemyByPosition['4'], resolvedEnemyByPosition['5']].filter(Boolean) as string[]
 
@@ -235,7 +244,7 @@ export default function DraftAssistant() {
   }, [])
 
   const ranked = useMemo<RankedDraftHero[]>(() => rankDraftHeroes({
-    candidates: POOL,
+    candidates: candidatePool,
     enemyByPosition: resolvedEnemyByPosition,
     heroPool: configuredPool,
     matchupCache,
@@ -244,7 +253,7 @@ export default function DraftAssistant() {
     counters: COUNTERS,
     countered: COUNTERED,
     supportMap: SUP_MAP,
-  }), [resolvedEnemyByPosition, configuredPool, matchupCache, minGames])
+  }), [candidatePool, resolvedEnemyByPosition, configuredPool, matchupCache, minGames])
 
   useEffect(() => {
     const topHero = ranked[0]?.hero
@@ -295,7 +304,7 @@ export default function DraftAssistant() {
   }
 
   const handleSelectHero = (hero: string) => {
-    navigate('/pre-game', { state: { hero, enemySupports, enemyCarry, enemyByPosition: resolvedEnemyByPosition } })
+    navigate('/pre-game', { state: { hero, targetPosition, enemySupports, enemyCarry, enemyByPosition: resolvedEnemyByPosition } })
   }
 
   const riskItems = ranked
@@ -315,11 +324,32 @@ export default function DraftAssistant() {
             <div>
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 <Badge tone={matchupCache ? 'info' : 'neutral'}>{matchupCache ? `Matchup ${matchupCache.weekKey ?? matchupCache.date}` : '本地克制表'}</Badge>
+                <Badge tone="success">推荐：{POSITION_LABELS[targetPosition]}</Badge>
                 <Badge tone="accent">已识别 {enemyHeroes.length}/5 个敌方位置</Badge>
                 {unknownPositions.length > 0 && <Badge tone="neutral">未知：{unknownPositions.map(position => POSITION_LABELS[position]).join('、')}</Badge>}
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] md:text-3xl">三号位 Draft 助手</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">输入对方 1–5 号位；空缺位置会用 Stratz/本地热门英雄和你的英雄池 matchup 关系估算风险。</p>
+              <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] md:text-3xl">Draft 助手</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">先选择你要出的目标位置；推荐列表只保留能打该位置、且未被对方选择的英雄，再按 matchup 和熟练度排序。</p>
+            </div>
+          </div>
+
+          <div className="mb-5 space-y-2">
+            <div className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">我要出的位置</div>
+            <div className="grid grid-cols-5 gap-2">
+              {POSITIONS.map(position => (
+                <button
+                  key={position}
+                  type="button"
+                  onClick={() => setTargetPosition(position)}
+                  className={`rounded-[var(--radius-md)] border px-3 py-2 text-sm font-semibold transition-colors ${
+                    targetPosition === position
+                      ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-strong)]'
+                      : 'border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-secondary)] hover:border-[var(--accent-border)]'
+                  }`}
+                >
+                  {POSITION_LABELS[position]}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -332,7 +362,10 @@ export default function DraftAssistant() {
                   key={position}
                   label={`对方 ${POSITION_LABELS[position]}`}
                   value={value}
-                  suggestions={focused || value ? getSugg(value, 200) : []}
+                  suggestions={(focused || value ? getSugg(value, 200) : []).filter(hero => {
+                    const currentResolved = resolve(value)
+                    return hero === currentResolved || !POSITIONS.some(other => other !== position && resolvedEnemyByPosition[other] === hero)
+                  })}
                   focused={focused}
                   setFocused={isFocused => setFocusedPosition(isFocused ? position : null)}
                   onChange={nextValue => handleEnemyChange(position, nextValue)}
@@ -355,8 +388,8 @@ export default function DraftAssistant() {
               <div className="text-xs text-[var(--text-muted)]">候选英雄</div>
             </div>
             <div className="rounded-[var(--radius-md)] bg-[var(--surface-2)] p-3">
-              <div className="number text-lg font-semibold text-[var(--text-primary)]">{activePool.length}</div>
-              <div className="text-xs text-[var(--text-muted)]">英雄池内</div>
+              <div className="number text-lg font-semibold text-[var(--text-primary)]">{activeCandidateCount}</div>
+              <div className="text-xs text-[var(--text-muted)]">该位置英雄池内</div>
             </div>
           </div>
         </Card>
@@ -373,7 +406,7 @@ export default function DraftAssistant() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-semibold text-[var(--text-primary)]">推荐列表</h2>
-              <p className="mt-1 text-sm text-[var(--text-muted)]">综合已知对手、未知位置热门预期和自身熟练度；池外英雄保留但大幅降权。</p>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">当前只推荐可出 {POSITION_LABELS[targetPosition]} 的英雄，并排除对方已选英雄；再综合已知对手、未知位置热门预期和自身熟练度排序。</p>
             </div>
           </div>
           <div className="grid gap-3">
