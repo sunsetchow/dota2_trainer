@@ -1,6 +1,6 @@
 {
   "name": "dota2-trainer",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Dota2 三号位个人训练工具",
   "main": "dist/main/main.js",
   "scripts": {

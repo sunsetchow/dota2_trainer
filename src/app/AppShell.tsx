@@ -1,5 +1,6 @@
 import React from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
+import packageJson from '../../package.json'
 import { useAppState, useCycles, useDailyCheckins, usePreGameSetups } from '../store/useStore.ts'
 import { calcStreak, getCurrentWeek } from '../utils/cycle.ts'
 import Badge from '../components/ui/Badge.tsx'
@@ -51,7 +52,7 @@ export default function AppShell({ children }: AppShellProps) {
     <div className="flex min-h-[100dvh] overflow-hidden bg-[var(--bg)] text-[var(--text-primary)]">
       <aside className="hidden w-[188px] shrink-0 border-r border-[var(--border)] bg-[rgba(18,15,13,0.94)] px-3 py-4 backdrop-blur md:flex md:flex-col">
         <div className="mb-6 px-2">
-          <div className="text-sm font-bold tracking-tight text-[var(--text-primary)]">Dota2 Trainer</div>
+          <div className="text-sm font-bold tracking-tight text-[var(--text-primary)]">Dota2 Trainer <span className="number text-[10px] font-medium text-[var(--text-muted)]">v{packageJson.version}</span></div>
           <div className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">战术训练控制台</div>
         </div>
 

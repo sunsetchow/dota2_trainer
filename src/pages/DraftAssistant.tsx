@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppState } from '../store/useStore.ts'
 import { resolve, getSugg, getPool, getSupMap, getCounters, getCountered } from '../utils/heroes.ts'
@@ -244,6 +244,7 @@ export default function DraftAssistant() {
   const [matchupCache, setMatchupCache] = useState<HeroMatchupCache | null>(null)
   const [syncStatus, setSyncStatus] = useState('')
   const [selectedHero, setSelectedHero] = useState<string>('')
+  const lastEnemyKeyRef = useRef('')
 
   const configuredPool = appState?.heroPool ?? []
   const activePool = configuredPool.filter(h => h.active).map(h => h.name)
@@ -255,6 +256,7 @@ export default function DraftAssistant() {
   const enemyCarry = resolve(carry)
   const enemySupports = [resolve(s1), resolve(s2)].filter(Boolean) as string[]
   const enemyHeroes = [enemyCarry, ...enemySupports].filter(Boolean) as string[]
+  const enemyKey = enemyHeroes.join('|')
 
   useEffect(() => {
     let cancelled = false
@@ -366,12 +368,19 @@ export default function DraftAssistant() {
         poolWeight,
       }
     }).sort((a, b) => b.totalScore - a.totalScore),
-    [threatMap, matchupCache, configuredPool, enemyCarry, enemyHeroes.join('|'), minGames]
+    [threatMap, matchupCache, configuredPool, enemyCarry, enemyKey, minGames]
   )
 
   useEffect(() => {
-    if (!selectedHero && ranked.length > 0) setSelectedHero(ranked[0].hero)
-  }, [ranked, selectedHero])
+    const topHero = ranked[0]?.hero
+    if (!topHero) return
+
+    const enemyChanged = lastEnemyKeyRef.current !== enemyKey
+    if (!selectedHero || enemyChanged) {
+      setSelectedHero(topHero)
+      lastEnemyKeyRef.current = enemyKey
+    }
+  }, [enemyKey, ranked, selectedHero])
 
   const selected = ranked.find(item => item.hero === selectedHero) ?? ranked[0]
 
