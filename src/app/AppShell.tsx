@@ -18,7 +18,7 @@ const mainNav = [
   { to: '/plan', label: '计划' },
   { to: '/history', label: '历史' },
   { to: '/progress', label: '进步' },
-  { to: '/hero-notes', label: '英雄' },
+  { to: '/hero-notes', label: '英雄中心' },
 ]
 
 const mobileNav = [

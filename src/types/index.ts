@@ -190,6 +190,7 @@ export interface HeroConfig {
   name: string;
   active: boolean;
   tier?: 'main' | 'practice' | 'backup';
+  positions?: DotaPosition[];
 }
 
 // ── 应用状态（electron-store 持久化）

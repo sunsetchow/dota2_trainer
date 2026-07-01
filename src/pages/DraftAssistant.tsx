@@ -11,7 +11,7 @@ import {
   scoreFormula,
 } from '../utils/draftScoring.ts'
 import positionMetaJson from '../data/positionMetaHeroes.json'
-import positionHeroPoolsJson from '../data/positionHeroPools.json'
+import { isHeroPlayableAtPosition } from '../utils/heroPool.ts'
 import type { DotaPosition, EnemyByPosition, HeroConfig, HeroMatchupCache, PositionMetaSnapshot, RankedDraftHero } from '../types'
 import Button from '../components/ui/Button.tsx'
 import Card from '../components/ui/Card.tsx'
@@ -23,7 +23,6 @@ const SUP_MAP = getSupMap()
 const COUNTERS = getCounters()
 const COUNTERED = getCountered()
 const POSITION_META = positionMetaJson as PositionMetaSnapshot
-const POSITION_HERO_POOLS = positionHeroPoolsJson as Record<DotaPosition, string[]>
 
 function tierLabel(tier?: HeroConfig['tier'], active = false): string {
   if (!active) return '池外'
@@ -212,8 +211,11 @@ export default function DraftAssistant() {
   const enemyKey = `${targetPosition}|${POSITIONS.map(position => `${position}:${resolvedEnemyByPosition[position] ?? ''}`).join('|')}`
   const candidatePool = useMemo(() => {
     const pickedHeroes = new Set(enemyHeroKey ? enemyHeroKey.split('|') : [])
-    return (POSITION_HERO_POOLS[targetPosition] ?? POOL).filter(hero => !pickedHeroes.has(hero))
-  }, [targetPosition, enemyHeroKey])
+    const configByHero = new Map(configuredPool.map(config => [config.name, config]))
+    return POOL
+      .filter(hero => isHeroPlayableAtPosition(hero, targetPosition, configByHero.get(hero)))
+      .filter(hero => !pickedHeroes.has(hero))
+  }, [targetPosition, enemyHeroKey, configuredPool])
   const activeCandidateCount = candidatePool.filter(hero => activePool.includes(hero)).length
   const unknownPositions = POSITIONS.filter(position => !resolvedEnemyByPosition[position])
   const enemyCarry = resolvedEnemyByPosition['1']

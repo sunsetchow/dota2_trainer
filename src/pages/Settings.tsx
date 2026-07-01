@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppState, useCycles } from '../store/useStore.ts'
-import { getPool } from '../utils/heroes.ts'
 import positionMetaJson from '../data/positionMetaHeroes.json'
-import type { HeroConfig, HeroMatchupCache, PositionMetaSnapshot, StratzRankBracket, TrainingCycle } from '../types'
+import type { HeroMatchupCache, PositionMetaSnapshot, StratzRankBracket, TrainingCycle } from '../types'
 
 const STRATZ_RANK_BRACKETS: Array<{ value: StratzRankBracket; label: string }> = [
   { value: 'ALL', label: '全部分段' },
@@ -14,7 +13,6 @@ const STRATZ_RANK_BRACKETS: Array<{ value: StratzRankBracket; label: string }> =
 ]
 import { nanoid } from 'nanoid'
 
-const ALL_POOL = getPool()
 const POSITION_META = positionMetaJson as PositionMetaSnapshot
 
 export default function Settings() {
@@ -35,8 +33,6 @@ export default function Settings() {
   const [syncingMatchups, setSyncingMatchups] = useState(false)
   const [matchupCache, setMatchupCache] = useState<HeroMatchupCache | null>(null)
 
-  const heroPool: HeroConfig[] = appState?.heroPool ?? []
-
   useEffect(() => {
     setOpenDotaAccountId(appState?.openDota?.accountId ?? '')
     setOpenDotaApiKey(appState?.openDota?.apiKey ?? '')
@@ -53,37 +49,6 @@ export default function Settings() {
       .then(setMatchupCache)
       .catch(() => undefined)
   }, [])
-
-  const isActive = (name: string) => heroPool.some(h => h.name === name && h.active)
-  const getHeroConfig = (name: string) => heroPool.find(h => h.name === name)
-
-  const toggleHero = async (name: string) => {
-    if (!appState) return
-    const existing = heroPool.find(h => h.name === name)
-    let newPool: HeroConfig[]
-    if (existing) {
-      newPool = heroPool.map(h => h.name === name ? { ...h, active: !h.active } : h)
-    } else {
-      newPool = [...heroPool, { name, active: true, tier: 'practice' }]
-    }
-    await updateAppState({ heroPool: newPool })
-  }
-
-  const setHeroTier = async (name: string, tier: HeroConfig['tier']) => {
-    if (!appState) return
-    const existing = heroPool.find(h => h.name === name)
-    const newPool = existing
-      ? heroPool.map(h => h.name === name ? { ...h, active: true, tier } : h)
-      : [...heroPool, { name, active: true, tier }]
-    await updateAppState({ heroPool: newPool })
-  }
-
-  const tierLabel = (tier?: HeroConfig['tier']) => {
-    if (tier === 'main') return '主力'
-    if (tier === 'practice') return '练习'
-    if (tier === 'backup') return '备用'
-    return '未分级'
-  }
 
   const formatCacheTime = (ts?: number) => ts
     ? new Date(ts).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -194,53 +159,16 @@ export default function Settings() {
         </div>
       )}
 
-      {/* 英雄池配置 */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">英雄池配置</h2>
-        <p className="text-xs text-[var(--text-muted)]">主力用于冲分优先推荐，练习中正常参与 Draft，备用会降权；关闭后默认不进入 HeroSelector。</p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {ALL_POOL.map(hero => {
-            const config = getHeroConfig(hero)
-            const active = Boolean(config?.active)
-            return (
-              <div
-                key={hero}
-                className={`space-y-2 rounded-lg border px-3 py-2 transition-all ${
-                  active
-                    ? 'border-[var(--accent-border)] bg-[var(--accent-muted)]'
-                    : 'border-[var(--border)] bg-[var(--surface-1)]'
-                }`}
-              >
-                <label className="flex cursor-pointer items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={active}
-                    onChange={() => toggleHero(hero)}
-                    className="h-3.5 w-3.5 accent-red-500"
-                  />
-                  <span className="flex-1 text-xs leading-tight text-[var(--text-primary)]">{hero}</span>
-                  <span className="text-[10px] text-[var(--text-muted)]">{tierLabel(config?.tier)}</span>
-                </label>
-                <div className="grid grid-cols-3 gap-1">
-                  {(['main', 'practice', 'backup'] as const).map(tier => (
-                    <button
-                      key={tier}
-                      type="button"
-                      onClick={() => setHeroTier(hero, tier)}
-                      className={`rounded border px-2 py-1 text-[10px] transition-colors ${
-                        active && config?.tier === tier
-                          ? 'border-[var(--gold)] bg-[var(--gold-muted)] text-[var(--gold-strong)]'
-                          : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent-border)] hover:text-[var(--text-secondary)]'
-                      }`}
-                    >
-                      {tierLabel(tier)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
+      <div className="space-y-3 rounded-lg border border-[var(--border-info)] bg-[var(--bg-info)] p-4">
+        <h2 className="text-sm font-semibold text-[var(--text-info)]">英雄池已移到英雄中心</h2>
+        <p className="text-xs leading-5 text-[var(--text-info)]">个人英雄池、熟练度和可用位置现在统一在「英雄中心」管理；设置页只保留 API、数据同步、训练周期和备份。</p>
+        <button
+          type="button"
+          onClick={() => navigate('/hero-notes')}
+          className="rounded-lg border border-[var(--border-info)] px-3 py-2 text-xs font-semibold text-[var(--text-info)] transition-colors hover:bg-[var(--surface-1)]"
+        >
+          打开英雄中心
+        </button>
       </div>
 
       {/* 训练周期 */}
