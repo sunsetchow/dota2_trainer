@@ -17,6 +17,7 @@ interface RankedHero {
   hero: string
   threat: number
   cScore: number
+  totalScore: number
   poolTier?: HeroConfig['tier']
   poolWeight: number
 }
@@ -38,6 +39,11 @@ function getPoolWeight(tier?: HeroConfig['tier'], active = false): number {
 
 function PercentBadge({ value, tone }: { value: number; tone: 'success' | 'danger' }) {
   return <Badge tone={tone} className="number">{value > 0 ? '+' : ''}{value.toFixed(1)}%</Badge>
+}
+
+function scoreFormula(item: RankedHero): string {
+  const poolText = item.poolWeight === 0 ? '0' : `${item.poolWeight > 0 ? '+' : ''}${item.poolWeight}`
+  return `综合 ${Math.round(item.totalScore)} = 反制 ${item.cScore.toFixed(1)} - 风险 ${(item.threat * 2).toFixed(1)} + 英雄池 ${poolText}`
 }
 
 function getRecommendationTone(item: RankedHero, index: number): 'success' | 'accent' | 'warning' {
@@ -158,7 +164,7 @@ function DraftHeroCard({
             </span>
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold text-[var(--text-primary)]">{item.hero}</div>
-              <div className="number mt-0.5 text-xs text-[var(--text-muted)]">综合 {Math.round(item.cScore - item.threat * 2)}</div>
+              <div className="number mt-0.5 text-xs text-[var(--text-muted)]">{scoreFormula(item)}</div>
             </div>
           </div>
         </div>
@@ -285,14 +291,18 @@ export default function DraftAssistant() {
       const config = poolByHero.get(hero)
       const carryAdvantage = enemyCarry ? getDynamicAdvantage(hero, enemyCarry) ?? 0 : 0
       const staticScore = Object.values(COUNTERS[hero] || {}).reduce((a: number, b: number) => a + b, 0)
+      const cScore = (getDynamicCounterScore(hero) || staticScore) + Math.max(0, carryAdvantage) * 1.4
+      const threat = threatMap[hero] || 0
+      const poolWeight = getPoolWeight(config?.tier, Boolean(config?.active))
       return {
         hero,
-        threat: threatMap[hero] || 0,
-        cScore: (getDynamicCounterScore(hero) || staticScore) + Math.max(0, carryAdvantage) * 1.4,
+        threat,
+        cScore,
+        totalScore: cScore - threat * 2 + poolWeight,
         poolTier: config?.tier,
-        poolWeight: getPoolWeight(config?.tier, Boolean(config?.active)),
+        poolWeight,
       }
-    }).sort((a, b) => ((b.cScore - b.threat * 2) + b.poolWeight) - ((a.cScore - a.threat * 2) + a.poolWeight)),
+    }).sort((a, b) => b.totalScore - a.totalScore),
     [threatMap, matchupCache, configuredPool, enemyCarry, minGames]
   )
 
@@ -301,6 +311,25 @@ export default function DraftAssistant() {
   }, [ranked, selectedHero])
 
   const selected = ranked.find(item => item.hero === selectedHero) ?? ranked[0]
+
+  const getDynamicDetailData = (hero: string, direction: 'counters' | 'countered'): Record<string, number> => {
+    const matchups = matchupCache?.matchups[hero]
+    if (!matchups) return {}
+
+    return Object.fromEntries(
+      Object.entries(matchups)
+        .filter(([, stats]) => stats.gamesPlayed >= minGames && (direction === 'counters' ? stats.advantage > 0 : stats.advantage < 0))
+        .sort(([, a], [, b]) => direction === 'counters' ? b.advantage - a.advantage : a.advantage - b.advantage)
+        .slice(0, 10)
+        .map(([enemy, stats]) => [enemy, Math.abs(stats.advantage)])
+    )
+  }
+
+  const dynamicCounters = selected ? getDynamicDetailData(selected.hero, 'counters') : {}
+  const dynamicCountered = selected ? getDynamicDetailData(selected.hero, 'countered') : {}
+  const selectedCounters = Object.keys(dynamicCounters).length > 0 ? dynamicCounters : (selected ? COUNTERS[selected.hero] || {} : {})
+  const selectedCountered = Object.keys(dynamicCountered).length > 0 ? dynamicCountered : (selected ? COUNTERED[selected.hero] || {} : {})
+  const detailSource = Object.keys(dynamicCounters).length > 0 || Object.keys(dynamicCountered).length > 0 ? `OpenDota ≥${minGames} 局` : '本地表'
 
   const handleSelectHero = (hero: string) => {
     navigate('/pre-game', { state: { hero, enemySupports, enemyCarry } })
@@ -382,7 +411,12 @@ export default function DraftAssistant() {
                 <div>
                   <Badge tone={getRecommendationTone(selected, ranked.findIndex(item => item.hero === selected.hero))}>{getRecommendationLabel(selected, ranked.findIndex(item => item.hero === selected.hero))}</Badge>
                   <h2 className="mt-3 text-2xl font-bold tracking-tight text-[var(--text-primary)]">{selected.hero}</h2>
-                  <p className="number mt-1 text-sm text-[var(--text-muted)]">counter {selected.cScore.toFixed(1)} / threat {selected.threat.toFixed(1)}</p>
+                  <p className="number mt-1 text-sm text-[var(--text-muted)]">{scoreFormula(selected)}</p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <Badge tone="success">反制 +{selected.cScore.toFixed(1)}</Badge>
+                    <Badge tone={selected.threat > 0 ? 'danger' : 'neutral'}>风险 -{(selected.threat * 2).toFixed(1)}</Badge>
+                    <Badge tone={selected.poolWeight >= 0 ? 'accent' : 'warning'}>英雄池 {selected.poolWeight > 0 ? '+' : ''}{selected.poolWeight}</Badge>
+                  </div>
                 </div>
                 <Badge tone={activePool.includes(selected.hero) ? 'neutral' : 'warning'}>{tierLabel(selected.poolTier)}</Badge>
               </div>
@@ -403,8 +437,8 @@ export default function DraftAssistant() {
               </div>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                <DetailList title="克制对手" data={COUNTERS[selected.hero] || {}} tone="success" />
-                <DetailList title="注意被克" data={COUNTERED[selected.hero] || {}} tone="danger" />
+                <DetailList title={`克制对手 · ${detailSource}`} data={selectedCounters} tone="success" />
+                <DetailList title={`注意被克 · ${detailSource}`} data={selectedCountered} tone="danger" />
               </div>
             </Card>
           ) : (
