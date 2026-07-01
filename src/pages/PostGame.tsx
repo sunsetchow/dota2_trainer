@@ -4,10 +4,12 @@ import { nanoid } from 'nanoid'
 import { useAppState, useHeroNotes, useMatchLogs, useCycles } from '../store/useStore.ts'
 import HeroSelector from '../components/HeroSelector.tsx'
 import QuickSelect from '../components/QuickSelect.tsx'
+import PercentileBar from '../components/PercentileBar.tsx'
 import { REVIEW_DIMENSIONS } from '../data/reviewDimensions.ts'
 import type { HeroNote, MatchLog, PreGameSetup, OpenDotaImportedMatch, OpenDotaRecentMatch, TrainingDimension } from '../types'
-import { getCurrentWeek } from '../utils/cycle.ts'
+import { getCurrentWeek, todayStr } from '../utils/cycle.ts'
 import { getOpenDotaHeroName } from '../utils/opendotaHeroes.ts'
+import { applySrsRating, isDueForReview, type SrsRating } from '../utils/srs.ts'
 
 type LaneResult = 'dominated' | 'even' | 'lost'
 
@@ -216,7 +218,7 @@ export default function PostGame() {
   const navigate = useNavigate()
   const { appState } = useAppState()
   const { matchLogs, add: addMatchLog } = useMatchLogs()
-  const { heroNotes } = useHeroNotes()
+  const { heroNotes, upsert: upsertHeroNote } = useHeroNotes()
   const { cycles } = useCycles()
 
   // 必填字段
@@ -254,6 +256,8 @@ export default function PostGame() {
   const [recentMatches, setRecentMatches] = useState<OpenDotaRecentMatch[]>([])
   const [loadingRecentMatches, setLoadingRecentMatches] = useState(false)
   const [autoImportAttempted, setAutoImportAttempted] = useState(false)
+  const [srsPromptNotes, setSrsPromptNotes] = useState<HeroNote[]>([])
+  const [saveStatus, setSaveStatus] = useState('')
 
   // 加载 pending 赛前设定
   useEffect(() => {
@@ -336,6 +340,7 @@ export default function PostGame() {
         ...(draftScore > 0 && { draftScore: draftScore as 1 | 2 | 3 | 4 | 5 }),
         ...(csAt10 && { csAt10: parseInt(csAt10, 10) }),
         ...(pendingSetup?.enemyCarry && { enemyCarry: pendingSetup.enemyCarry }),
+        ...(pendingSetup?.enemySupports?.length && { enemySupports: pendingSetup.enemySupports }),
         ...(cleanMatchId && { matchId: cleanMatchId }),
         ...(imported && {
           source: 'opendota' as const,
@@ -355,6 +360,13 @@ export default function PostGame() {
           playerSlot: imported.playerSlot,
           isRadiant: imported.isRadiant,
           opendotaImportedAt: Date.now(),
+          gpmPercentile: imported.gpmPercentile,
+          xpmPercentile: imported.xpmPercentile,
+          lastHitsPercentile: imported.lastHitsPercentile,
+          heroDamagePercentile: imported.heroDamagePercentile,
+          laningGpm: imported.laningGpm,
+          midGpm: imported.midGpm,
+          lateGpm: imported.lateGpm,
         }),
         ...(notes.trim() && { notes: notes.trim() }),
         ...(reviewClipDeath.trim() && { reviewClipDeath: reviewClipDeath.trim() }),
@@ -373,7 +385,14 @@ export default function PostGame() {
       }
 
       await window.electronStore.addMatchLog(log)
-      navigate('/')
+      const relatedHeroes = new Set([log.hero, ...(log.enemySupports ?? []), log.enemyCarry].filter((value): value is string => Boolean(value)))
+      const dueNotes = heroNotes.filter(note => relatedHeroes.has(note.hero) && isDueForReview(note, todayStr()))
+      if (dueNotes.length > 0) {
+        setSrsPromptNotes(dueNotes)
+        setSaveStatus('对局已保存。可以顺手给相关英雄笔记打个复习分，或直接跳过。')
+      } else {
+        navigate('/')
+      }
     } finally {
       setSaving(false)
     }
@@ -535,6 +554,55 @@ export default function PostGame() {
 
   return (
     <div className="p-6 space-y-6 max-w-lg mx-auto pb-24">
+      {saveStatus && (
+        <div className="rounded-xl border border-[var(--border-info)] bg-[var(--bg-info)] p-4 text-sm text-[var(--text-info)]">
+          {saveStatus}
+        </div>
+      )}
+
+      {srsPromptNotes.length > 0 && (
+        <div className="space-y-3 rounded-xl border border-[var(--accent-border)] bg-[var(--accent-muted)] p-4">
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">英雄笔记复习</h2>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">只对你主动维护过的英雄笔记做 SM-2 调度。</p>
+          </div>
+          {srsPromptNotes.map(note => (
+            <div key={note.hero} className="space-y-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] p-3">
+              <div className="text-sm font-semibold text-[var(--text-primary)]">{note.hero}</div>
+              <div className="grid grid-cols-4 gap-1">
+                {([
+                  ['forgot', '忘了'],
+                  ['hard', '勉强'],
+                  ['good', '记得'],
+                  ['easy', '很熟'],
+                ] as Array<[SrsRating, string]>).map(([rating, label]) => (
+                  <button
+                    key={rating}
+                    type="button"
+                    onClick={async () => {
+                      const result = applySrsRating({ ease: note.srsEase, intervalDays: note.srsIntervalDays }, rating, todayStr())
+                      await upsertHeroNote({
+                        ...note,
+                        srsEase: result.ease,
+                        srsIntervalDays: result.intervalDays,
+                        srsNextReviewDate: result.nextReviewDate,
+                        srsLastRating: rating,
+                      })
+                      setSrsPromptNotes(prev => prev.filter(item => item.hero !== note.hero))
+                    }}
+                    className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 py-1.5 text-xs text-[var(--text-secondary)] hover:border-[var(--accent-border)]"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={() => navigate('/')} className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-secondary)] hover:border-[var(--accent-border)]">
+            跳过并返回首页
+          </button>
+        </div>
+      )}
       <div>
         <button type="button" onClick={() => navigate(-1)} className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] mb-3 flex items-center gap-1">
           ← 返回
@@ -642,6 +710,15 @@ export default function PostGame() {
           </button>
         )}
         {importedMatch && (
+          <>
+            <PercentileBar
+              metrics={[
+                { label: 'GPM', percentile: importedMatch.gpmPercentile, detail: importedMatch.gpm !== undefined ? `本局 ${importedMatch.gpm}` : undefined },
+                { label: 'XPM', percentile: importedMatch.xpmPercentile, detail: importedMatch.xpm !== undefined ? `本局 ${importedMatch.xpm}` : undefined },
+                { label: '补刀速度', percentile: importedMatch.lastHitsPercentile, detail: importedMatch.lastHits !== undefined ? `总补刀 ${importedMatch.lastHits}` : undefined },
+                { label: '英雄伤害', percentile: importedMatch.heroDamagePercentile },
+              ]}
+            />
           <div className="grid grid-cols-3 gap-2 pt-1 text-xs">
             <div className="px-2 py-1.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)]">
               KDA <span className="text-[var(--text-primary)]">{importedMatch.kills ?? '-'}/{importedMatch.deaths ?? '-'}/{importedMatch.assists ?? '-'}</span>
@@ -662,7 +739,13 @@ export default function PostGame() {
             <div className="px-2 py-1.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)] col-span-3">
               关键装 <span className="text-[var(--text-primary)]">{importedMatch.firstKeyItemName && importedMatch.firstKeyItemMin ? `${importedMatch.firstKeyItemName} · ${importedMatch.firstKeyItemMin} 分` : '未命中规则'}</span>
             </div>
+            {(importedMatch.laningGpm || importedMatch.midGpm || importedMatch.lateGpm) && (
+              <div className="px-2 py-1.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)] col-span-3">
+                分阶段 GPM <span className="text-[var(--text-primary)]">对线 {importedMatch.laningGpm ? Math.round(importedMatch.laningGpm) : '-'} · 中期 {importedMatch.midGpm ? Math.round(importedMatch.midGpm) : '-'} · 后期 {importedMatch.lateGpm ? Math.round(importedMatch.lateGpm) : '-'}</span>
+              </div>
+            )}
           </div>
+          </>
         )}
       </div>
 

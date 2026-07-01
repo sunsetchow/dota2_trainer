@@ -1,11 +1,13 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAppState, useMatchLogs, useDailyCheckins, useMMRLogs, useCycles } from '../store/useStore.ts'
+import { useAppState, useMatchLogs, useDailyCheckins, useMMRLogs, useCycles, useHeroNotes } from '../store/useStore.ts'
 import WeekBadge from '../components/WeekBadge.tsx'
 import MMRInput from '../components/MMRInput.tsx'
 import MMRTrend from '../components/MMRTrend.tsx'
 import ChecklistPanel from '../components/ChecklistPanel.tsx'
 import { calcLongestStreak, calcStreak, countRecentLosses, todayStr } from '../utils/cycle.ts'
+import { grantFreezeTokenIfEarned, hitMilestoneToday, reconcileStreakFreeze } from '../utils/streakFreeze.ts'
+import { isDueForReview } from '../utils/srs.ts'
 import type { MatchLog, DailyCheckin, MMRLog } from '../types'
 import Button from '../components/ui/Button.tsx'
 import Card from '../components/ui/Card.tsx'
@@ -23,14 +25,27 @@ export default function Home() {
   const { checkins, upsert: upsertCheckin } = useDailyCheckins()
   const { mmrLogs, add: addMMR } = useMMRLogs()
   const { cycles } = useCycles()
+  const { heroNotes } = useHeroNotes()
   const [dismissedBanner, setDismissedBanner] = useState(false)
+  const [milestoneBanner, setMilestoneBanner] = useState('')
 
   const activeCycle = cycles.find(c => c.cycleId === appState?.activeCycleId)
   const recentLosses = countRecentLosses(matchLogs)
   const showLossBanner = recentLosses >= 2 && !dismissedBanner
-  const streak = calcStreak(checkins)
+  const freezeUsedDates = appState?.freezeUsedDates ?? []
+  const freezeTokens = appState?.checklistFreezeTokens ?? 0
+  const streak = calcStreak(checkins, freezeUsedDates)
   const longestStreak = calcLongestStreak(checkins)
   const todayCheckin = checkins.find(c => c.date === todayStr())
+  const dueNotesCount = heroNotes.filter(note => isDueForReview(note, todayStr())).length
+
+  useEffect(() => {
+    if (!appState) return
+    const result = reconcileStreakFreeze(checkins, appState.checklistFreezeTokens ?? 0, appState.freezeUsedDates ?? [])
+    if (result.changed) {
+      updateAppState({ checklistFreezeTokens: result.freezeTokens, freezeUsedDates: result.freezeUsedDates })
+    }
+  }, [appState?.activeCycleId])
 
   const handleStartGame = async () => {
     if (appState?.pendingPreGameSetupId) {
@@ -60,6 +75,7 @@ export default function Home() {
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <Badge tone={todayCheckin ? 'success' : 'accent'}>{todayCheckin ? '今日已打卡' : '今日待打卡'}</Badge>
                 <Badge tone="neutral" className="number">连训 {streak} 天</Badge>
+                <Badge tone="neutral" className="number">Freeze {freezeTokens}/2</Badge>
                 {longestStreak > 0 && <Badge tone="neutral" className="number">最长 {longestStreak} 天</Badge>}
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] md:text-3xl">今日训练驾驶舱</h1>
@@ -113,7 +129,17 @@ export default function Home() {
                 cycle={activeCycle}
                 existingCheckin={todayCheckin}
                 onSave={async (checkin: DailyCheckin) => {
+                  const previousStreak = calcStreak(checkins, freezeUsedDates)
+                  const nextCheckins = [
+                    ...checkins.filter(item => item.date !== checkin.date),
+                    checkin,
+                  ].sort((a, b) => a.date.localeCompare(b.date))
                   await upsertCheckin(checkin)
+                  const nextStreak = calcStreak(nextCheckins, freezeUsedDates)
+                  const nextTokens = previousStreak !== nextStreak ? grantFreezeTokenIfEarned(nextStreak, freezeTokens) : freezeTokens
+                  if (nextTokens !== freezeTokens) await updateAppState({ checklistFreezeTokens: nextTokens })
+                  const milestone = hitMilestoneToday(previousStreak, nextStreak)
+                  if (milestone) setMilestoneBanner(`连训 ${milestone} 天，一个完整的训练阶段！`)
                 }}
               />
             </Card>
@@ -123,6 +149,18 @@ export default function Home() {
         </section>
 
         <aside className="space-y-4">
+          {milestoneBanner && (
+            <Banner tone="success" action={<Button variant="ghost" size="sm" onClick={() => setMilestoneBanner('')}>收起</Button>}>
+              {milestoneBanner}
+            </Banner>
+          )}
+
+          {dueNotesCount > 0 && (
+            <Banner tone="info" action={<Button variant="secondary" size="sm" onClick={() => navigate('/hero-notes')}>去复习</Button>}>
+              今天有 {dueNotesCount} 条英雄笔记到期复习。
+            </Banner>
+          )}
+
           {showLossBanner && (
             <Banner
               tone="warning"

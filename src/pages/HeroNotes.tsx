@@ -64,6 +64,10 @@ export default function HeroNotes() {
       ...form,
       hero,
       reviewRules: parseRules(reviewRulesText),
+      srsEase: form.srsEase,
+      srsIntervalDays: form.srsIntervalDays,
+      srsNextReviewDate: form.srsNextReviewDate,
+      srsLastRating: form.srsLastRating,
       updatedAt: Date.now(),
     })
     setStatus('英雄档案已保存。')
@@ -107,6 +111,17 @@ export default function HeroNotes() {
         onChange={setSelectedHero}
         heroPool={heroPool.length > 0 ? heroPool : undefined}
       />
+
+      {selectedHero.trim() && (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-4 text-sm text-[var(--text-secondary)]">
+          <div className="font-semibold text-[var(--text-primary)]">间隔复习</div>
+          <div className="mt-1 text-xs text-[var(--text-muted)]">
+            下次复习：{form.srsNextReviewDate ?? '今天 / 未排程'}
+            {form.srsIntervalDays ? ` · 间隔 ${form.srsIntervalDays} 天` : ''}
+            {form.srsEase ? ` · ease ${form.srsEase.toFixed(2)}` : ''}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <label className="space-y-1">

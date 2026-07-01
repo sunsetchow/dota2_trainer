@@ -2,6 +2,8 @@ import React from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMatchLogs } from '../store/useStore.ts'
 import { getReviewDimensionLabel } from '../data/reviewDimensions.ts'
+import PercentileBar from '../components/PercentileBar.tsx'
+import { getPhaseRelativeScore } from '../utils/phasePerformance.ts'
 
 function Field({ label, value }: { label: string; value?: React.ReactNode }) {
   if (value === undefined || value === null || value === '') return null
@@ -43,6 +45,14 @@ function laneStatsLabel(efficiency?: number, laneKills?: number) {
     laneKills !== undefined ? `对线单位击杀 ${laneKills}` : undefined,
   ].filter((item): item is string => Boolean(item))
   return parts.length > 0 ? parts.join(' · ') : undefined
+}
+
+function formatPhase(value?: number, relative?: number | null) {
+  if (value === undefined) return undefined
+  const relativeText = relative === null || relative === undefined
+    ? ''
+    : ` · ${relative >= 0 ? '+' : ''}${relative.toFixed(0)}% vs 历史`
+  return `${Math.round(value)} GPM${relativeText}`
 }
 
 export default function MatchDetail() {
@@ -126,6 +136,26 @@ export default function MatchDetail() {
           <Field label="阵营" value={log.isRadiant === undefined ? undefined : log.isRadiant ? '天辉' : '夜魇'} />
         </div>
       </section>
+
+      <PercentileBar
+        metrics={[
+          { label: 'GPM', percentile: log.gpmPercentile, detail: log.gpm !== undefined ? `本局 ${log.gpm}` : undefined },
+          { label: 'XPM', percentile: log.xpmPercentile, detail: log.xpm !== undefined ? `本局 ${log.xpm}` : undefined },
+          { label: '补刀速度', percentile: log.lastHitsPercentile, detail: log.lastHits !== undefined ? `总补刀 ${log.lastHits}` : undefined },
+          { label: '英雄伤害', percentile: log.heroDamagePercentile },
+        ]}
+      />
+
+      {(log.laningGpm || log.midGpm || log.lateGpm) && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">分阶段表现</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Field label="对线期 0-10" value={formatPhase(log.laningGpm, getPhaseRelativeScore(log.hero, 'laning', log.laningGpm, matchLogs, log.id))} />
+            <Field label="中期 10-25" value={formatPhase(log.midGpm, getPhaseRelativeScore(log.hero, 'mid', log.midGpm, matchLogs, log.id))} />
+            <Field label="后期 25+" value={formatPhase(log.lateGpm, getPhaseRelativeScore(log.hero, 'late', log.lateGpm, matchLogs, log.id))} />
+          </div>
+        </section>
+      )}
     </div>
   )
 }

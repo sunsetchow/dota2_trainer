@@ -4,7 +4,7 @@ import { join } from 'path'
 import store from './store.ts'
 import opendotaHeroes from '../src/data/opendotaHeroes.json'
 import heroMatchupSnapshot from '../src/data/heroMatchupSnapshot.json'
-import type { AppState, TrainingCycle, MatchLog, PreGameSetup, DailyCheckin, MMRLog, HeroNote, OpenDotaImportedMatch, OpenDotaParseRequestResult, OpenDotaRecentMatch, HeroMatchupCache, HeroMatchupStats, HeroMatchupSyncResult } from '../src/types'
+import type { AppState, TrainingCycle, MatchLog, PreGameSetup, DailyCheckin, MMRLog, HeroNote, OpenDotaImportedMatch, OpenDotaParseRequestResult, OpenDotaRecentMatch, HeroMatchupCache, HeroMatchupStats, HeroMatchupSyncResult, HeroBenchmarkCache } from '../src/types'
 
 interface OpenDotaPlayer {
   account_id?: number;
@@ -17,6 +17,9 @@ interface OpenDotaPlayer {
   denies?: number;
   lh_t?: number[];
   dn_t?: number[];
+  gold_t?: number[];
+  xp_t?: number[];
+  hero_damage?: number;
   purchase_log?: OpenDotaPurchaseLogItem[];
   gold_per_min?: number;
   xp_per_min?: number;
@@ -79,6 +82,11 @@ interface OpenDotaRecentMatchResponseItem {
   kills?: number;
   deaths?: number;
   assists?: number;
+}
+
+interface OpenDotaBenchmarkResponse {
+  hero_id: number;
+  result: HeroBenchmarkCache['benchmarks'];
 }
 
 const OPEN_DOTA_HEROES = opendotaHeroes as OpenDotaHeroMeta[]
@@ -277,6 +285,54 @@ function getMinuteStat(values: number[] | undefined, minute: number): number | u
   return values[minute]
 }
 
+function computePhaseGpm(goldT: number[] | undefined, durationMin: number): { laningGpm?: number; midGpm?: number; lateGpm?: number } {
+  if (!goldT || goldT.length < 2) return {}
+  const at = (min: number) => goldT[Math.min(Math.max(min, 0), goldT.length - 1)] ?? 0
+  const laningEnd = Math.min(10, durationMin)
+  const midEnd = Math.min(25, durationMin)
+  return {
+    laningGpm: laningEnd > 0 ? at(laningEnd) / laningEnd : undefined,
+    midGpm: midEnd > laningEnd ? (at(midEnd) - at(laningEnd)) / (midEnd - laningEnd) : undefined,
+    lateGpm: durationMin > midEnd ? (at(durationMin) - at(midEnd)) / (durationMin - midEnd) : undefined,
+  }
+}
+
+function interpolatePercentile(points: Array<{ percentile: number; value: number }> | undefined, actualValue: number | undefined): number | null {
+  if (!points?.length || actualValue === undefined || !Number.isFinite(actualValue)) return null
+  const sorted = [...points].sort((a, b) => a.value - b.value)
+  const toPct = (p: number) => (p <= 1 ? p * 100 : p)
+  if (actualValue <= sorted[0].value) return toPct(sorted[0].percentile)
+  const last = sorted[sorted.length - 1]
+  if (actualValue >= last.value) return toPct(last.percentile)
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const lo = sorted[i]
+    const hi = sorted[i + 1]
+    if (actualValue >= lo.value && actualValue <= hi.value) {
+      const ratio = hi.value === lo.value ? 0 : (actualValue - lo.value) / (hi.value - lo.value)
+      return toPct(lo.percentile + ratio * (hi.percentile - lo.percentile))
+    }
+  }
+  return null
+}
+
+const HERO_BENCHMARK_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+async function getOrFetchHeroBenchmarks(heroId: number): Promise<HeroBenchmarkCache> {
+  const all = store.get('heroBenchmarkCache', {}) as Record<string, HeroBenchmarkCache>
+  const cached = all[String(heroId)]
+  if (cached && Date.now() - cached.syncedAt < HERO_BENCHMARK_TTL_MS) return cached
+
+  const raw = await fetchOpenDotaJson<OpenDotaBenchmarkResponse>(`/benchmarks?hero_id=${heroId}`, 15_000)
+  const cache: HeroBenchmarkCache = {
+    source: 'opendota',
+    syncedAt: Date.now(),
+    heroId,
+    benchmarks: raw.result,
+  }
+  store.set('heroBenchmarkCache', { ...all, [String(heroId)]: cache })
+  return cache
+}
+
 function getMatchResult(match: OpenDotaMatchResponse, player: OpenDotaPlayer): 'win' | 'loss' {
   if (player.win === 1) return 'win'
   if (player.lose === 1) return 'loss'
@@ -317,10 +373,12 @@ function buildImportedMatch(matchId: string, match: OpenDotaMatchResponse, playe
 
   const firstKeyItem = getFirstKeyItem(player.purchase_log)
   const laneEfficiency = getLaneEfficiency(player)
+  const durationMin = Math.max(1, Math.round((match.duration ?? 0) / 60))
+  const phaseGpm = computePhaseGpm(player.gold_t, durationMin)
   return {
     matchId,
     timestamp: match.start_time ? match.start_time * 1000 : Date.now(),
-    durationMin: Math.max(1, Math.round((match.duration ?? 0) / 60)),
+    durationMin,
     result: getMatchResult(match, player),
     heroId: player.hero_id,
     kills: player.kills,
@@ -341,6 +399,23 @@ function buildImportedMatch(matchId: string, match: OpenDotaMatchResponse, playe
     laneKills: player.lane_kills,
     playerSlot: player.player_slot,
     isRadiant: player.isRadiant,
+    ...phaseGpm,
+  }
+}
+
+async function enrichImportedMatchWithBenchmarks(imported: OpenDotaImportedMatch, player: OpenDotaPlayer): Promise<OpenDotaImportedMatch> {
+  try {
+    const benchmarks = await getOrFetchHeroBenchmarks(imported.heroId)
+    const durationMin = Math.max(1, imported.durationMin)
+    return {
+      ...imported,
+      gpmPercentile: interpolatePercentile(benchmarks.benchmarks.gold_per_min, player.gold_per_min) ?? undefined,
+      xpmPercentile: interpolatePercentile(benchmarks.benchmarks.xp_per_min, player.xp_per_min) ?? undefined,
+      lastHitsPercentile: interpolatePercentile(benchmarks.benchmarks.last_hits_per_min, (player.last_hits ?? 0) / durationMin) ?? undefined,
+      heroDamagePercentile: interpolatePercentile(benchmarks.benchmarks.hero_damage_per_min, player.hero_damage !== undefined ? player.hero_damage / durationMin : undefined) ?? undefined,
+    }
+  } catch {
+    return imported
   }
 }
 
@@ -364,7 +439,8 @@ async function fetchOpenDotaImportedMatch(matchId: string, accountId: string, ti
       throw new Error('这场比赛里没有找到设置中的 Account ID。')
     }
 
-    return buildImportedMatch(matchId, match, player)
+    const imported = buildImportedMatch(matchId, match, player)
+    return await enrichImportedMatchWithBenchmarks(imported, player)
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error('OpenDota 请求超时，请稍后重试。')
@@ -824,6 +900,7 @@ ipcMain.handle('store:exportAll', async () => {
     mmrLogs:       store.get('mmrLogs'),
     heroNotes:     store.get('heroNotes'),
     heroMatchupCache: store.get('heroMatchupCache'),
+    heroBenchmarkCache: store.get('heroBenchmarkCache'),
   }
   const { filePath, canceled } = await dialog.showSaveDialog({
     defaultPath: `dota2-backup-${todayKey()}.json`,
@@ -837,7 +914,7 @@ ipcMain.handle('store:exportAll', async () => {
 // 导入
 ipcMain.handle('store:importAll', (_, json: string) => {
   const data = JSON.parse(json)
-  for (const key of ['appState', 'cycles', 'matchLogs', 'preGameSetups', 'dailyCheckins', 'mmrLogs', 'heroNotes', 'heroMatchupCache']) {
+  for (const key of ['appState', 'cycles', 'matchLogs', 'preGameSetups', 'dailyCheckins', 'mmrLogs', 'heroNotes', 'heroMatchupCache', 'heroBenchmarkCache']) {
     if (data[key] !== undefined) store.set(key, data[key])
   }
 })

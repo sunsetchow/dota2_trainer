@@ -36,14 +36,14 @@ export function getDaysElapsed(cycle: TrainingCycle): number {
   return diffDays < 0 ? 0 : diffDays + 1
 }
 
-// calcStreak: 今日未打卡时沿用昨天的 streak 而非归零
-export function calcStreak(checkins: DailyCheckin[]): number {
+// calcStreak: 今日未打卡时沿用昨天的 streak；freeze 覆盖日按连续训练处理。
+export function calcStreak(checkins: DailyCheckin[], freezeUsedDates: string[] = []): number {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
 
-  const dates = [...new Set(checkins.map(c => c.date))].sort().reverse()
+  const dates = [...new Set([...checkins.map(c => c.date), ...freezeUsedDates])].sort().reverse()
   if (dates.length === 0) return 0
 
   const mostRecent = dateFromDateKey(dates[0])

@@ -104,6 +104,13 @@ export interface MatchLog {
   reviewClipDeath?: string;
   reviewClipFight?: string;
   reviewClipObjective?: string;
+  gpmPercentile?: number;
+  xpmPercentile?: number;
+  lastHitsPercentile?: number;
+  heroDamagePercentile?: number;
+  laningGpm?: number;
+  midGpm?: number;
+  lateGpm?: number;
 }
 
 export interface OpenDotaRecentMatch {
@@ -142,6 +149,8 @@ export interface AppState {
   longestStreak: number;
   pendingPreGameSetupId?: string;
   openDota?: OpenDotaSettings;
+  checklistFreezeTokens?: number;
+  freezeUsedDates?: string[];
 }
 
 // ── OpenDota 导入结果（主进程返回）
@@ -170,6 +179,13 @@ export interface OpenDotaImportedMatch {
   laneDeaths?: number;
   playerSlot?: number;
   isRadiant?: boolean;
+  gpmPercentile?: number;
+  xpmPercentile?: number;
+  lastHitsPercentile?: number;
+  heroDamagePercentile?: number;
+  laningGpm?: number;
+  midGpm?: number;
+  lateGpm?: number;
 }
 
 export interface OpenDotaParseRequestResult {
@@ -206,6 +222,24 @@ export interface HeroMatchupSyncResult {
   cache: HeroMatchupCache;
 }
 
+export interface HeroBenchmarkPercentile {
+  percentile: number;
+  value: number;
+}
+
+export interface HeroBenchmarkCache {
+  source: 'opendota';
+  syncedAt: number;
+  heroId: number;
+  benchmarks: {
+    gold_per_min?: HeroBenchmarkPercentile[];
+    xp_per_min?: HeroBenchmarkPercentile[];
+    kills_per_min?: HeroBenchmarkPercentile[];
+    last_hits_per_min?: HeroBenchmarkPercentile[];
+    hero_damage_per_min?: HeroBenchmarkPercentile[];
+  };
+}
+
 // ── 英雄档案（P1）
 export interface HeroNote {
   hero: string;
@@ -224,6 +258,10 @@ export interface HeroNote {
   reviewClip1?: string;
   reviewClip2?: string;
   reviewClip3?: string;
+  srsEase?: number;
+  srsIntervalDays?: number;
+  srsNextReviewDate?: string;
+  srsLastRating?: 'forgot' | 'hard' | 'good' | 'easy';
 }
 
 // ── Window 接口声明（渲染进程用）

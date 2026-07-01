@@ -11,6 +11,8 @@ const store = new Store({
       currentStreak: 0,
       longestStreak: 0,
       pendingPreGameSetupId: undefined,
+      checklistFreezeTokens: 0,
+      freezeUsedDates: [],
       openDota: {
         accountId: '',
         apiKey: '',
@@ -23,6 +25,7 @@ const store = new Store({
     mmrLogs: [],
     heroNotes: [],
     heroMatchupCache: null,
+    heroBenchmarkCache: {},
   }
 })
 

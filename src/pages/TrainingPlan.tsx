@@ -34,7 +34,9 @@ export default function TrainingPlan() {
 
   const activeCycle = cycles.find(c => c.cycleId === appState?.activeCycleId)
   const currentWeek = activeCycle ? getCurrentWeek(activeCycle) : 0
-  const streak = calcStreak(checkins)
+  const freezeUsedDates = appState?.freezeUsedDates ?? []
+  const freezeDates = new Set(freezeUsedDates)
+  const streak = calcStreak(checkins, freezeUsedDates)
   const longestStreak = calcLongestStreak(checkins)
   const today = todayStr()
   const checkinDates = new Set(checkins.map(c => c.date))
@@ -152,19 +154,22 @@ export default function TrainingPlan() {
                   const hasCheckin = checkinDates.has(dateStr)
                   const isToday = dateStr === today
                   const isFuture = dateStr > today
+                  const isFrozen = !hasCheckin && freezeDates.has(dateStr)
                   return (
                     <div
                       key={`${wt.week}-${i}`}
                       className={`flex-1 h-6 rounded text-center text-xs leading-6 ${
                         hasCheckin
                           ? 'bg-green-500/20 text-green-300 font-medium'
-                          : isToday
+                          : isFrozen
+                            ? 'bg-purple-500/15 text-purple-300 font-medium border border-purple-400/30'
+                            : isToday
                             ? 'bg-[var(--accent-muted)] text-[var(--accent-strong)] font-bold border border-[var(--accent-border)]'
                             : isFuture
                               ? 'bg-[var(--surface-2)] text-[var(--text-muted)]'
                               : 'bg-red-500/10 text-red-300/50'
                       }`}
-                      title={dateStr}
+                      title={isFrozen ? `${dateStr} · streak freeze 覆盖` : dateStr}
                     >
                       {['一', '二', '三', '四', '五', '六', '日'][i]}
                     </div>
