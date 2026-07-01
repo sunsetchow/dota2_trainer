@@ -5,9 +5,9 @@
   "date": "2026-06-30",
   "weekKey": "2026-W27",
   "expiresAt": 1783458851476,
-  "complete": false,
-  "heroCount": 120,
-  "matchupCount": 15110,
+  "complete": true,
+  "heroCount": 127,
+  "matchupCount": 15992,
   "matchups": {
     "敌法师": {
       "痛苦女王": {
@@ -90908,15 +90908,5313 @@
         "winRate": 0,
         "advantage": -50
       }
+    },
+    "伐木机": {
+      "玛尔斯": {
+        "gamesPlayed": 322,
+        "wins": 164,
+        "winRate": 50.931677018633536,
+        "advantage": 0.9316770186335361
+      },
+      "影魔": {
+        "gamesPlayed": 307,
+        "wins": 152,
+        "winRate": 49.5114006514658,
+        "advantage": -0.4885993485342013
+      },
+      "电炎绝手": {
+        "gamesPlayed": 307,
+        "wins": 160,
+        "winRate": 52.11726384364821,
+        "advantage": 2.1172638436482103
+      },
+      "小小": {
+        "gamesPlayed": 295,
+        "wins": 154,
+        "winRate": 52.20338983050847,
+        "advantage": 2.2033898305084705
+      },
+      "巨牙海民": {
+        "gamesPlayed": 294,
+        "wins": 157,
+        "winRate": 53.40136054421769,
+        "advantage": 3.401360544217688
+      },
+      "拉比克": {
+        "gamesPlayed": 278,
+        "wins": 131,
+        "winRate": 47.122302158273385,
+        "advantage": -2.877697841726615
+      },
+      "杰奇洛": {
+        "gamesPlayed": 277,
+        "wins": 141,
+        "winRate": 50.90252707581227,
+        "advantage": 0.902527075812273
+      },
+      "斧王": {
+        "gamesPlayed": 269,
+        "wins": 139,
+        "winRate": 51.6728624535316,
+        "advantage": 1.6728624535316001
+      },
+      "屠夫": {
+        "gamesPlayed": 263,
+        "wins": 136,
+        "winRate": 51.71102661596958,
+        "advantage": 1.7110266159695797
+      },
+      "矮人直升机": {
+        "gamesPlayed": 255,
+        "wins": 125,
+        "winRate": 49.01960784313725,
+        "advantage": -0.9803921568627487
+      },
+      "风行者": {
+        "gamesPlayed": 252,
+        "wins": 131,
+        "winRate": 51.98412698412699,
+        "advantage": 1.9841269841269877
+      },
+      "干扰者": {
+        "gamesPlayed": 251,
+        "wins": 129,
+        "winRate": 51.39442231075697,
+        "advantage": 1.3944223107569726
+      },
+      "龙骑士": {
+        "gamesPlayed": 246,
+        "wins": 126,
+        "winRate": 51.21951219512195,
+        "advantage": 1.2195121951219505
+      },
+      "灰烬之灵": {
+        "gamesPlayed": 244,
+        "wins": 118,
+        "winRate": 48.36065573770492,
+        "advantage": -1.639344262295083
+      },
+      "森海飞霞": {
+        "gamesPlayed": 236,
+        "wins": 122,
+        "winRate": 51.69491525423729,
+        "advantage": 1.6949152542372872
+      },
+      "熊战士": {
+        "gamesPlayed": 234,
+        "wins": 101,
+        "winRate": 43.162393162393165,
+        "advantage": -6.837606837606835
+      },
+      "食人魔魔法师": {
+        "gamesPlayed": 224,
+        "wins": 101,
+        "winRate": 45.089285714285715,
+        "advantage": -4.910714285714285
+      },
+      "先知": {
+        "gamesPlayed": 219,
+        "wins": 111,
+        "winRate": 50.68493150684932,
+        "advantage": 0.6849315068493169
+      },
+      "风暴之灵": {
+        "gamesPlayed": 215,
+        "wins": 101,
+        "winRate": 46.97674418604651,
+        "advantage": -3.02325581395349
+      },
+      "圣堂刺客": {
+        "gamesPlayed": 214,
+        "wins": 102,
+        "winRate": 47.66355140186916,
+        "advantage": -2.3364485981308434
+      },
+      "痛苦女王": {
+        "gamesPlayed": 211,
+        "wins": 89,
+        "winRate": 42.18009478672986,
+        "advantage": -7.81990521327014
+      },
+      "莱恩": {
+        "gamesPlayed": 201,
+        "wins": 92,
+        "winRate": 45.77114427860697,
+        "advantage": -4.228855721393032
+      },
+      "帕克": {
+        "gamesPlayed": 196,
+        "wins": 105,
+        "winRate": 53.57142857142857,
+        "advantage": 3.5714285714285694
+      },
+      "破晓辰星": {
+        "gamesPlayed": 194,
+        "wins": 98,
+        "winRate": 50.51546391752577,
+        "advantage": 0.5154639175257714
+      },
+      "蝙蝠骑士": {
+        "gamesPlayed": 192,
+        "wins": 94,
+        "winRate": 48.95833333333333,
+        "advantage": -1.0416666666666714
+      },
+      "不朽尸王": {
+        "gamesPlayed": 187,
+        "wins": 95,
+        "winRate": 50.80213903743316,
+        "advantage": 0.8021390374331574
+      },
+      "石鳞剑士": {
+        "gamesPlayed": 184,
+        "wins": 94,
+        "winRate": 51.08695652173913,
+        "advantage": 1.0869565217391326
+      },
+      "天怒法师": {
+        "gamesPlayed": 181,
+        "wins": 95,
+        "winRate": 52.48618784530387,
+        "advantage": 2.486187845303867
+      },
+      "半人马战行者": {
+        "gamesPlayed": 180,
+        "wins": 106,
+        "winRate": 58.88888888888889,
+        "advantage": 8.888888888888893
+      },
+      "术士": {
+        "gamesPlayed": 173,
+        "wins": 91,
+        "winRate": 52.601156069364166,
+        "advantage": 2.6011560693641655
+      },
+      "斯拉达": {
+        "gamesPlayed": 170,
+        "wins": 87,
+        "winRate": 51.17647058823529,
+        "advantage": 1.17647058823529
+      },
+      "树精卫士": {
+        "gamesPlayed": 162,
+        "wins": 67,
+        "winRate": 41.358024691358025,
+        "advantage": -8.641975308641975
+      },
+      "拉席克": {
+        "gamesPlayed": 161,
+        "wins": 72,
+        "winRate": 44.72049689440994,
+        "advantage": -5.279503105590059
+      },
+      "兽王": {
+        "gamesPlayed": 160,
+        "wins": 82,
+        "winRate": 51.24999999999999,
+        "advantage": 1.249999999999993
+      },
+      "暗影恶魔": {
+        "gamesPlayed": 159,
+        "wins": 69,
+        "winRate": 43.39622641509434,
+        "advantage": -6.60377358490566
+      },
+      "帕格纳": {
+        "gamesPlayed": 159,
+        "wins": 76,
+        "winRate": 47.79874213836478,
+        "advantage": -2.20125786163522
+      },
+      "虚无之灵": {
+        "gamesPlayed": 158,
+        "wins": 89,
+        "winRate": 56.32911392405063,
+        "advantage": 6.329113924050631
+      },
+      "暗影萨满": {
+        "gamesPlayed": 157,
+        "wins": 82,
+        "winRate": 52.22929936305732,
+        "advantage": 2.229299363057322
+      },
+      "邪影芳灵": {
+        "gamesPlayed": 153,
+        "wins": 75,
+        "winRate": 49.01960784313725,
+        "advantage": -0.9803921568627487
+      },
+      "潮汐猎人": {
+        "gamesPlayed": 152,
+        "wins": 78,
+        "winRate": 51.31578947368421,
+        "advantage": 1.3157894736842124
+      },
+      "玛西": {
+        "gamesPlayed": 151,
+        "wins": 69,
+        "winRate": 45.6953642384106,
+        "advantage": -4.304635761589402
+      },
+      "亚巴顿": {
+        "gamesPlayed": 147,
+        "wins": 77,
+        "winRate": 52.38095238095239,
+        "advantage": 2.3809523809523867
+      },
+      "末日使者": {
+        "gamesPlayed": 143,
+        "wins": 72,
+        "winRate": 50.349650349650354,
+        "advantage": 0.3496503496503536
+      },
+      "原始野兽": {
+        "gamesPlayed": 139,
+        "wins": 66,
+        "winRate": 47.482014388489205,
+        "advantage": -2.5179856115107953
+      },
+      "百戏大王": {
+        "gamesPlayed": 139,
+        "wins": 61,
+        "winRate": 43.884892086330936,
+        "advantage": -6.115107913669064
+      },
+      "发条技师": {
+        "gamesPlayed": 137,
+        "wins": 67,
+        "winRate": 48.9051094890511,
+        "advantage": -1.0948905109489004
+      },
+      "凤凰": {
+        "gamesPlayed": 137,
+        "wins": 74,
+        "winRate": 54.01459854014598,
+        "advantage": 4.0145985401459825
+      },
+      "祈求者": {
+        "gamesPlayed": 137,
+        "wins": 66,
+        "winRate": 48.175182481751825,
+        "advantage": -1.8248175182481745
+      },
+      "露娜": {
+        "gamesPlayed": 130,
+        "wins": 65,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "裂魂人": {
+        "gamesPlayed": 130,
+        "wins": 63,
+        "winRate": 48.46153846153846,
+        "advantage": -1.53846153846154
+      },
+      "孽主": {
+        "gamesPlayed": 126,
+        "wins": 69,
+        "winRate": 54.761904761904766,
+        "advantage": 4.761904761904766
+      },
+      "美杜莎": {
+        "gamesPlayed": 125,
+        "wins": 73,
+        "winRate": 58.4,
+        "advantage": 8.399999999999999
+      },
+      "沉默术士": {
+        "gamesPlayed": 117,
+        "wins": 50,
+        "winRate": 42.73504273504273,
+        "advantage": -7.264957264957268
+      },
+      "钢背兽": {
+        "gamesPlayed": 116,
+        "wins": 60,
+        "winRate": 51.724137931034484,
+        "advantage": 1.724137931034484
+      },
+      "冥界亚龙": {
+        "gamesPlayed": 110,
+        "wins": 57,
+        "winRate": 51.81818181818182,
+        "advantage": 1.8181818181818201
+      },
+      "穆尔塔": {
+        "gamesPlayed": 107,
+        "wins": 53,
+        "winRate": 49.532710280373834,
+        "advantage": -0.46728971962616583
+      },
+      "撼地者": {
+        "gamesPlayed": 106,
+        "wins": 58,
+        "winRate": 54.71698113207547,
+        "advantage": 4.7169811320754675
+      },
+      "水晶室女": {
+        "gamesPlayed": 105,
+        "wins": 52,
+        "winRate": 49.523809523809526,
+        "advantage": -0.4761904761904745
+      },
+      "恐怖利刃": {
+        "gamesPlayed": 105,
+        "wins": 51,
+        "winRate": 48.57142857142857,
+        "advantage": -1.4285714285714306
+      },
+      "昆卡": {
+        "gamesPlayed": 104,
+        "wins": 47,
+        "winRate": 45.19230769230769,
+        "advantage": -4.807692307692307
+      },
+      "宙斯": {
+        "gamesPlayed": 103,
+        "wins": 56,
+        "winRate": 54.36893203883495,
+        "advantage": 4.368932038834949
+      },
+      "狙击手": {
+        "gamesPlayed": 103,
+        "wins": 57,
+        "winRate": 55.33980582524271,
+        "advantage": 5.339805825242713
+      },
+      "虚空假面": {
+        "gamesPlayed": 101,
+        "wins": 51,
+        "winRate": 50.495049504950494,
+        "advantage": 0.4950495049504937
+      },
+      "编织者": {
+        "gamesPlayed": 101,
+        "wins": 56,
+        "winRate": 55.44554455445545,
+        "advantage": 5.445544554455452
+      },
+      "克林克兹": {
+        "gamesPlayed": 97,
+        "wins": 49,
+        "winRate": 50.51546391752577,
+        "advantage": 0.5154639175257714
+      },
+      "齐天大圣": {
+        "gamesPlayed": 96,
+        "wins": 52,
+        "winRate": 54.166666666666664,
+        "advantage": 4.166666666666664
+      },
+      "主宰": {
+        "gamesPlayed": 94,
+        "wins": 51,
+        "winRate": 54.25531914893617,
+        "advantage": 4.255319148936167
+      },
+      "祸乱之源": {
+        "gamesPlayed": 94,
+        "wins": 37,
+        "winRate": 39.361702127659576,
+        "advantage": -10.638297872340424
+      },
+      "巫妖": {
+        "gamesPlayed": 93,
+        "wins": 42,
+        "winRate": 45.16129032258064,
+        "advantage": -4.838709677419359
+      },
+      "瘟疫法师": {
+        "gamesPlayed": 90,
+        "wins": 43,
+        "winRate": 47.77777777777778,
+        "advantage": -2.2222222222222214
+      },
+      "噬魂鬼": {
+        "gamesPlayed": 89,
+        "wins": 49,
+        "winRate": 55.0561797752809,
+        "advantage": 5.056179775280903
+      },
+      "魅惑魔女": {
+        "gamesPlayed": 88,
+        "wins": 41,
+        "winRate": 46.590909090909086,
+        "advantage": -3.4090909090909136
+      },
+      "马格纳斯": {
+        "gamesPlayed": 85,
+        "wins": 37,
+        "winRate": 43.529411764705884,
+        "advantage": -6.470588235294116
+      },
+      "变体精灵": {
+        "gamesPlayed": 84,
+        "wins": 53,
+        "winRate": 63.095238095238095,
+        "advantage": 13.095238095238095
+      },
+      "光之守卫": {
+        "gamesPlayed": 80,
+        "wins": 40,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "远古冰魄": {
+        "gamesPlayed": 79,
+        "wins": 39,
+        "winRate": 49.36708860759494,
+        "advantage": -0.6329113924050631
+      },
+      "凯": {
+        "gamesPlayed": 79,
+        "wins": 36,
+        "winRate": 45.56962025316456,
+        "advantage": -4.430379746835442
+      },
+      "卓尔游侠": {
+        "gamesPlayed": 77,
+        "wins": 41,
+        "winRate": 53.246753246753244,
+        "advantage": 3.2467532467532436
+      },
+      "莉娜": {
+        "gamesPlayed": 76,
+        "wins": 46,
+        "winRate": 60.526315789473685,
+        "advantage": 10.526315789473685
+      },
+      "陈": {
+        "gamesPlayed": 74,
+        "wins": 35,
+        "winRate": 47.2972972972973,
+        "advantage": -2.7027027027027017
+      },
+      "沙王": {
+        "gamesPlayed": 73,
+        "wins": 38,
+        "winRate": 52.054794520547944,
+        "advantage": 2.0547945205479436
+      },
+      "炼金术士": {
+        "gamesPlayed": 73,
+        "wins": 31,
+        "winRate": 42.465753424657535,
+        "advantage": -7.534246575342465
+      },
+      "斯温": {
+        "gamesPlayed": 73,
+        "wins": 39,
+        "winRate": 53.42465753424658,
+        "advantage": 3.4246575342465775
+      },
+      "工程师": {
+        "gamesPlayed": 71,
+        "wins": 39,
+        "winRate": 54.929577464788736,
+        "advantage": 4.929577464788736
+      },
+      "敌法师": {
+        "gamesPlayed": 68,
+        "wins": 42,
+        "winRate": 61.76470588235294,
+        "advantage": 11.764705882352942
+      },
+      "司夜刺客": {
+        "gamesPlayed": 68,
+        "wins": 26,
+        "winRate": 38.23529411764706,
+        "advantage": -11.764705882352942
+      },
+      "复仇之魂": {
+        "gamesPlayed": 66,
+        "wins": 28,
+        "winRate": 42.42424242424242,
+        "advantage": -7.575757575757578
+      },
+      "Largo": {
+        "gamesPlayed": 65,
+        "wins": 23,
+        "winRate": 35.38461538461539,
+        "advantage": -14.615384615384613
+      },
+      "戴泽": {
+        "gamesPlayed": 65,
+        "wins": 33,
+        "winRate": 50.76923076923077,
+        "advantage": 0.7692307692307665
+      },
+      "剃刀": {
+        "gamesPlayed": 65,
+        "wins": 30,
+        "winRate": 46.15384615384615,
+        "advantage": -3.8461538461538467
+      },
+      "军团指挥官": {
+        "gamesPlayed": 65,
+        "wins": 29,
+        "winRate": 44.61538461538462,
+        "advantage": -5.38461538461538
+      },
+      "暗夜魔王": {
+        "gamesPlayed": 65,
+        "wins": 27,
+        "winRate": 41.53846153846154,
+        "advantage": -8.46153846153846
+      },
+      "死亡先知": {
+        "gamesPlayed": 60,
+        "wins": 28,
+        "winRate": 46.666666666666664,
+        "advantage": -3.3333333333333357
+      },
+      "巫医": {
+        "gamesPlayed": 59,
+        "wins": 35,
+        "winRate": 59.32203389830508,
+        "advantage": 9.32203389830508
+      },
+      "赏金猎人": {
+        "gamesPlayed": 57,
+        "wins": 22,
+        "winRate": 38.59649122807017,
+        "advantage": -11.403508771929829
+      },
+      "娜迦海妖": {
+        "gamesPlayed": 57,
+        "wins": 28,
+        "winRate": 49.122807017543856,
+        "advantage": -0.877192982456144
+      },
+      "天涯墨客": {
+        "gamesPlayed": 57,
+        "wins": 33,
+        "winRate": 57.89473684210527,
+        "advantage": 7.894736842105267
+      },
+      "巨魔战将": {
+        "gamesPlayed": 56,
+        "wins": 33,
+        "winRate": 58.92857142857143,
+        "advantage": 8.92857142857143
+      },
+      "剧毒术士": {
+        "gamesPlayed": 56,
+        "wins": 30,
+        "winRate": 53.57142857142857,
+        "advantage": 3.5714285714285694
+      },
+      "修补匠": {
+        "gamesPlayed": 55,
+        "wins": 26,
+        "winRate": 47.27272727272727,
+        "advantage": -2.7272727272727266
+      },
+      "酒仙": {
+        "gamesPlayed": 55,
+        "wins": 25,
+        "winRate": 45.45454545454545,
+        "advantage": -4.545454545454547
+      },
+      "哈斯卡": {
+        "gamesPlayed": 55,
+        "wins": 26,
+        "winRate": 47.27272727272727,
+        "advantage": -2.7272727272727266
+      },
+      "殁境神蚀者": {
+        "gamesPlayed": 54,
+        "wins": 31,
+        "winRate": 57.407407407407405,
+        "advantage": 7.407407407407405
+      },
+      "斯拉克": {
+        "gamesPlayed": 54,
+        "wins": 26,
+        "winRate": 48.148148148148145,
+        "advantage": -1.8518518518518547
+      },
+      "混沌骑士": {
+        "gamesPlayed": 51,
+        "wins": 28,
+        "winRate": 54.90196078431373,
+        "advantage": 4.901960784313729
+      },
+      "大地之灵": {
+        "gamesPlayed": 48,
+        "wins": 17,
+        "winRate": 35.41666666666667,
+        "advantage": -14.583333333333329
+      },
+      "寒冬飞龙": {
+        "gamesPlayed": 46,
+        "wins": 24,
+        "winRate": 52.17391304347826,
+        "advantage": 2.173913043478258
+      },
+      "狼人": {
+        "gamesPlayed": 45,
+        "wins": 26,
+        "winRate": 57.77777777777777,
+        "advantage": 7.7777777777777715
+      },
+      "艾欧": {
+        "gamesPlayed": 45,
+        "wins": 21,
+        "winRate": 46.666666666666664,
+        "advantage": -3.3333333333333357
+      },
+      "冥魂大帝": {
+        "gamesPlayed": 43,
+        "wins": 15,
+        "winRate": 34.883720930232556,
+        "advantage": -15.116279069767444
+      },
+      "神谕者": {
+        "gamesPlayed": 40,
+        "wins": 22,
+        "winRate": 55.00000000000001,
+        "advantage": 5.000000000000007
+      },
+      "谜团": {
+        "gamesPlayed": 38,
+        "wins": 21,
+        "winRate": 55.26315789473685,
+        "advantage": 5.26315789473685
+      },
+      "黑暗贤者": {
+        "gamesPlayed": 37,
+        "wins": 21,
+        "winRate": 56.75675675675676,
+        "advantage": 6.756756756756758
+      },
+      "米拉娜": {
+        "gamesPlayed": 36,
+        "wins": 17,
+        "winRate": 47.22222222222222,
+        "advantage": -2.7777777777777786
+      },
+      "幻影刺客": {
+        "gamesPlayed": 36,
+        "wins": 20,
+        "winRate": 55.55555555555556,
+        "advantage": 5.555555555555557
+      },
+      "幻影长矛手": {
+        "gamesPlayed": 35,
+        "wins": 19,
+        "winRate": 54.285714285714285,
+        "advantage": 4.285714285714285
+      },
+      "育母蜘蛛": {
+        "gamesPlayed": 27,
+        "wins": 11,
+        "winRate": 40.74074074074074,
+        "advantage": -9.25925925925926
+      },
+      "血魔": {
+        "gamesPlayed": 26,
+        "wins": 6,
+        "winRate": 23.076923076923077,
+        "advantage": -26.923076923076923
+      },
+      "全能骑士": {
+        "gamesPlayed": 26,
+        "wins": 13,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "德鲁伊": {
+        "gamesPlayed": 22,
+        "wins": 12,
+        "winRate": 54.54545454545454,
+        "advantage": 4.54545454545454
+      },
+      "维萨吉": {
+        "gamesPlayed": 22,
+        "wins": 9,
+        "winRate": 40.909090909090914,
+        "advantage": -9.090909090909086
+      },
+      "幽鬼": {
+        "gamesPlayed": 19,
+        "wins": 10,
+        "winRate": 52.63157894736842,
+        "advantage": 2.6315789473684177
+      },
+      "天穹守望者": {
+        "gamesPlayed": 17,
+        "wins": 12,
+        "winRate": 70.58823529411765,
+        "advantage": 20.588235294117652
+      },
+      "力丸": {
+        "gamesPlayed": 15,
+        "wins": 7,
+        "winRate": 46.666666666666664,
+        "advantage": -3.3333333333333357
+      },
+      "米波": {
+        "gamesPlayed": 13,
+        "wins": 8,
+        "winRate": 61.53846153846154,
+        "advantage": 11.53846153846154
+      },
+      "上古巨神": {
+        "gamesPlayed": 10,
+        "wins": 5,
+        "winRate": 50.0,
+        "advantage": 0.0
+      }
+    },
+    "半人马战行者": {
+      "玛尔斯": {
+        "gamesPlayed": 416,
+        "wins": 218,
+        "winRate": 52.40384615384615,
+        "advantage": 2.4038461538461533
+      },
+      "杰奇洛": {
+        "gamesPlayed": 387,
+        "wins": 193,
+        "winRate": 49.87080103359173,
+        "advantage": -0.12919896640826778
+      },
+      "影魔": {
+        "gamesPlayed": 349,
+        "wins": 161,
+        "winRate": 46.13180515759313,
+        "advantage": -3.868194842406872
+      },
+      "电炎绝手": {
+        "gamesPlayed": 343,
+        "wins": 160,
+        "winRate": 46.647230320699705,
+        "advantage": -3.3527696793002946
+      },
+      "龙骑士": {
+        "gamesPlayed": 324,
+        "wins": 168,
+        "winRate": 51.85185185185185,
+        "advantage": 1.8518518518518476
+      },
+      "巨牙海民": {
+        "gamesPlayed": 323,
+        "wins": 162,
+        "winRate": 50.15479876160991,
+        "advantage": 0.15479876160991068
+      },
+      "干扰者": {
+        "gamesPlayed": 317,
+        "wins": 158,
+        "winRate": 49.8422712933754,
+        "advantage": -0.15772870662460292
+      },
+      "暗影恶魔": {
+        "gamesPlayed": 299,
+        "wins": 146,
+        "winRate": 48.82943143812709,
+        "advantage": -1.170568561872912
+      },
+      "风行者": {
+        "gamesPlayed": 295,
+        "wins": 156,
+        "winRate": 52.88135593220339,
+        "advantage": 2.881355932203391
+      },
+      "术士": {
+        "gamesPlayed": 295,
+        "wins": 162,
+        "winRate": 54.91525423728814,
+        "advantage": 4.9152542372881385
+      },
+      "小小": {
+        "gamesPlayed": 293,
+        "wins": 166,
+        "winRate": 56.655290102389074,
+        "advantage": 6.655290102389074
+      },
+      "灰烬之灵": {
+        "gamesPlayed": 286,
+        "wins": 141,
+        "winRate": 49.3006993006993,
+        "advantage": -0.6993006993007
+      },
+      "斧王": {
+        "gamesPlayed": 275,
+        "wins": 151,
+        "winRate": 54.90909090909091,
+        "advantage": 4.9090909090909065
+      },
+      "斯拉达": {
+        "gamesPlayed": 273,
+        "wins": 129,
+        "winRate": 47.25274725274725,
+        "advantage": -2.7472527472527517
+      },
+      "痛苦女王": {
+        "gamesPlayed": 272,
+        "wins": 142,
+        "winRate": 52.20588235294118,
+        "advantage": 2.205882352941181
+      },
+      "拉比克": {
+        "gamesPlayed": 269,
+        "wins": 131,
+        "winRate": 48.698884758364315,
+        "advantage": -1.301115241635685
+      },
+      "森海飞霞": {
+        "gamesPlayed": 244,
+        "wins": 131,
+        "winRate": 53.68852459016394,
+        "advantage": 3.6885245901639365
+      },
+      "熊战士": {
+        "gamesPlayed": 243,
+        "wins": 116,
+        "winRate": 47.73662551440329,
+        "advantage": -2.2633744855967066
+      },
+      "潮汐猎人": {
+        "gamesPlayed": 238,
+        "wins": 125,
+        "winRate": 52.52100840336135,
+        "advantage": 2.52100840336135
+      },
+      "风暴之灵": {
+        "gamesPlayed": 235,
+        "wins": 126,
+        "winRate": 53.61702127659574,
+        "advantage": 3.617021276595743
+      },
+      "圣堂刺客": {
+        "gamesPlayed": 223,
+        "wins": 106,
+        "winRate": 47.53363228699551,
+        "advantage": -2.4663677130044874
+      },
+      "矮人直升机": {
+        "gamesPlayed": 222,
+        "wins": 115,
+        "winRate": 51.80180180180181,
+        "advantage": 1.8018018018018083
+      },
+      "食人魔魔法师": {
+        "gamesPlayed": 214,
+        "wins": 107,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "莱恩": {
+        "gamesPlayed": 212,
+        "wins": 107,
+        "winRate": 50.47169811320755,
+        "advantage": 0.47169811320755173
+      },
+      "石鳞剑士": {
+        "gamesPlayed": 209,
+        "wins": 118,
+        "winRate": 56.45933014354066,
+        "advantage": 6.459330143540662
+      },
+      "帕克": {
+        "gamesPlayed": 205,
+        "wins": 108,
+        "winRate": 52.6829268292683,
+        "advantage": 2.682926829268297
+      },
+      "天怒法师": {
+        "gamesPlayed": 203,
+        "wins": 107,
+        "winRate": 52.70935960591133,
+        "advantage": 2.709359605911331
+      },
+      "兽王": {
+        "gamesPlayed": 203,
+        "wins": 99,
+        "winRate": 48.76847290640394,
+        "advantage": -1.231527093596057
+      },
+      "暗影萨满": {
+        "gamesPlayed": 201,
+        "wins": 103,
+        "winRate": 51.243781094527364,
+        "advantage": 1.243781094527364
+      },
+      "先知": {
+        "gamesPlayed": 192,
+        "wins": 89,
+        "winRate": 46.35416666666667,
+        "advantage": -3.6458333333333286
+      },
+      "噬魂鬼": {
+        "gamesPlayed": 191,
+        "wins": 94,
+        "winRate": 49.21465968586388,
+        "advantage": -0.7853403141361213
+      },
+      "屠夫": {
+        "gamesPlayed": 182,
+        "wins": 91,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "百戏大王": {
+        "gamesPlayed": 182,
+        "wins": 81,
+        "winRate": 44.505494505494504,
+        "advantage": -5.494505494505496
+      },
+      "伐木机": {
+        "gamesPlayed": 180,
+        "wins": 74,
+        "winRate": 41.11111111111111,
+        "advantage": -8.888888888888893
+      },
+      "亚巴顿": {
+        "gamesPlayed": 178,
+        "wins": 79,
+        "winRate": 44.38202247191011,
+        "advantage": -5.617977528089888
+      },
+      "祈求者": {
+        "gamesPlayed": 176,
+        "wins": 88,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "主宰": {
+        "gamesPlayed": 173,
+        "wins": 84,
+        "winRate": 48.554913294797686,
+        "advantage": -1.4450867052023142
+      },
+      "玛西": {
+        "gamesPlayed": 172,
+        "wins": 70,
+        "winRate": 40.69767441860465,
+        "advantage": -9.302325581395351
+      },
+      "破晓辰星": {
+        "gamesPlayed": 172,
+        "wins": 85,
+        "winRate": 49.41860465116279,
+        "advantage": -0.5813953488372121
+      },
+      "凤凰": {
+        "gamesPlayed": 169,
+        "wins": 85,
+        "winRate": 50.29585798816568,
+        "advantage": 0.2958579881656789
+      },
+      "末日使者": {
+        "gamesPlayed": 163,
+        "wins": 78,
+        "winRate": 47.85276073619632,
+        "advantage": -2.1472392638036766
+      },
+      "蝙蝠骑士": {
+        "gamesPlayed": 159,
+        "wins": 80,
+        "winRate": 50.314465408805034,
+        "advantage": 0.3144654088050345
+      },
+      "虚无之灵": {
+        "gamesPlayed": 158,
+        "wins": 76,
+        "winRate": 48.10126582278481,
+        "advantage": -1.8987341772151893
+      },
+      "孽主": {
+        "gamesPlayed": 153,
+        "wins": 82,
+        "winRate": 53.59477124183007,
+        "advantage": 3.594771241830067
+      },
+      "发条技师": {
+        "gamesPlayed": 149,
+        "wins": 67,
+        "winRate": 44.966442953020135,
+        "advantage": -5.033557046979865
+      },
+      "拉席克": {
+        "gamesPlayed": 139,
+        "wins": 72,
+        "winRate": 51.798561151079134,
+        "advantage": 1.7985611510791344
+      },
+      "斯温": {
+        "gamesPlayed": 139,
+        "wins": 71,
+        "winRate": 51.07913669064749,
+        "advantage": 1.0791366906474877
+      },
+      "原始野兽": {
+        "gamesPlayed": 139,
+        "wins": 69,
+        "winRate": 49.64028776978417,
+        "advantage": -0.3597122302158269
+      },
+      "不朽尸王": {
+        "gamesPlayed": 139,
+        "wins": 66,
+        "winRate": 47.482014388489205,
+        "advantage": -2.5179856115107953
+      },
+      "齐天大圣": {
+        "gamesPlayed": 132,
+        "wins": 62,
+        "winRate": 46.96969696969697,
+        "advantage": -3.030303030303031
+      },
+      "露娜": {
+        "gamesPlayed": 131,
+        "wins": 74,
+        "winRate": 56.48854961832062,
+        "advantage": 6.488549618320619
+      },
+      "钢背兽": {
+        "gamesPlayed": 130,
+        "wins": 70,
+        "winRate": 53.84615384615385,
+        "advantage": 3.8461538461538467
+      },
+      "撼地者": {
+        "gamesPlayed": 129,
+        "wins": 63,
+        "winRate": 48.837209302325576,
+        "advantage": -1.1627906976744242
+      },
+      "邪影芳灵": {
+        "gamesPlayed": 128,
+        "wins": 69,
+        "winRate": 53.90625,
+        "advantage": 3.90625
+      },
+      "凯": {
+        "gamesPlayed": 126,
+        "wins": 67,
+        "winRate": 53.17460317460318,
+        "advantage": 3.1746031746031775
+      },
+      "裂魂人": {
+        "gamesPlayed": 124,
+        "wins": 63,
+        "winRate": 50.806451612903224,
+        "advantage": 0.8064516129032242
+      },
+      "帕格纳": {
+        "gamesPlayed": 121,
+        "wins": 68,
+        "winRate": 56.19834710743802,
+        "advantage": 6.198347107438018
+      },
+      "水晶室女": {
+        "gamesPlayed": 121,
+        "wins": 60,
+        "winRate": 49.586776859504134,
+        "advantage": -0.41322314049586595
+      },
+      "沉默术士": {
+        "gamesPlayed": 120,
+        "wins": 72,
+        "winRate": 60.0,
+        "advantage": 10.0
+      },
+      "冥界亚龙": {
+        "gamesPlayed": 117,
+        "wins": 59,
+        "winRate": 50.427350427350426,
+        "advantage": 0.42735042735042583
+      },
+      "穆尔塔": {
+        "gamesPlayed": 113,
+        "wins": 55,
+        "winRate": 48.67256637168141,
+        "advantage": -1.3274336283185875
+      },
+      "恐怖利刃": {
+        "gamesPlayed": 111,
+        "wins": 62,
+        "winRate": 55.85585585585585,
+        "advantage": 5.85585585585585
+      },
+      "陈": {
+        "gamesPlayed": 109,
+        "wins": 48,
+        "winRate": 44.03669724770643,
+        "advantage": -5.963302752293572
+      },
+      "剃刀": {
+        "gamesPlayed": 108,
+        "wins": 55,
+        "winRate": 50.92592592592593,
+        "advantage": 0.9259259259259309
+      },
+      "狙击手": {
+        "gamesPlayed": 107,
+        "wins": 54,
+        "winRate": 50.467289719626166,
+        "advantage": 0.46728971962616583
+      },
+      "沙王": {
+        "gamesPlayed": 107,
+        "wins": 50,
+        "winRate": 46.728971962616825,
+        "advantage": -3.271028037383175
+      },
+      "巫妖": {
+        "gamesPlayed": 105,
+        "wins": 62,
+        "winRate": 59.04761904761905,
+        "advantage": 9.047619047619051
+      },
+      "戴泽": {
+        "gamesPlayed": 101,
+        "wins": 56,
+        "winRate": 55.44554455445545,
+        "advantage": 5.445544554455452
+      },
+      "魅惑魔女": {
+        "gamesPlayed": 100,
+        "wins": 47,
+        "winRate": 47.0,
+        "advantage": -3.0
+      },
+      "光之守卫": {
+        "gamesPlayed": 100,
+        "wins": 55,
+        "winRate": 55.00000000000001,
+        "advantage": 5.000000000000007
+      },
+      "宙斯": {
+        "gamesPlayed": 97,
+        "wins": 50,
+        "winRate": 51.546391752577314,
+        "advantage": 1.546391752577314
+      },
+      "祸乱之源": {
+        "gamesPlayed": 97,
+        "wins": 48,
+        "winRate": 49.48453608247423,
+        "advantage": -0.5154639175257714
+      },
+      "克林克兹": {
+        "gamesPlayed": 94,
+        "wins": 45,
+        "winRate": 47.87234042553192,
+        "advantage": -2.1276595744680833
+      },
+      "编织者": {
+        "gamesPlayed": 94,
+        "wins": 59,
+        "winRate": 62.76595744680851,
+        "advantage": 12.765957446808507
+      },
+      "哈斯卡": {
+        "gamesPlayed": 93,
+        "wins": 46,
+        "winRate": 49.46236559139785,
+        "advantage": -0.5376344086021518
+      },
+      "莉娜": {
+        "gamesPlayed": 92,
+        "wins": 49,
+        "winRate": 53.2608695652174,
+        "advantage": 3.260869565217398
+      },
+      "军团指挥官": {
+        "gamesPlayed": 92,
+        "wins": 52,
+        "winRate": 56.52173913043478,
+        "advantage": 6.521739130434781
+      },
+      "昆卡": {
+        "gamesPlayed": 91,
+        "wins": 50,
+        "winRate": 54.94505494505495,
+        "advantage": 4.945054945054949
+      },
+      "远古冰魄": {
+        "gamesPlayed": 89,
+        "wins": 48,
+        "winRate": 53.93258426966292,
+        "advantage": 3.932584269662918
+      },
+      "工程师": {
+        "gamesPlayed": 85,
+        "wins": 48,
+        "winRate": 56.470588235294116,
+        "advantage": 6.470588235294116
+      },
+      "复仇之魂": {
+        "gamesPlayed": 84,
+        "wins": 48,
+        "winRate": 57.14285714285714,
+        "advantage": 7.142857142857139
+      },
+      "Largo": {
+        "gamesPlayed": 83,
+        "wins": 40,
+        "winRate": 48.19277108433735,
+        "advantage": -1.8072289156626482
+      },
+      "美杜莎": {
+        "gamesPlayed": 83,
+        "wins": 50,
+        "winRate": 60.24096385542169,
+        "advantage": 10.24096385542169
+      },
+      "马格纳斯": {
+        "gamesPlayed": 81,
+        "wins": 42,
+        "winRate": 51.85185185185185,
+        "advantage": 1.8518518518518476
+      },
+      "司夜刺客": {
+        "gamesPlayed": 79,
+        "wins": 34,
+        "winRate": 43.037974683544306,
+        "advantage": -6.962025316455694
+      },
+      "瘟疫法师": {
+        "gamesPlayed": 75,
+        "wins": 36,
+        "winRate": 48.0,
+        "advantage": -2.0
+      },
+      "巨魔战将": {
+        "gamesPlayed": 74,
+        "wins": 41,
+        "winRate": 55.4054054054054,
+        "advantage": 5.4054054054054035
+      },
+      "变体精灵": {
+        "gamesPlayed": 74,
+        "wins": 42,
+        "winRate": 56.75675675675676,
+        "advantage": 6.756756756756758
+      },
+      "暗夜魔王": {
+        "gamesPlayed": 72,
+        "wins": 36,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "虚空假面": {
+        "gamesPlayed": 71,
+        "wins": 40,
+        "winRate": 56.33802816901409,
+        "advantage": 6.338028169014088
+      },
+      "树精卫士": {
+        "gamesPlayed": 70,
+        "wins": 21,
+        "winRate": 30.0,
+        "advantage": -20.0
+      },
+      "狼人": {
+        "gamesPlayed": 67,
+        "wins": 33,
+        "winRate": 49.25373134328358,
+        "advantage": -0.746268656716417
+      },
+      "剧毒术士": {
+        "gamesPlayed": 66,
+        "wins": 33,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "冥魂大帝": {
+        "gamesPlayed": 64,
+        "wins": 32,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "娜迦海妖": {
+        "gamesPlayed": 61,
+        "wins": 28,
+        "winRate": 45.90163934426229,
+        "advantage": -4.098360655737707
+      },
+      "卓尔游侠": {
+        "gamesPlayed": 61,
+        "wins": 31,
+        "winRate": 50.81967213114754,
+        "advantage": 0.8196721311475414
+      },
+      "天涯墨客": {
+        "gamesPlayed": 61,
+        "wins": 26,
+        "winRate": 42.62295081967213,
+        "advantage": -7.377049180327873
+      },
+      "酒仙": {
+        "gamesPlayed": 60,
+        "wins": 22,
+        "winRate": 36.666666666666664,
+        "advantage": -13.333333333333336
+      },
+      "黑暗贤者": {
+        "gamesPlayed": 59,
+        "wins": 31,
+        "winRate": 52.54237288135594,
+        "advantage": 2.542372881355938
+      },
+      "炼金术士": {
+        "gamesPlayed": 59,
+        "wins": 28,
+        "winRate": 47.45762711864407,
+        "advantage": -2.5423728813559308
+      },
+      "死亡先知": {
+        "gamesPlayed": 55,
+        "wins": 30,
+        "winRate": 54.54545454545454,
+        "advantage": 4.54545454545454
+      },
+      "巫医": {
+        "gamesPlayed": 55,
+        "wins": 32,
+        "winRate": 58.18181818181818,
+        "advantage": 8.18181818181818
+      },
+      "谜团": {
+        "gamesPlayed": 54,
+        "wins": 30,
+        "winRate": 55.55555555555556,
+        "advantage": 5.555555555555557
+      },
+      "斯拉克": {
+        "gamesPlayed": 51,
+        "wins": 26,
+        "winRate": 50.98039215686274,
+        "advantage": 0.9803921568627416
+      },
+      "混沌骑士": {
+        "gamesPlayed": 50,
+        "wins": 23,
+        "winRate": 46.0,
+        "advantage": -4.0
+      },
+      "赏金猎人": {
+        "gamesPlayed": 48,
+        "wins": 20,
+        "winRate": 41.66666666666667,
+        "advantage": -8.333333333333329
+      },
+      "大地之灵": {
+        "gamesPlayed": 48,
+        "wins": 22,
+        "winRate": 45.83333333333333,
+        "advantage": -4.166666666666671
+      },
+      "全能骑士": {
+        "gamesPlayed": 44,
+        "wins": 22,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "殁境神蚀者": {
+        "gamesPlayed": 44,
+        "wins": 26,
+        "winRate": 59.09090909090909,
+        "advantage": 9.090909090909093
+      },
+      "修补匠": {
+        "gamesPlayed": 42,
+        "wins": 23,
+        "winRate": 54.761904761904766,
+        "advantage": 4.761904761904766
+      },
+      "育母蜘蛛": {
+        "gamesPlayed": 39,
+        "wins": 16,
+        "winRate": 41.02564102564102,
+        "advantage": -8.974358974358978
+      },
+      "米拉娜": {
+        "gamesPlayed": 39,
+        "wins": 19,
+        "winRate": 48.717948717948715,
+        "advantage": -1.2820512820512846
+      },
+      "寒冬飞龙": {
+        "gamesPlayed": 38,
+        "wins": 19,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "幻影刺客": {
+        "gamesPlayed": 37,
+        "wins": 16,
+        "winRate": 43.24324324324324,
+        "advantage": -6.756756756756758
+      },
+      "敌法师": {
+        "gamesPlayed": 36,
+        "wins": 17,
+        "winRate": 47.22222222222222,
+        "advantage": -2.7777777777777786
+      },
+      "神谕者": {
+        "gamesPlayed": 35,
+        "wins": 16,
+        "winRate": 45.714285714285715,
+        "advantage": -4.285714285714285
+      },
+      "艾欧": {
+        "gamesPlayed": 34,
+        "wins": 16,
+        "winRate": 47.05882352941176,
+        "advantage": -2.941176470588239
+      },
+      "幻影长矛手": {
+        "gamesPlayed": 33,
+        "wins": 21,
+        "winRate": 63.63636363636363,
+        "advantage": 13.636363636363633
+      },
+      "上古巨神": {
+        "gamesPlayed": 25,
+        "wins": 12,
+        "winRate": 48.0,
+        "advantage": -2.0
+      },
+      "米波": {
+        "gamesPlayed": 24,
+        "wins": 11,
+        "winRate": 45.83333333333333,
+        "advantage": -4.166666666666671
+      },
+      "血魔": {
+        "gamesPlayed": 16,
+        "wins": 10,
+        "winRate": 62.5,
+        "advantage": 12.5
+      },
+      "天穹守望者": {
+        "gamesPlayed": 14,
+        "wins": 6,
+        "winRate": 42.857142857142854,
+        "advantage": -7.142857142857146
+      },
+      "维萨吉": {
+        "gamesPlayed": 13,
+        "wins": 4,
+        "winRate": 30.76923076923077,
+        "advantage": -19.23076923076923
+      },
+      "力丸": {
+        "gamesPlayed": 12,
+        "wins": 9,
+        "winRate": 75.0,
+        "advantage": 25.0
+      },
+      "幽鬼": {
+        "gamesPlayed": 12,
+        "wins": 8,
+        "winRate": 66.66666666666666,
+        "advantage": 16.666666666666657
+      },
+      "德鲁伊": {
+        "gamesPlayed": 11,
+        "wins": 3,
+        "winRate": 27.27272727272727,
+        "advantage": -22.72727272727273
+      }
+    },
+    "天怒法师": {
+      "拉比克": {
+        "gamesPlayed": 447,
+        "wins": 219,
+        "winRate": 48.99328859060403,
+        "advantage": -1.0067114093959688
+      },
+      "杰奇洛": {
+        "gamesPlayed": 427,
+        "wins": 194,
+        "winRate": 45.433255269320846,
+        "advantage": -4.566744730679154
+      },
+      "影魔": {
+        "gamesPlayed": 412,
+        "wins": 193,
+        "winRate": 46.84466019417476,
+        "advantage": -3.1553398058252426
+      },
+      "电炎绝手": {
+        "gamesPlayed": 369,
+        "wins": 150,
+        "winRate": 40.65040650406504,
+        "advantage": -9.349593495934961
+      },
+      "干扰者": {
+        "gamesPlayed": 324,
+        "wins": 149,
+        "winRate": 45.98765432098765,
+        "advantage": -4.012345679012348
+      },
+      "巨牙海民": {
+        "gamesPlayed": 298,
+        "wins": 126,
+        "winRate": 42.281879194630875,
+        "advantage": -7.718120805369125
+      },
+      "莱恩": {
+        "gamesPlayed": 292,
+        "wins": 157,
+        "winRate": 53.76712328767124,
+        "advantage": 3.7671232876712395
+      },
+      "食人魔魔法师": {
+        "gamesPlayed": 282,
+        "wins": 136,
+        "winRate": 48.226950354609926,
+        "advantage": -1.7730496453900741
+      },
+      "屠夫": {
+        "gamesPlayed": 278,
+        "wins": 137,
+        "winRate": 49.280575539568346,
+        "advantage": -0.7194244604316538
+      },
+      "玛尔斯": {
+        "gamesPlayed": 275,
+        "wins": 136,
+        "winRate": 49.45454545454545,
+        "advantage": -0.5454545454545467
+      },
+      "痛苦女王": {
+        "gamesPlayed": 266,
+        "wins": 140,
+        "winRate": 52.63157894736842,
+        "advantage": 2.6315789473684177
+      },
+      "龙骑士": {
+        "gamesPlayed": 257,
+        "wins": 143,
+        "winRate": 55.6420233463035,
+        "advantage": 5.642023346303503
+      },
+      "小小": {
+        "gamesPlayed": 253,
+        "wins": 123,
+        "winRate": 48.616600790513836,
+        "advantage": -1.3833992094861642
+      },
+      "风行者": {
+        "gamesPlayed": 246,
+        "wins": 120,
+        "winRate": 48.78048780487805,
+        "advantage": -1.2195121951219505
+      },
+      "圣堂刺客": {
+        "gamesPlayed": 242,
+        "wins": 130,
+        "winRate": 53.71900826446281,
+        "advantage": 3.7190082644628077
+      },
+      "森海飞霞": {
+        "gamesPlayed": 235,
+        "wins": 111,
+        "winRate": 47.23404255319149,
+        "advantage": -2.765957446808507
+      },
+      "斧王": {
+        "gamesPlayed": 220,
+        "wins": 112,
+        "winRate": 50.90909090909091,
+        "advantage": 0.9090909090909065
+      },
+      "灰烬之灵": {
+        "gamesPlayed": 217,
+        "wins": 97,
+        "winRate": 44.70046082949309,
+        "advantage": -5.299539170506911
+      },
+      "露娜": {
+        "gamesPlayed": 207,
+        "wins": 97,
+        "winRate": 46.85990338164252,
+        "advantage": -3.1400966183574823
+      },
+      "亚巴顿": {
+        "gamesPlayed": 205,
+        "wins": 100,
+        "winRate": 48.78048780487805,
+        "advantage": -1.2195121951219505
+      },
+      "暗影恶魔": {
+        "gamesPlayed": 204,
+        "wins": 101,
+        "winRate": 49.50980392156863,
+        "advantage": -0.49019607843136725
+      },
+      "水晶室女": {
+        "gamesPlayed": 204,
+        "wins": 97,
+        "winRate": 47.549019607843135,
+        "advantage": -2.4509803921568647
+      },
+      "半人马战行者": {
+        "gamesPlayed": 203,
+        "wins": 96,
+        "winRate": 47.29064039408867,
+        "advantage": -2.709359605911331
+      },
+      "潮汐猎人": {
+        "gamesPlayed": 203,
+        "wins": 103,
+        "winRate": 50.73891625615764,
+        "advantage": 0.738916256157637
+      },
+      "术士": {
+        "gamesPlayed": 195,
+        "wins": 94,
+        "winRate": 48.205128205128204,
+        "advantage": -1.7948717948717956
+      },
+      "斯拉达": {
+        "gamesPlayed": 193,
+        "wins": 86,
+        "winRate": 44.559585492227974,
+        "advantage": -5.440414507772026
+      },
+      "先知": {
+        "gamesPlayed": 191,
+        "wins": 95,
+        "winRate": 49.73821989528796,
+        "advantage": -0.26178010471203805
+      },
+      "石鳞剑士": {
+        "gamesPlayed": 187,
+        "wins": 93,
+        "winRate": 49.73262032085562,
+        "advantage": -0.26737967914438343
+      },
+      "熊战士": {
+        "gamesPlayed": 184,
+        "wins": 87,
+        "winRate": 47.28260869565217,
+        "advantage": -2.717391304347828
+      },
+      "宙斯": {
+        "gamesPlayed": 183,
+        "wins": 93,
+        "winRate": 50.81967213114754,
+        "advantage": 0.8196721311475414
+      },
+      "伐木机": {
+        "gamesPlayed": 181,
+        "wins": 86,
+        "winRate": 47.51381215469613,
+        "advantage": -2.486187845303867
+      },
+      "狙击手": {
+        "gamesPlayed": 179,
+        "wins": 85,
+        "winRate": 47.486033519553075,
+        "advantage": -2.513966480446925
+      },
+      "裂魂人": {
+        "gamesPlayed": 176,
+        "wins": 80,
+        "winRate": 45.45454545454545,
+        "advantage": -4.545454545454547
+      },
+      "矮人直升机": {
+        "gamesPlayed": 174,
+        "wins": 87,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "破晓辰星": {
+        "gamesPlayed": 173,
+        "wins": 74,
+        "winRate": 42.77456647398844,
+        "advantage": -7.225433526011557
+      },
+      "帕克": {
+        "gamesPlayed": 172,
+        "wins": 76,
+        "winRate": 44.18604651162791,
+        "advantage": -5.813953488372093
+      },
+      "暗影萨满": {
+        "gamesPlayed": 170,
+        "wins": 80,
+        "winRate": 47.05882352941176,
+        "advantage": -2.941176470588239
+      },
+      "沉默术士": {
+        "gamesPlayed": 168,
+        "wins": 85,
+        "winRate": 50.595238095238095,
+        "advantage": 0.5952380952380949
+      },
+      "风暴之灵": {
+        "gamesPlayed": 167,
+        "wins": 83,
+        "winRate": 49.700598802395206,
+        "advantage": -0.29940119760479433
+      },
+      "祈求者": {
+        "gamesPlayed": 166,
+        "wins": 75,
+        "winRate": 45.18072289156627,
+        "advantage": -4.819277108433731
+      },
+      "百戏大王": {
+        "gamesPlayed": 164,
+        "wins": 64,
+        "winRate": 39.02439024390244,
+        "advantage": -10.975609756097562
+      },
+      "兽王": {
+        "gamesPlayed": 162,
+        "wins": 75,
+        "winRate": 46.2962962962963,
+        "advantage": -3.7037037037037024
+      },
+      "邪影芳灵": {
+        "gamesPlayed": 154,
+        "wins": 74,
+        "winRate": 48.05194805194805,
+        "advantage": -1.9480519480519476
+      },
+      "主宰": {
+        "gamesPlayed": 148,
+        "wins": 66,
+        "winRate": 44.5945945945946,
+        "advantage": -5.4054054054054035
+      },
+      "虚无之灵": {
+        "gamesPlayed": 146,
+        "wins": 66,
+        "winRate": 45.20547945205479,
+        "advantage": -4.794520547945211
+      },
+      "噬魂鬼": {
+        "gamesPlayed": 140,
+        "wins": 62,
+        "winRate": 44.285714285714285,
+        "advantage": -5.714285714285715
+      },
+      "玛西": {
+        "gamesPlayed": 136,
+        "wins": 55,
+        "winRate": 40.44117647058824,
+        "advantage": -9.558823529411761
+      },
+      "恐怖利刃": {
+        "gamesPlayed": 136,
+        "wins": 63,
+        "winRate": 46.32352941176471,
+        "advantage": -3.67647058823529
+      },
+      "凤凰": {
+        "gamesPlayed": 135,
+        "wins": 52,
+        "winRate": 38.51851851851852,
+        "advantage": -11.481481481481481
+      },
+      "蝙蝠骑士": {
+        "gamesPlayed": 134,
+        "wins": 58,
+        "winRate": 43.28358208955223,
+        "advantage": -6.716417910447767
+      },
+      "孽主": {
+        "gamesPlayed": 134,
+        "wins": 70,
+        "winRate": 52.23880597014925,
+        "advantage": 2.238805970149251
+      },
+      "莉娜": {
+        "gamesPlayed": 127,
+        "wins": 65,
+        "winRate": 51.181102362204726,
+        "advantage": 1.1811023622047259
+      },
+      "发条技师": {
+        "gamesPlayed": 123,
+        "wins": 55,
+        "winRate": 44.71544715447154,
+        "advantage": -5.284552845528459
+      },
+      "不朽尸王": {
+        "gamesPlayed": 122,
+        "wins": 60,
+        "winRate": 49.18032786885246,
+        "advantage": -0.8196721311475414
+      },
+      "撼地者": {
+        "gamesPlayed": 122,
+        "wins": 57,
+        "winRate": 46.72131147540984,
+        "advantage": -3.2786885245901587
+      },
+      "斯温": {
+        "gamesPlayed": 118,
+        "wins": 51,
+        "winRate": 43.22033898305085,
+        "advantage": -6.779661016949149
+      },
+      "巫妖": {
+        "gamesPlayed": 116,
+        "wins": 51,
+        "winRate": 43.96551724137931,
+        "advantage": -6.03448275862069
+      },
+      "帕格纳": {
+        "gamesPlayed": 114,
+        "wins": 50,
+        "winRate": 43.859649122807014,
+        "advantage": -6.1403508771929864
+      },
+      "复仇之魂": {
+        "gamesPlayed": 113,
+        "wins": 59,
+        "winRate": 52.21238938053098,
+        "advantage": 2.212389380530979
+      },
+      "钢背兽": {
+        "gamesPlayed": 113,
+        "wins": 54,
+        "winRate": 47.78761061946903,
+        "advantage": -2.212389380530972
+      },
+      "原始野兽": {
+        "gamesPlayed": 112,
+        "wins": 58,
+        "winRate": 51.78571428571429,
+        "advantage": 1.7857142857142918
+      },
+      "美杜莎": {
+        "gamesPlayed": 111,
+        "wins": 51,
+        "winRate": 45.94594594594595,
+        "advantage": -4.054054054054049
+      },
+      "混沌骑士": {
+        "gamesPlayed": 110,
+        "wins": 56,
+        "winRate": 50.90909090909091,
+        "advantage": 0.9090909090909065
+      },
+      "敌法师": {
+        "gamesPlayed": 109,
+        "wins": 54,
+        "winRate": 49.54128440366973,
+        "advantage": -0.45871559633027204
+      },
+      "冥界亚龙": {
+        "gamesPlayed": 109,
+        "wins": 47,
+        "winRate": 43.11926605504588,
+        "advantage": -6.880733944954123
+      },
+      "克林克兹": {
+        "gamesPlayed": 107,
+        "wins": 41,
+        "winRate": 38.31775700934579,
+        "advantage": -11.68224299065421
+      },
+      "冥魂大帝": {
+        "gamesPlayed": 105,
+        "wins": 51,
+        "winRate": 48.57142857142857,
+        "advantage": -1.4285714285714306
+      },
+      "拉席克": {
+        "gamesPlayed": 104,
+        "wins": 52,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "剃刀": {
+        "gamesPlayed": 102,
+        "wins": 43,
+        "winRate": 42.15686274509804,
+        "advantage": -7.843137254901961
+      },
+      "末日使者": {
+        "gamesPlayed": 101,
+        "wins": 48,
+        "winRate": 47.524752475247524,
+        "advantage": -2.4752475247524757
+      },
+      "昆卡": {
+        "gamesPlayed": 100,
+        "wins": 41,
+        "winRate": 41.0,
+        "advantage": -9.0
+      },
+      "马格纳斯": {
+        "gamesPlayed": 97,
+        "wins": 46,
+        "winRate": 47.42268041237113,
+        "advantage": -2.577319587628871
+      },
+      "天涯墨客": {
+        "gamesPlayed": 95,
+        "wins": 38,
+        "winRate": 40.0,
+        "advantage": -10.0
+      },
+      "编织者": {
+        "gamesPlayed": 94,
+        "wins": 50,
+        "winRate": 53.191489361702125,
+        "advantage": 3.191489361702125
+      },
+      "剧毒术士": {
+        "gamesPlayed": 91,
+        "wins": 44,
+        "winRate": 48.35164835164835,
+        "advantage": -1.6483516483516496
+      },
+      "虚空假面": {
+        "gamesPlayed": 91,
+        "wins": 50,
+        "winRate": 54.94505494505495,
+        "advantage": 4.945054945054949
+      },
+      "齐天大圣": {
+        "gamesPlayed": 90,
+        "wins": 33,
+        "winRate": 36.666666666666664,
+        "advantage": -13.333333333333336
+      },
+      "沙王": {
+        "gamesPlayed": 89,
+        "wins": 43,
+        "winRate": 48.31460674157304,
+        "advantage": -1.6853932584269629
+      },
+      "巫医": {
+        "gamesPlayed": 88,
+        "wins": 51,
+        "winRate": 57.95454545454546,
+        "advantage": 7.95454545454546
+      },
+      "远古冰魄": {
+        "gamesPlayed": 87,
+        "wins": 50,
+        "winRate": 57.47126436781609,
+        "advantage": 7.47126436781609
+      },
+      "工程师": {
+        "gamesPlayed": 86,
+        "wins": 43,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "凯": {
+        "gamesPlayed": 86,
+        "wins": 38,
+        "winRate": 44.18604651162791,
+        "advantage": -5.813953488372093
+      },
+      "戴泽": {
+        "gamesPlayed": 85,
+        "wins": 31,
+        "winRate": 36.470588235294116,
+        "advantage": -13.529411764705884
+      },
+      "军团指挥官": {
+        "gamesPlayed": 85,
+        "wins": 39,
+        "winRate": 45.88235294117647,
+        "advantage": -4.117647058823529
+      },
+      "幻影刺客": {
+        "gamesPlayed": 84,
+        "wins": 44,
+        "winRate": 52.38095238095239,
+        "advantage": 2.3809523809523867
+      },
+      "树精卫士": {
+        "gamesPlayed": 83,
+        "wins": 25,
+        "winRate": 30.120481927710845,
+        "advantage": -19.879518072289155
+      },
+      "哈斯卡": {
+        "gamesPlayed": 83,
+        "wins": 33,
+        "winRate": 39.75903614457831,
+        "advantage": -10.24096385542169
+      },
+      "穆尔塔": {
+        "gamesPlayed": 81,
+        "wins": 39,
+        "winRate": 48.148148148148145,
+        "advantage": -1.8518518518518547
+      },
+      "巨魔战将": {
+        "gamesPlayed": 80,
+        "wins": 39,
+        "winRate": 48.75,
+        "advantage": -1.25
+      },
+      "变体精灵": {
+        "gamesPlayed": 79,
+        "wins": 40,
+        "winRate": 50.63291139240506,
+        "advantage": 0.6329113924050631
+      },
+      "光之守卫": {
+        "gamesPlayed": 77,
+        "wins": 36,
+        "winRate": 46.75324675324675,
+        "advantage": -3.2467532467532507
+      },
+      "司夜刺客": {
+        "gamesPlayed": 76,
+        "wins": 33,
+        "winRate": 43.42105263157895,
+        "advantage": -6.578947368421048
+      },
+      "瘟疫法师": {
+        "gamesPlayed": 75,
+        "wins": 39,
+        "winRate": 52.0,
+        "advantage": 2.0
+      },
+      "暗夜魔王": {
+        "gamesPlayed": 74,
+        "wins": 37,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "死亡先知": {
+        "gamesPlayed": 72,
+        "wins": 43,
+        "winRate": 59.72222222222222,
+        "advantage": 9.722222222222221
+      },
+      "魅惑魔女": {
+        "gamesPlayed": 72,
+        "wins": 34,
+        "winRate": 47.22222222222222,
+        "advantage": -2.7777777777777786
+      },
+      "祸乱之源": {
+        "gamesPlayed": 72,
+        "wins": 39,
+        "winRate": 54.166666666666664,
+        "advantage": 4.166666666666664
+      },
+      "修补匠": {
+        "gamesPlayed": 71,
+        "wins": 36,
+        "winRate": 50.70422535211267,
+        "advantage": 0.7042253521126725
+      },
+      "赏金猎人": {
+        "gamesPlayed": 69,
+        "wins": 30,
+        "winRate": 43.47826086956522,
+        "advantage": -6.521739130434781
+      },
+      "米拉娜": {
+        "gamesPlayed": 68,
+        "wins": 34,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "炼金术士": {
+        "gamesPlayed": 66,
+        "wins": 35,
+        "winRate": 53.03030303030303,
+        "advantage": 3.030303030303031
+      },
+      "Largo": {
+        "gamesPlayed": 64,
+        "wins": 26,
+        "winRate": 40.625,
+        "advantage": -9.375
+      },
+      "幻影长矛手": {
+        "gamesPlayed": 63,
+        "wins": 34,
+        "winRate": 53.96825396825397,
+        "advantage": 3.9682539682539684
+      },
+      "狼人": {
+        "gamesPlayed": 63,
+        "wins": 20,
+        "winRate": 31.746031746031743,
+        "advantage": -18.253968253968257
+      },
+      "卓尔游侠": {
+        "gamesPlayed": 62,
+        "wins": 29,
+        "winRate": 46.774193548387096,
+        "advantage": -3.225806451612904
+      },
+      "大地之灵": {
+        "gamesPlayed": 61,
+        "wins": 30,
+        "winRate": 49.18032786885246,
+        "advantage": -0.8196721311475414
+      },
+      "斯拉克": {
+        "gamesPlayed": 60,
+        "wins": 27,
+        "winRate": 45.0,
+        "advantage": -5.0
+      },
+      "酒仙": {
+        "gamesPlayed": 49,
+        "wins": 21,
+        "winRate": 42.857142857142854,
+        "advantage": -7.142857142857146
+      },
+      "全能骑士": {
+        "gamesPlayed": 49,
+        "wins": 23,
+        "winRate": 46.93877551020408,
+        "advantage": -3.0612244897959187
+      },
+      "娜迦海妖": {
+        "gamesPlayed": 46,
+        "wins": 18,
+        "winRate": 39.130434782608695,
+        "advantage": -10.869565217391305
+      },
+      "神谕者": {
+        "gamesPlayed": 46,
+        "wins": 21,
+        "winRate": 45.65217391304348,
+        "advantage": -4.347826086956523
+      },
+      "寒冬飞龙": {
+        "gamesPlayed": 45,
+        "wins": 25,
+        "winRate": 55.55555555555556,
+        "advantage": 5.555555555555557
+      },
+      "殁境神蚀者": {
+        "gamesPlayed": 44,
+        "wins": 21,
+        "winRate": 47.72727272727273,
+        "advantage": -2.2727272727272734
+      },
+      "陈": {
+        "gamesPlayed": 43,
+        "wins": 15,
+        "winRate": 34.883720930232556,
+        "advantage": -15.116279069767444
+      },
+      "黑暗贤者": {
+        "gamesPlayed": 41,
+        "wins": 18,
+        "winRate": 43.90243902439025,
+        "advantage": -6.097560975609753
+      },
+      "育母蜘蛛": {
+        "gamesPlayed": 32,
+        "wins": 17,
+        "winRate": 53.125,
+        "advantage": 3.125
+      },
+      "维萨吉": {
+        "gamesPlayed": 28,
+        "wins": 11,
+        "winRate": 39.285714285714285,
+        "advantage": -10.714285714285715
+      },
+      "谜团": {
+        "gamesPlayed": 26,
+        "wins": 8,
+        "winRate": 30.76923076923077,
+        "advantage": -19.23076923076923
+      },
+      "米波": {
+        "gamesPlayed": 26,
+        "wins": 10,
+        "winRate": 38.46153846153847,
+        "advantage": -11.538461538461533
+      },
+      "艾欧": {
+        "gamesPlayed": 26,
+        "wins": 8,
+        "winRate": 30.76923076923077,
+        "advantage": -19.23076923076923
+      },
+      "德鲁伊": {
+        "gamesPlayed": 23,
+        "wins": 7,
+        "winRate": 30.434782608695656,
+        "advantage": -19.565217391304344
+      },
+      "幽鬼": {
+        "gamesPlayed": 20,
+        "wins": 8,
+        "winRate": 40.0,
+        "advantage": -10.0
+      },
+      "天穹守望者": {
+        "gamesPlayed": 18,
+        "wins": 10,
+        "winRate": 55.55555555555556,
+        "advantage": 5.555555555555557
+      },
+      "力丸": {
+        "gamesPlayed": 18,
+        "wins": 9,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "血魔": {
+        "gamesPlayed": 14,
+        "wins": 6,
+        "winRate": 42.857142857142854,
+        "advantage": -7.142857142857146
+      },
+      "上古巨神": {
+        "gamesPlayed": 10,
+        "wins": 6,
+        "winRate": 60.0,
+        "advantage": 10.0
+      }
+    },
+    "巨牙海民": {
+      "干扰者": {
+        "gamesPlayed": 543,
+        "wins": 278,
+        "winRate": 51.19705340699816,
+        "advantage": 1.1970534069981582
+      },
+      "电炎绝手": {
+        "gamesPlayed": 514,
+        "wins": 258,
+        "winRate": 50.19455252918288,
+        "advantage": 0.1945525291828787
+      },
+      "杰奇洛": {
+        "gamesPlayed": 512,
+        "wins": 268,
+        "winRate": 52.34375,
+        "advantage": 2.34375
+      },
+      "拉比克": {
+        "gamesPlayed": 496,
+        "wins": 273,
+        "winRate": 55.04032258064516,
+        "advantage": 5.04032258064516
+      },
+      "玛尔斯": {
+        "gamesPlayed": 474,
+        "wins": 244,
+        "winRate": 51.47679324894515,
+        "advantage": 1.4767932489451496
+      },
+      "小小": {
+        "gamesPlayed": 472,
+        "wins": 228,
+        "winRate": 48.30508474576271,
+        "advantage": -1.6949152542372872
+      },
+      "影魔": {
+        "gamesPlayed": 472,
+        "wins": 234,
+        "winRate": 49.57627118644068,
+        "advantage": -0.4237288135593218
+      },
+      "灰烬之灵": {
+        "gamesPlayed": 462,
+        "wins": 227,
+        "winRate": 49.134199134199136,
+        "advantage": -0.865800865800864
+      },
+      "痛苦女王": {
+        "gamesPlayed": 460,
+        "wins": 250,
+        "winRate": 54.347826086956516,
+        "advantage": 4.347826086956516
+      },
+      "森海飞霞": {
+        "gamesPlayed": 440,
+        "wins": 229,
+        "winRate": 52.04545454545455,
+        "advantage": 2.0454545454545467
+      },
+      "风行者": {
+        "gamesPlayed": 409,
+        "wins": 186,
+        "winRate": 45.47677261613692,
+        "advantage": -4.52322738386308
+      },
+      "石鳞剑士": {
+        "gamesPlayed": 395,
+        "wins": 199,
+        "winRate": 50.37974683544304,
+        "advantage": 0.37974683544304355
+      },
+      "帕克": {
+        "gamesPlayed": 394,
+        "wins": 180,
+        "winRate": 45.68527918781726,
+        "advantage": -4.314720812182742
+      },
+      "暗影恶魔": {
+        "gamesPlayed": 393,
+        "wins": 177,
+        "winRate": 45.038167938931295,
+        "advantage": -4.961832061068705
+      },
+      "术士": {
+        "gamesPlayed": 388,
+        "wins": 213,
+        "winRate": 54.89690721649485,
+        "advantage": 4.896907216494853
+      },
+      "斧王": {
+        "gamesPlayed": 386,
+        "wins": 187,
+        "winRate": 48.44559585492228,
+        "advantage": -1.5544041450777186
+      },
+      "风暴之灵": {
+        "gamesPlayed": 384,
+        "wins": 193,
+        "winRate": 50.260416666666664,
+        "advantage": 0.2604166666666643
+      },
+      "龙骑士": {
+        "gamesPlayed": 377,
+        "wins": 179,
+        "winRate": 47.48010610079575,
+        "advantage": -2.5198938992042486
+      },
+      "斯拉达": {
+        "gamesPlayed": 368,
+        "wins": 189,
+        "winRate": 51.358695652173914,
+        "advantage": 1.358695652173914
+      },
+      "邪影芳灵": {
+        "gamesPlayed": 350,
+        "wins": 180,
+        "winRate": 51.42857142857142,
+        "advantage": 1.4285714285714235
+      },
+      "凤凰": {
+        "gamesPlayed": 336,
+        "wins": 144,
+        "winRate": 42.857142857142854,
+        "advantage": -7.142857142857146
+      },
+      "玛西": {
+        "gamesPlayed": 333,
+        "wins": 171,
+        "winRate": 51.35135135135135,
+        "advantage": 1.3513513513513473
+      },
+      "半人马战行者": {
+        "gamesPlayed": 323,
+        "wins": 161,
+        "winRate": 49.84520123839009,
+        "advantage": -0.15479876160991068
+      },
+      "兽王": {
+        "gamesPlayed": 316,
+        "wins": 170,
+        "winRate": 53.79746835443038,
+        "advantage": 3.7974683544303787
+      },
+      "莱恩": {
+        "gamesPlayed": 316,
+        "wins": 161,
+        "winRate": 50.9493670886076,
+        "advantage": 0.9493670886076018
+      },
+      "矮人直升机": {
+        "gamesPlayed": 305,
+        "wins": 159,
+        "winRate": 52.131147540983605,
+        "advantage": 2.131147540983605
+      },
+      "先知": {
+        "gamesPlayed": 300,
+        "wins": 136,
+        "winRate": 45.33333333333333,
+        "advantage": -4.666666666666671
+      },
+      "蝙蝠骑士": {
+        "gamesPlayed": 298,
+        "wins": 131,
+        "winRate": 43.95973154362416,
+        "advantage": -6.040268456375841
+      },
+      "天怒法师": {
+        "gamesPlayed": 298,
+        "wins": 172,
+        "winRate": 57.71812080536913,
+        "advantage": 7.718120805369132
+      },
+      "暗影萨满": {
+        "gamesPlayed": 297,
+        "wins": 143,
+        "winRate": 48.148148148148145,
+        "advantage": -1.8518518518518547
+      },
+      "伐木机": {
+        "gamesPlayed": 294,
+        "wins": 137,
+        "winRate": 46.59863945578231,
+        "advantage": -3.401360544217688
+      },
+      "百戏大王": {
+        "gamesPlayed": 294,
+        "wins": 150,
+        "winRate": 51.02040816326531,
+        "advantage": 1.0204081632653086
+      },
+      "潮汐猎人": {
+        "gamesPlayed": 294,
+        "wins": 163,
+        "winRate": 55.44217687074829,
+        "advantage": 5.442176870748291
+      },
+      "虚无之灵": {
+        "gamesPlayed": 285,
+        "wins": 166,
+        "winRate": 58.245614035087726,
+        "advantage": 8.245614035087726
+      },
+      "熊战士": {
+        "gamesPlayed": 281,
+        "wins": 144,
+        "winRate": 51.245551601423486,
+        "advantage": 1.245551601423486
+      },
+      "孽主": {
+        "gamesPlayed": 278,
+        "wins": 133,
+        "winRate": 47.84172661870504,
+        "advantage": -2.1582733812949613
+      },
+      "破晓辰星": {
+        "gamesPlayed": 274,
+        "wins": 145,
+        "winRate": 52.919708029197075,
+        "advantage": 2.919708029197075
+      },
+      "屠夫": {
+        "gamesPlayed": 266,
+        "wins": 149,
+        "winRate": 56.015037593984964,
+        "advantage": 6.015037593984964
+      },
+      "亚巴顿": {
+        "gamesPlayed": 263,
+        "wins": 128,
+        "winRate": 48.669201520912544,
+        "advantage": -1.3307984790874556
+      },
+      "圣堂刺客": {
+        "gamesPlayed": 261,
+        "wins": 141,
+        "winRate": 54.02298850574713,
+        "advantage": 4.022988505747129
+      },
+      "恐怖利刃": {
+        "gamesPlayed": 256,
+        "wins": 115,
+        "winRate": 44.921875,
+        "advantage": -5.078125
+      },
+      "发条技师": {
+        "gamesPlayed": 253,
+        "wins": 126,
+        "winRate": 49.80237154150198,
+        "advantage": -0.19762845849802346
+      },
+      "裂魂人": {
+        "gamesPlayed": 251,
+        "wins": 131,
+        "winRate": 52.191235059760956,
+        "advantage": 2.191235059760956
+      },
+      "编织者": {
+        "gamesPlayed": 243,
+        "wins": 129,
+        "winRate": 53.086419753086425,
+        "advantage": 3.0864197530864246
+      },
+      "食人魔魔法师": {
+        "gamesPlayed": 233,
+        "wins": 121,
+        "winRate": 51.931330472103,
+        "advantage": 1.9313304721029994
+      },
+      "穆尔塔": {
+        "gamesPlayed": 233,
+        "wins": 98,
+        "winRate": 42.06008583690987,
+        "advantage": -7.93991416309013
+      },
+      "钢背兽": {
+        "gamesPlayed": 231,
+        "wins": 121,
+        "winRate": 52.38095238095239,
+        "advantage": 2.3809523809523867
+      },
+      "祈求者": {
+        "gamesPlayed": 224,
+        "wins": 120,
+        "winRate": 53.57142857142857,
+        "advantage": 3.5714285714285694
+      },
+      "不朽尸王": {
+        "gamesPlayed": 220,
+        "wins": 114,
+        "winRate": 51.81818181818182,
+        "advantage": 1.8181818181818201
+      },
+      "末日使者": {
+        "gamesPlayed": 213,
+        "wins": 100,
+        "winRate": 46.948356807511736,
+        "advantage": -3.051643192488264
+      },
+      "沉默术士": {
+        "gamesPlayed": 210,
+        "wins": 103,
+        "winRate": 49.047619047619044,
+        "advantage": -0.9523809523809561
+      },
+      "帕格纳": {
+        "gamesPlayed": 209,
+        "wins": 87,
+        "winRate": 41.62679425837321,
+        "advantage": -8.37320574162679
+      },
+      "拉席克": {
+        "gamesPlayed": 207,
+        "wins": 100,
+        "winRate": 48.309178743961354,
+        "advantage": -1.690821256038646
+      },
+      "变体精灵": {
+        "gamesPlayed": 200,
+        "wins": 107,
+        "winRate": 53.5,
+        "advantage": 3.5
+      },
+      "齐天大圣": {
+        "gamesPlayed": 195,
+        "wins": 98,
+        "winRate": 50.256410256410255,
+        "advantage": 0.2564102564102555
+      },
+      "冥界亚龙": {
+        "gamesPlayed": 187,
+        "wins": 96,
+        "winRate": 51.33689839572193,
+        "advantage": 1.3368983957219314
+      },
+      "祸乱之源": {
+        "gamesPlayed": 181,
+        "wins": 78,
+        "winRate": 43.0939226519337,
+        "advantage": -6.906077348066297
+      },
+      "沙王": {
+        "gamesPlayed": 179,
+        "wins": 95,
+        "winRate": 53.072625698324025,
+        "advantage": 3.0726256983240248
+      },
+      "虚空假面": {
+        "gamesPlayed": 179,
+        "wins": 93,
+        "winRate": 51.955307262569825,
+        "advantage": 1.955307262569825
+      },
+      "露娜": {
+        "gamesPlayed": 176,
+        "wins": 99,
+        "winRate": 56.25,
+        "advantage": 6.25
+      },
+      "原始野兽": {
+        "gamesPlayed": 174,
+        "wins": 78,
+        "winRate": 44.827586206896555,
+        "advantage": -5.172413793103445
+      },
+      "树精卫士": {
+        "gamesPlayed": 174,
+        "wins": 55,
+        "winRate": 31.60919540229885,
+        "advantage": -18.39080459770115
+      },
+      "魅惑魔女": {
+        "gamesPlayed": 173,
+        "wins": 84,
+        "winRate": 48.554913294797686,
+        "advantage": -1.4450867052023142
+      },
+      "美杜莎": {
+        "gamesPlayed": 169,
+        "wins": 95,
+        "winRate": 56.213017751479285,
+        "advantage": 6.213017751479285
+      },
+      "剃刀": {
+        "gamesPlayed": 168,
+        "wins": 79,
+        "winRate": 47.023809523809526,
+        "advantage": -2.9761904761904745
+      },
+      "噬魂鬼": {
+        "gamesPlayed": 163,
+        "wins": 96,
+        "winRate": 58.895705521472394,
+        "advantage": 8.895705521472394
+      },
+      "凯": {
+        "gamesPlayed": 158,
+        "wins": 82,
+        "winRate": 51.89873417721519,
+        "advantage": 1.8987341772151893
+      },
+      "巫妖": {
+        "gamesPlayed": 155,
+        "wins": 87,
+        "winRate": 56.12903225806451,
+        "advantage": 6.1290322580645125
+      },
+      "撼地者": {
+        "gamesPlayed": 152,
+        "wins": 84,
+        "winRate": 55.26315789473685,
+        "advantage": 5.26315789473685
+      },
+      "马格纳斯": {
+        "gamesPlayed": 152,
+        "wins": 90,
+        "winRate": 59.210526315789465,
+        "advantage": 9.210526315789465
+      },
+      "陈": {
+        "gamesPlayed": 147,
+        "wins": 69,
+        "winRate": 46.93877551020408,
+        "advantage": -3.0612244897959187
+      },
+      "戴泽": {
+        "gamesPlayed": 143,
+        "wins": 66,
+        "winRate": 46.15384615384615,
+        "advantage": -3.8461538461538467
+      },
+      "剧毒术士": {
+        "gamesPlayed": 142,
+        "wins": 59,
+        "winRate": 41.54929577464789,
+        "advantage": -8.450704225352112
+      },
+      "司夜刺客": {
+        "gamesPlayed": 142,
+        "wins": 69,
+        "winRate": 48.59154929577465,
+        "advantage": -1.408450704225352
+      },
+      "酒仙": {
+        "gamesPlayed": 140,
+        "wins": 70,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "Largo": {
+        "gamesPlayed": 136,
+        "wins": 68,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "斯温": {
+        "gamesPlayed": 135,
+        "wins": 75,
+        "winRate": 55.55555555555556,
+        "advantage": 5.555555555555557
+      },
+      "宙斯": {
+        "gamesPlayed": 132,
+        "wins": 67,
+        "winRate": 50.75757575757576,
+        "advantage": 0.7575757575757578
+      },
+      "昆卡": {
+        "gamesPlayed": 127,
+        "wins": 64,
+        "winRate": 50.39370078740157,
+        "advantage": 0.39370078740157055
+      },
+      "光之守卫": {
+        "gamesPlayed": 127,
+        "wins": 63,
+        "winRate": 49.60629921259843,
+        "advantage": -0.39370078740157055
+      },
+      "天涯墨客": {
+        "gamesPlayed": 126,
+        "wins": 59,
+        "winRate": 46.82539682539682,
+        "advantage": -3.1746031746031775
+      },
+      "水晶室女": {
+        "gamesPlayed": 125,
+        "wins": 66,
+        "winRate": 52.800000000000004,
+        "advantage": 2.8000000000000043
+      },
+      "娜迦海妖": {
+        "gamesPlayed": 122,
+        "wins": 57,
+        "winRate": 46.72131147540984,
+        "advantage": -3.2786885245901587
+      },
+      "工程师": {
+        "gamesPlayed": 122,
+        "wins": 69,
+        "winRate": 56.557377049180324,
+        "advantage": 6.5573770491803245
+      },
+      "巨魔战将": {
+        "gamesPlayed": 122,
+        "wins": 63,
+        "winRate": 51.63934426229508,
+        "advantage": 1.639344262295083
+      },
+      "主宰": {
+        "gamesPlayed": 122,
+        "wins": 63,
+        "winRate": 51.63934426229508,
+        "advantage": 1.639344262295083
+      },
+      "远古冰魄": {
+        "gamesPlayed": 116,
+        "wins": 70,
+        "winRate": 60.3448275862069,
+        "advantage": 10.344827586206897
+      },
+      "狙击手": {
+        "gamesPlayed": 115,
+        "wins": 53,
+        "winRate": 46.08695652173913,
+        "advantage": -3.9130434782608674
+      },
+      "斯拉克": {
+        "gamesPlayed": 113,
+        "wins": 60,
+        "winRate": 53.09734513274337,
+        "advantage": 3.0973451327433708
+      },
+      "哈斯卡": {
+        "gamesPlayed": 112,
+        "wins": 58,
+        "winRate": 51.78571428571429,
+        "advantage": 1.7857142857142918
+      },
+      "暗夜魔王": {
+        "gamesPlayed": 110,
+        "wins": 58,
+        "winRate": 52.72727272727272,
+        "advantage": 2.7272727272727195
+      },
+      "莉娜": {
+        "gamesPlayed": 108,
+        "wins": 60,
+        "winRate": 55.55555555555556,
+        "advantage": 5.555555555555557
+      },
+      "克林克兹": {
+        "gamesPlayed": 107,
+        "wins": 49,
+        "winRate": 45.794392523364486,
+        "advantage": -4.205607476635514
+      },
+      "炼金术士": {
+        "gamesPlayed": 104,
+        "wins": 53,
+        "winRate": 50.96153846153846,
+        "advantage": 0.9615384615384599
+      },
+      "复仇之魂": {
+        "gamesPlayed": 101,
+        "wins": 58,
+        "winRate": 57.42574257425742,
+        "advantage": 7.42574257425742
+      },
+      "敌法师": {
+        "gamesPlayed": 99,
+        "wins": 45,
+        "winRate": 45.45454545454545,
+        "advantage": -4.545454545454547
+      },
+      "瘟疫法师": {
+        "gamesPlayed": 94,
+        "wins": 45,
+        "winRate": 47.87234042553192,
+        "advantage": -2.1276595744680833
+      },
+      "黑暗贤者": {
+        "gamesPlayed": 93,
+        "wins": 38,
+        "winRate": 40.86021505376344,
+        "advantage": -9.13978494623656
+      },
+      "卓尔游侠": {
+        "gamesPlayed": 93,
+        "wins": 45,
+        "winRate": 48.38709677419355,
+        "advantage": -1.6129032258064484
+      },
+      "赏金猎人": {
+        "gamesPlayed": 89,
+        "wins": 47,
+        "winRate": 52.80898876404494,
+        "advantage": 2.8089887640449405
+      },
+      "幻影长矛手": {
+        "gamesPlayed": 85,
+        "wins": 47,
+        "winRate": 55.294117647058826,
+        "advantage": 5.294117647058826
+      },
+      "巫医": {
+        "gamesPlayed": 83,
+        "wins": 42,
+        "winRate": 50.602409638554214,
+        "advantage": 0.6024096385542137
+      },
+      "大地之灵": {
+        "gamesPlayed": 78,
+        "wins": 36,
+        "winRate": 46.15384615384615,
+        "advantage": -3.8461538461538467
+      },
+      "寒冬飞龙": {
+        "gamesPlayed": 75,
+        "wins": 41,
+        "winRate": 54.666666666666664,
+        "advantage": 4.666666666666664
+      },
+      "育母蜘蛛": {
+        "gamesPlayed": 70,
+        "wins": 26,
+        "winRate": 37.142857142857146,
+        "advantage": -12.857142857142854
+      },
+      "神谕者": {
+        "gamesPlayed": 69,
+        "wins": 37,
+        "winRate": 53.62318840579711,
+        "advantage": 3.6231884057971087
+      },
+      "谜团": {
+        "gamesPlayed": 69,
+        "wins": 35,
+        "winRate": 50.72463768115942,
+        "advantage": 0.7246376811594217
+      },
+      "狼人": {
+        "gamesPlayed": 68,
+        "wins": 37,
+        "winRate": 54.41176470588235,
+        "advantage": 4.411764705882348
+      },
+      "死亡先知": {
+        "gamesPlayed": 67,
+        "wins": 33,
+        "winRate": 49.25373134328358,
+        "advantage": -0.746268656716417
+      },
+      "军团指挥官": {
+        "gamesPlayed": 65,
+        "wins": 45,
+        "winRate": 69.23076923076923,
+        "advantage": 19.230769230769226
+      },
+      "米拉娜": {
+        "gamesPlayed": 63,
+        "wins": 36,
+        "winRate": 57.14285714285714,
+        "advantage": 7.142857142857139
+      },
+      "修补匠": {
+        "gamesPlayed": 62,
+        "wins": 36,
+        "winRate": 58.06451612903226,
+        "advantage": 8.064516129032263
+      },
+      "艾欧": {
+        "gamesPlayed": 61,
+        "wins": 28,
+        "winRate": 45.90163934426229,
+        "advantage": -4.098360655737707
+      },
+      "幻影刺客": {
+        "gamesPlayed": 57,
+        "wins": 32,
+        "winRate": 56.14035087719298,
+        "advantage": 6.140350877192979
+      },
+      "殁境神蚀者": {
+        "gamesPlayed": 53,
+        "wins": 30,
+        "winRate": 56.60377358490566,
+        "advantage": 6.60377358490566
+      },
+      "冥魂大帝": {
+        "gamesPlayed": 48,
+        "wins": 31,
+        "winRate": 64.58333333333334,
+        "advantage": 14.583333333333343
+      },
+      "全能骑士": {
+        "gamesPlayed": 47,
+        "wins": 27,
+        "winRate": 57.446808510638306,
+        "advantage": 7.446808510638306
+      },
+      "德鲁伊": {
+        "gamesPlayed": 44,
+        "wins": 20,
+        "winRate": 45.45454545454545,
+        "advantage": -4.545454545454547
+      },
+      "混沌骑士": {
+        "gamesPlayed": 41,
+        "wins": 17,
+        "winRate": 41.46341463414634,
+        "advantage": -8.53658536585366
+      },
+      "维萨吉": {
+        "gamesPlayed": 32,
+        "wins": 18,
+        "winRate": 56.25,
+        "advantage": 6.25
+      },
+      "血魔": {
+        "gamesPlayed": 30,
+        "wins": 12,
+        "winRate": 40.0,
+        "advantage": -10.0
+      },
+      "力丸": {
+        "gamesPlayed": 27,
+        "wins": 16,
+        "winRate": 59.25925925925925,
+        "advantage": 9.259259259259252
+      },
+      "上古巨神": {
+        "gamesPlayed": 27,
+        "wins": 10,
+        "winRate": 37.03703703703704,
+        "advantage": -12.962962962962962
+      },
+      "米波": {
+        "gamesPlayed": 23,
+        "wins": 10,
+        "winRate": 43.47826086956522,
+        "advantage": -6.521739130434781
+      },
+      "幽鬼": {
+        "gamesPlayed": 20,
+        "wins": 15,
+        "winRate": 75.0,
+        "advantage": 25.0
+      },
+      "天穹守望者": {
+        "gamesPlayed": 18,
+        "wins": 10,
+        "winRate": 55.55555555555556,
+        "advantage": 5.555555555555557
+      }
+    },
+    "巨魔战将": {
+      "电炎绝手": {
+        "gamesPlayed": 213,
+        "wins": 99,
+        "winRate": 46.478873239436616,
+        "advantage": -3.5211267605633836
+      },
+      "斯拉达": {
+        "gamesPlayed": 205,
+        "wins": 107,
+        "winRate": 52.19512195121951,
+        "advantage": 2.1951219512195124
+      },
+      "影魔": {
+        "gamesPlayed": 193,
+        "wins": 104,
+        "winRate": 53.8860103626943,
+        "advantage": 3.8860103626943
+      },
+      "干扰者": {
+        "gamesPlayed": 183,
+        "wins": 85,
+        "winRate": 46.44808743169399,
+        "advantage": -3.551912568306008
+      },
+      "熊战士": {
+        "gamesPlayed": 157,
+        "wins": 76,
+        "winRate": 48.40764331210191,
+        "advantage": -1.5923566878980893
+      },
+      "拉比克": {
+        "gamesPlayed": 150,
+        "wins": 80,
+        "winRate": 53.333333333333336,
+        "advantage": 3.3333333333333357
+      },
+      "玛西": {
+        "gamesPlayed": 150,
+        "wins": 68,
+        "winRate": 45.33333333333333,
+        "advantage": -4.666666666666671
+      },
+      "风行者": {
+        "gamesPlayed": 129,
+        "wins": 62,
+        "winRate": 48.06201550387597,
+        "advantage": -1.937984496124031
+      },
+      "巨牙海民": {
+        "gamesPlayed": 122,
+        "wins": 59,
+        "winRate": 48.36065573770492,
+        "advantage": -1.639344262295083
+      },
+      "龙骑士": {
+        "gamesPlayed": 120,
+        "wins": 52,
+        "winRate": 43.333333333333336,
+        "advantage": -6.666666666666664
+      },
+      "杰奇洛": {
+        "gamesPlayed": 120,
+        "wins": 57,
+        "winRate": 47.5,
+        "advantage": -2.5
+      },
+      "破晓辰星": {
+        "gamesPlayed": 111,
+        "wins": 55,
+        "winRate": 49.549549549549546,
+        "advantage": -0.45045045045045384
+      },
+      "食人魔魔法师": {
+        "gamesPlayed": 111,
+        "wins": 48,
+        "winRate": 43.24324324324324,
+        "advantage": -6.756756756756758
+      },
+      "痛苦女王": {
+        "gamesPlayed": 108,
+        "wins": 53,
+        "winRate": 49.074074074074076,
+        "advantage": -0.9259259259259238
+      },
+      "术士": {
+        "gamesPlayed": 108,
+        "wins": 49,
+        "winRate": 45.370370370370374,
+        "advantage": -4.629629629629626
+      },
+      "玛尔斯": {
+        "gamesPlayed": 105,
+        "wins": 48,
+        "winRate": 45.714285714285715,
+        "advantage": -4.285714285714285
+      },
+      "屠夫": {
+        "gamesPlayed": 101,
+        "wins": 41,
+        "winRate": 40.5940594059406,
+        "advantage": -9.405940594059402
+      },
+      "森海飞霞": {
+        "gamesPlayed": 98,
+        "wins": 43,
+        "winRate": 43.87755102040816,
+        "advantage": -6.122448979591837
+      },
+      "沉默术士": {
+        "gamesPlayed": 97,
+        "wins": 57,
+        "winRate": 58.76288659793815,
+        "advantage": 8.762886597938149
+      },
+      "灰烬之灵": {
+        "gamesPlayed": 97,
+        "wins": 44,
+        "winRate": 45.36082474226804,
+        "advantage": -4.6391752577319565
+      },
+      "小小": {
+        "gamesPlayed": 95,
+        "wins": 46,
+        "winRate": 48.421052631578945,
+        "advantage": -1.5789473684210549
+      },
+      "莱恩": {
+        "gamesPlayed": 93,
+        "wins": 39,
+        "winRate": 41.935483870967744,
+        "advantage": -8.064516129032256
+      },
+      "先知": {
+        "gamesPlayed": 91,
+        "wins": 39,
+        "winRate": 42.857142857142854,
+        "advantage": -7.142857142857146
+      },
+      "露娜": {
+        "gamesPlayed": 90,
+        "wins": 44,
+        "winRate": 48.888888888888886,
+        "advantage": -1.1111111111111143
+      },
+      "帕克": {
+        "gamesPlayed": 90,
+        "wins": 43,
+        "winRate": 47.77777777777778,
+        "advantage": -2.2222222222222214
+      },
+      "石鳞剑士": {
+        "gamesPlayed": 87,
+        "wins": 39,
+        "winRate": 44.827586206896555,
+        "advantage": -5.172413793103445
+      },
+      "圣堂刺客": {
+        "gamesPlayed": 87,
+        "wins": 39,
+        "winRate": 44.827586206896555,
+        "advantage": -5.172413793103445
+      },
+      "风暴之灵": {
+        "gamesPlayed": 87,
+        "wins": 41,
+        "winRate": 47.12643678160919,
+        "advantage": -2.8735632183908066
+      },
+      "斧王": {
+        "gamesPlayed": 86,
+        "wins": 37,
+        "winRate": 43.02325581395349,
+        "advantage": -6.97674418604651
+      },
+      "矮人直升机": {
+        "gamesPlayed": 85,
+        "wins": 36,
+        "winRate": 42.35294117647059,
+        "advantage": -7.647058823529413
+      },
+      "帕格纳": {
+        "gamesPlayed": 83,
+        "wins": 40,
+        "winRate": 48.19277108433735,
+        "advantage": -1.8072289156626482
+      },
+      "水晶室女": {
+        "gamesPlayed": 80,
+        "wins": 38,
+        "winRate": 47.5,
+        "advantage": -2.5
+      },
+      "天怒法师": {
+        "gamesPlayed": 80,
+        "wins": 41,
+        "winRate": 51.24999999999999,
+        "advantage": 1.249999999999993
+      },
+      "兽王": {
+        "gamesPlayed": 77,
+        "wins": 35,
+        "winRate": 45.45454545454545,
+        "advantage": -4.545454545454547
+      },
+      "拉席克": {
+        "gamesPlayed": 77,
+        "wins": 34,
+        "winRate": 44.15584415584416,
+        "advantage": -5.844155844155843
+      },
+      "祈求者": {
+        "gamesPlayed": 76,
+        "wins": 29,
+        "winRate": 38.15789473684211,
+        "advantage": -11.84210526315789
+      },
+      "半人马战行者": {
+        "gamesPlayed": 74,
+        "wins": 33,
+        "winRate": 44.5945945945946,
+        "advantage": -5.4054054054054035
+      },
+      "主宰": {
+        "gamesPlayed": 74,
+        "wins": 39,
+        "winRate": 52.702702702702695,
+        "advantage": 2.7027027027026946
+      },
+      "撼地者": {
+        "gamesPlayed": 74,
+        "wins": 35,
+        "winRate": 47.2972972972973,
+        "advantage": -2.7027027027027017
+      },
+      "暗影萨满": {
+        "gamesPlayed": 71,
+        "wins": 31,
+        "winRate": 43.66197183098591,
+        "advantage": -6.338028169014088
+      },
+      "裂魂人": {
+        "gamesPlayed": 69,
+        "wins": 29,
+        "winRate": 42.028985507246375,
+        "advantage": -7.971014492753625
+      },
+      "斯温": {
+        "gamesPlayed": 68,
+        "wins": 36,
+        "winRate": 52.94117647058824,
+        "advantage": 2.941176470588239
+      },
+      "狙击手": {
+        "gamesPlayed": 66,
+        "wins": 27,
+        "winRate": 40.909090909090914,
+        "advantage": -9.090909090909086
+      },
+      "噬魂鬼": {
+        "gamesPlayed": 63,
+        "wins": 37,
+        "winRate": 58.730158730158735,
+        "advantage": 8.730158730158735
+      },
+      "宙斯": {
+        "gamesPlayed": 60,
+        "wins": 31,
+        "winRate": 51.66666666666667,
+        "advantage": 1.6666666666666714
+      },
+      "美杜莎": {
+        "gamesPlayed": 60,
+        "wins": 36,
+        "winRate": 60.0,
+        "advantage": 10.0
+      },
+      "莉娜": {
+        "gamesPlayed": 58,
+        "wins": 27,
+        "winRate": 46.55172413793103,
+        "advantage": -3.448275862068968
+      },
+      "暗夜魔王": {
+        "gamesPlayed": 58,
+        "wins": 25,
+        "winRate": 43.103448275862064,
+        "advantage": -6.896551724137936
+      },
+      "亚巴顿": {
+        "gamesPlayed": 58,
+        "wins": 20,
+        "winRate": 34.48275862068966,
+        "advantage": -15.517241379310342
+      },
+      "虚无之灵": {
+        "gamesPlayed": 58,
+        "wins": 31,
+        "winRate": 53.44827586206896,
+        "advantage": 3.448275862068961
+      },
+      "伐木机": {
+        "gamesPlayed": 56,
+        "wins": 23,
+        "winRate": 41.07142857142857,
+        "advantage": -8.92857142857143
+      },
+      "剃刀": {
+        "gamesPlayed": 56,
+        "wins": 29,
+        "winRate": 51.78571428571429,
+        "advantage": 1.7857142857142918
+      },
+      "暗影恶魔": {
+        "gamesPlayed": 55,
+        "wins": 28,
+        "winRate": 50.90909090909091,
+        "advantage": 0.9090909090909065
+      },
+      "蝙蝠骑士": {
+        "gamesPlayed": 54,
+        "wins": 24,
+        "winRate": 44.44444444444444,
+        "advantage": -5.555555555555557
+      },
+      "恐怖利刃": {
+        "gamesPlayed": 52,
+        "wins": 24,
+        "winRate": 46.15384615384615,
+        "advantage": -3.8461538461538467
+      },
+      "末日使者": {
+        "gamesPlayed": 51,
+        "wins": 26,
+        "winRate": 50.98039215686274,
+        "advantage": 0.9803921568627416
+      },
+      "邪影芳灵": {
+        "gamesPlayed": 51,
+        "wins": 30,
+        "winRate": 58.82352941176471,
+        "advantage": 8.82352941176471
+      },
+      "潮汐猎人": {
+        "gamesPlayed": 51,
+        "wins": 29,
+        "winRate": 56.86274509803921,
+        "advantage": 6.862745098039213
+      },
+      "钢背兽": {
+        "gamesPlayed": 51,
+        "wins": 29,
+        "winRate": 56.86274509803921,
+        "advantage": 6.862745098039213
+      },
+      "百戏大王": {
+        "gamesPlayed": 49,
+        "wins": 17,
+        "winRate": 34.69387755102041,
+        "advantage": -15.306122448979593
+      },
+      "巫妖": {
+        "gamesPlayed": 48,
+        "wins": 23,
+        "winRate": 47.91666666666667,
+        "advantage": -2.0833333333333286
+      },
+      "狼人": {
+        "gamesPlayed": 48,
+        "wins": 20,
+        "winRate": 41.66666666666667,
+        "advantage": -8.333333333333329
+      },
+      "凤凰": {
+        "gamesPlayed": 48,
+        "wins": 17,
+        "winRate": 35.41666666666667,
+        "advantage": -14.583333333333329
+      },
+      "虚空假面": {
+        "gamesPlayed": 48,
+        "wins": 21,
+        "winRate": 43.75,
+        "advantage": -6.25
+      },
+      "齐天大圣": {
+        "gamesPlayed": 47,
+        "wins": 22,
+        "winRate": 46.808510638297875,
+        "advantage": -3.191489361702125
+      },
+      "复仇之魂": {
+        "gamesPlayed": 46,
+        "wins": 24,
+        "winRate": 52.17391304347826,
+        "advantage": 2.173913043478258
+      },
+      "编织者": {
+        "gamesPlayed": 45,
+        "wins": 23,
+        "winRate": 51.11111111111111,
+        "advantage": 1.1111111111111072
+      },
+      "魅惑魔女": {
+        "gamesPlayed": 45,
+        "wins": 21,
+        "winRate": 46.666666666666664,
+        "advantage": -3.3333333333333357
+      },
+      "孽主": {
+        "gamesPlayed": 44,
+        "wins": 20,
+        "winRate": 45.45454545454545,
+        "advantage": -4.545454545454547
+      },
+      "马格纳斯": {
+        "gamesPlayed": 44,
+        "wins": 24,
+        "winRate": 54.54545454545454,
+        "advantage": 4.54545454545454
+      },
+      "不朽尸王": {
+        "gamesPlayed": 43,
+        "wins": 22,
+        "winRate": 51.162790697674424,
+        "advantage": 1.1627906976744242
+      },
+      "发条技师": {
+        "gamesPlayed": 41,
+        "wins": 18,
+        "winRate": 43.90243902439025,
+        "advantage": -6.097560975609753
+      },
+      "瘟疫法师": {
+        "gamesPlayed": 39,
+        "wins": 20,
+        "winRate": 51.28205128205128,
+        "advantage": 1.2820512820512775
+      },
+      "工程师": {
+        "gamesPlayed": 38,
+        "wins": 18,
+        "winRate": 47.368421052631575,
+        "advantage": -2.631578947368425
+      },
+      "天涯墨客": {
+        "gamesPlayed": 38,
+        "wins": 22,
+        "winRate": 57.89473684210527,
+        "advantage": 7.894736842105267
+      },
+      "原始野兽": {
+        "gamesPlayed": 38,
+        "wins": 20,
+        "winRate": 52.63157894736842,
+        "advantage": 2.6315789473684177
+      },
+      "凯": {
+        "gamesPlayed": 38,
+        "wins": 11,
+        "winRate": 28.947368421052634,
+        "advantage": -21.052631578947366
+      },
+      "穆尔塔": {
+        "gamesPlayed": 37,
+        "wins": 20,
+        "winRate": 54.054054054054056,
+        "advantage": 4.054054054054056
+      },
+      "冥魂大帝": {
+        "gamesPlayed": 37,
+        "wins": 19,
+        "winRate": 51.35135135135135,
+        "advantage": 1.3513513513513473
+      },
+      "昆卡": {
+        "gamesPlayed": 36,
+        "wins": 19,
+        "winRate": 52.77777777777778,
+        "advantage": 2.7777777777777786
+      },
+      "敌法师": {
+        "gamesPlayed": 35,
+        "wins": 14,
+        "winRate": 40.0,
+        "advantage": -10.0
+      },
+      "斯拉克": {
+        "gamesPlayed": 34,
+        "wins": 14,
+        "winRate": 41.17647058823529,
+        "advantage": -8.82352941176471
+      },
+      "艾欧": {
+        "gamesPlayed": 34,
+        "wins": 19,
+        "winRate": 55.88235294117647,
+        "advantage": 5.882352941176471
+      },
+      "戴泽": {
+        "gamesPlayed": 34,
+        "wins": 8,
+        "winRate": 23.52941176470588,
+        "advantage": -26.47058823529412
+      },
+      "陈": {
+        "gamesPlayed": 33,
+        "wins": 14,
+        "winRate": 42.42424242424242,
+        "advantage": -7.575757575757578
+      },
+      "沙王": {
+        "gamesPlayed": 32,
+        "wins": 17,
+        "winRate": 53.125,
+        "advantage": 3.125
+      },
+      "变体精灵": {
+        "gamesPlayed": 32,
+        "wins": 13,
+        "winRate": 40.625,
+        "advantage": -9.375
+      },
+      "军团指挥官": {
+        "gamesPlayed": 31,
+        "wins": 21,
+        "winRate": 67.74193548387096,
+        "advantage": 17.74193548387096
+      },
+      "祸乱之源": {
+        "gamesPlayed": 31,
+        "wins": 12,
+        "winRate": 38.70967741935484,
+        "advantage": -11.29032258064516
+      },
+      "剧毒术士": {
+        "gamesPlayed": 29,
+        "wins": 15,
+        "winRate": 51.724137931034484,
+        "advantage": 1.724137931034484
+      },
+      "冥界亚龙": {
+        "gamesPlayed": 28,
+        "wins": 16,
+        "winRate": 57.14285714285714,
+        "advantage": 7.142857142857139
+      },
+      "修补匠": {
+        "gamesPlayed": 28,
+        "wins": 19,
+        "winRate": 67.85714285714286,
+        "advantage": 17.85714285714286
+      },
+      "炼金术士": {
+        "gamesPlayed": 26,
+        "wins": 12,
+        "winRate": 46.15384615384615,
+        "advantage": -3.8461538461538467
+      },
+      "远古冰魄": {
+        "gamesPlayed": 25,
+        "wins": 9,
+        "winRate": 36.0,
+        "advantage": -14.0
+      },
+      "大地之灵": {
+        "gamesPlayed": 25,
+        "wins": 9,
+        "winRate": 36.0,
+        "advantage": -14.0
+      },
+      "黑暗贤者": {
+        "gamesPlayed": 24,
+        "wins": 10,
+        "winRate": 41.66666666666667,
+        "advantage": -8.333333333333329
+      },
+      "光之守卫": {
+        "gamesPlayed": 24,
+        "wins": 9,
+        "winRate": 37.5,
+        "advantage": -12.5
+      },
+      "司夜刺客": {
+        "gamesPlayed": 24,
+        "wins": 10,
+        "winRate": 41.66666666666667,
+        "advantage": -8.333333333333329
+      },
+      "赏金猎人": {
+        "gamesPlayed": 23,
+        "wins": 11,
+        "winRate": 47.82608695652174,
+        "advantage": -2.173913043478258
+      },
+      "哈斯卡": {
+        "gamesPlayed": 23,
+        "wins": 6,
+        "winRate": 26.08695652173913,
+        "advantage": -23.91304347826087
+      },
+      "克林克兹": {
+        "gamesPlayed": 23,
+        "wins": 11,
+        "winRate": 47.82608695652174,
+        "advantage": -2.173913043478258
+      },
+      "死亡先知": {
+        "gamesPlayed": 22,
+        "wins": 12,
+        "winRate": 54.54545454545454,
+        "advantage": 4.54545454545454
+      },
+      "巫医": {
+        "gamesPlayed": 22,
+        "wins": 13,
+        "winRate": 59.09090909090909,
+        "advantage": 9.090909090909093
+      },
+      "娜迦海妖": {
+        "gamesPlayed": 21,
+        "wins": 12,
+        "winRate": 57.14285714285714,
+        "advantage": 7.142857142857139
+      },
+      "神谕者": {
+        "gamesPlayed": 20,
+        "wins": 9,
+        "winRate": 45.0,
+        "advantage": -5.0
+      },
+      "全能骑士": {
+        "gamesPlayed": 19,
+        "wins": 13,
+        "winRate": 68.42105263157895,
+        "advantage": 18.421052631578945
+      },
+      "殁境神蚀者": {
+        "gamesPlayed": 19,
+        "wins": 11,
+        "winRate": 57.89473684210527,
+        "advantage": 7.894736842105267
+      },
+      "寒冬飞龙": {
+        "gamesPlayed": 18,
+        "wins": 10,
+        "winRate": 55.55555555555556,
+        "advantage": 5.555555555555557
+      },
+      "谜团": {
+        "gamesPlayed": 18,
+        "wins": 11,
+        "winRate": 61.111111111111114,
+        "advantage": 11.111111111111114
+      },
+      "幻影长矛手": {
+        "gamesPlayed": 17,
+        "wins": 8,
+        "winRate": 47.05882352941176,
+        "advantage": -2.941176470588239
+      },
+      "树精卫士": {
+        "gamesPlayed": 17,
+        "wins": 6,
+        "winRate": 35.294117647058826,
+        "advantage": -14.705882352941174
+      },
+      "混沌骑士": {
+        "gamesPlayed": 15,
+        "wins": 9,
+        "winRate": 60.0,
+        "advantage": 10.0
+      },
+      "卓尔游侠": {
+        "gamesPlayed": 15,
+        "wins": 8,
+        "winRate": 53.333333333333336,
+        "advantage": 3.3333333333333357
+      },
+      "Largo": {
+        "gamesPlayed": 14,
+        "wins": 5,
+        "winRate": 35.714285714285715,
+        "advantage": -14.285714285714285
+      },
+      "力丸": {
+        "gamesPlayed": 13,
+        "wins": 9,
+        "winRate": 69.23076923076923,
+        "advantage": 19.230769230769226
+      },
+      "德鲁伊": {
+        "gamesPlayed": 13,
+        "wins": 7,
+        "winRate": 53.84615384615385,
+        "advantage": 3.8461538461538467
+      },
+      "酒仙": {
+        "gamesPlayed": 12,
+        "wins": 7,
+        "winRate": 58.333333333333336,
+        "advantage": 8.333333333333336
+      },
+      "幻影刺客": {
+        "gamesPlayed": 10,
+        "wins": 7,
+        "winRate": 70.0,
+        "advantage": 20.0
+      },
+      "育母蜘蛛": {
+        "gamesPlayed": 9,
+        "wins": 3,
+        "winRate": 33.33333333333333,
+        "advantage": -16.66666666666667
+      },
+      "幽鬼": {
+        "gamesPlayed": 9,
+        "wins": 5,
+        "winRate": 55.55555555555556,
+        "advantage": 5.555555555555557
+      },
+      "血魔": {
+        "gamesPlayed": 8,
+        "wins": 4,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "米拉娜": {
+        "gamesPlayed": 8,
+        "wins": 5,
+        "winRate": 62.5,
+        "advantage": 12.5
+      },
+      "上古巨神": {
+        "gamesPlayed": 7,
+        "wins": 4,
+        "winRate": 57.14285714285714,
+        "advantage": 7.142857142857139
+      },
+      "米波": {
+        "gamesPlayed": 5,
+        "wins": 2,
+        "winRate": 40.0,
+        "advantage": -10.0
+      },
+      "天穹守望者": {
+        "gamesPlayed": 5,
+        "wins": 3,
+        "winRate": 60.0,
+        "advantage": 10.0
+      },
+      "维萨吉": {
+        "gamesPlayed": 4,
+        "wins": 1,
+        "winRate": 25.0,
+        "advantage": -25.0
+      }
+    },
+    "钢背兽": {
+      "拉比克": {
+        "gamesPlayed": 265,
+        "wins": 117,
+        "winRate": 44.15094339622642,
+        "advantage": -5.849056603773583
+      },
+      "电炎绝手": {
+        "gamesPlayed": 231,
+        "wins": 110,
+        "winRate": 47.61904761904761,
+        "advantage": -2.3809523809523867
+      },
+      "巨牙海民": {
+        "gamesPlayed": 231,
+        "wins": 110,
+        "winRate": 47.61904761904761,
+        "advantage": -2.3809523809523867
+      },
+      "杰奇洛": {
+        "gamesPlayed": 229,
+        "wins": 113,
+        "winRate": 49.34497816593886,
+        "advantage": -0.655021834061138
+      },
+      "影魔": {
+        "gamesPlayed": 229,
+        "wins": 108,
+        "winRate": 47.161572052401745,
+        "advantage": -2.8384279475982552
+      },
+      "干扰者": {
+        "gamesPlayed": 228,
+        "wins": 105,
+        "winRate": 46.05263157894737,
+        "advantage": -3.94736842105263
+      },
+      "兽王": {
+        "gamesPlayed": 223,
+        "wins": 108,
+        "winRate": 48.4304932735426,
+        "advantage": -1.5695067264573979
+      },
+      "森海飞霞": {
+        "gamesPlayed": 196,
+        "wins": 90,
+        "winRate": 45.91836734693878,
+        "advantage": -4.08163265306122
+      },
+      "小小": {
+        "gamesPlayed": 193,
+        "wins": 80,
+        "winRate": 41.45077720207254,
+        "advantage": -8.549222797927463
+      },
+      "玛尔斯": {
+        "gamesPlayed": 192,
+        "wins": 91,
+        "winRate": 47.39583333333333,
+        "advantage": -2.6041666666666714
+      },
+      "术士": {
+        "gamesPlayed": 176,
+        "wins": 90,
+        "winRate": 51.13636363636363,
+        "advantage": 1.1363636363636331
+      },
+      "石鳞剑士": {
+        "gamesPlayed": 175,
+        "wins": 81,
+        "winRate": 46.285714285714285,
+        "advantage": -3.7142857142857153
+      },
+      "风暴之灵": {
+        "gamesPlayed": 170,
+        "wins": 80,
+        "winRate": 47.05882352941176,
+        "advantage": -2.941176470588239
+      },
+      "莱恩": {
+        "gamesPlayed": 168,
+        "wins": 75,
+        "winRate": 44.642857142857146,
+        "advantage": -5.357142857142854
+      },
+      "痛苦女王": {
+        "gamesPlayed": 161,
+        "wins": 73,
+        "winRate": 45.3416149068323,
+        "advantage": -4.658385093167702
+      },
+      "灰烬之灵": {
+        "gamesPlayed": 159,
+        "wins": 78,
+        "winRate": 49.056603773584904,
+        "advantage": -0.9433962264150964
+      },
+      "帕克": {
+        "gamesPlayed": 153,
+        "wins": 70,
+        "winRate": 45.751633986928105,
+        "advantage": -4.2483660130718945
+      },
+      "凤凰": {
+        "gamesPlayed": 151,
+        "wins": 57,
+        "winRate": 37.74834437086093,
+        "advantage": -12.251655629139073
+      },
+      "斧王": {
+        "gamesPlayed": 151,
+        "wins": 68,
+        "winRate": 45.033112582781456,
+        "advantage": -4.966887417218544
+      },
+      "矮人直升机": {
+        "gamesPlayed": 148,
+        "wins": 79,
+        "winRate": 53.37837837837838,
+        "advantage": 3.378378378378379
+      },
+      "斯拉达": {
+        "gamesPlayed": 146,
+        "wins": 65,
+        "winRate": 44.52054794520548,
+        "advantage": -5.479452054794521
+      },
+      "食人魔魔法师": {
+        "gamesPlayed": 146,
+        "wins": 61,
+        "winRate": 41.78082191780822,
+        "advantage": -8.219178082191782
+      },
+      "风行者": {
+        "gamesPlayed": 139,
+        "wins": 61,
+        "winRate": 43.884892086330936,
+        "advantage": -6.115107913669064
+      },
+      "虚无之灵": {
+        "gamesPlayed": 138,
+        "wins": 75,
+        "winRate": 54.347826086956516,
+        "advantage": 4.347826086956516
+      },
+      "蝙蝠骑士": {
+        "gamesPlayed": 137,
+        "wins": 52,
+        "winRate": 37.95620437956204,
+        "advantage": -12.043795620437962
+      },
+      "龙骑士": {
+        "gamesPlayed": 137,
+        "wins": 75,
+        "winRate": 54.74452554744526,
+        "advantage": 4.744525547445257
+      },
+      "破晓辰星": {
+        "gamesPlayed": 136,
+        "wins": 61,
+        "winRate": 44.85294117647059,
+        "advantage": -5.147058823529413
+      },
+      "屠夫": {
+        "gamesPlayed": 135,
+        "wins": 60,
+        "winRate": 44.44444444444444,
+        "advantage": -5.555555555555557
+      },
+      "暗影萨满": {
+        "gamesPlayed": 132,
+        "wins": 57,
+        "winRate": 43.18181818181818,
+        "advantage": -6.81818181818182
+      },
+      "潮汐猎人": {
+        "gamesPlayed": 132,
+        "wins": 69,
+        "winRate": 52.27272727272727,
+        "advantage": 2.2727272727272734
+      },
+      "暗影恶魔": {
+        "gamesPlayed": 131,
+        "wins": 58,
+        "winRate": 44.274809160305345,
+        "advantage": -5.725190839694655
+      },
+      "半人马战行者": {
+        "gamesPlayed": 130,
+        "wins": 60,
+        "winRate": 46.15384615384615,
+        "advantage": -3.8461538461538467
+      },
+      "圣堂刺客": {
+        "gamesPlayed": 129,
+        "wins": 82,
+        "winRate": 63.565891472868216,
+        "advantage": 13.565891472868216
+      },
+      "祈求者": {
+        "gamesPlayed": 126,
+        "wins": 57,
+        "winRate": 45.23809523809524,
+        "advantage": -4.761904761904759
+      },
+      "熊战士": {
+        "gamesPlayed": 125,
+        "wins": 62,
+        "winRate": 49.6,
+        "advantage": -0.3999999999999986
+      },
+      "齐天大圣": {
+        "gamesPlayed": 125,
+        "wins": 50,
+        "winRate": 40.0,
+        "advantage": -10.0
+      },
+      "沉默术士": {
+        "gamesPlayed": 118,
+        "wins": 55,
+        "winRate": 46.61016949152542,
+        "advantage": -3.3898305084745814
+      },
+      "伐木机": {
+        "gamesPlayed": 116,
+        "wins": 56,
+        "winRate": 48.275862068965516,
+        "advantage": -1.724137931034484
+      },
+      "孽主": {
+        "gamesPlayed": 114,
+        "wins": 61,
+        "winRate": 53.50877192982456,
+        "advantage": 3.5087719298245617
+      },
+      "天怒法师": {
+        "gamesPlayed": 113,
+        "wins": 59,
+        "winRate": 52.21238938053098,
+        "advantage": 2.212389380530979
+      },
+      "穆尔塔": {
+        "gamesPlayed": 112,
+        "wins": 45,
+        "winRate": 40.17857142857143,
+        "advantage": -9.82142857142857
+      },
+      "末日使者": {
+        "gamesPlayed": 108,
+        "wins": 49,
+        "winRate": 45.370370370370374,
+        "advantage": -4.629629629629626
+      },
+      "露娜": {
+        "gamesPlayed": 106,
+        "wins": 53,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "先知": {
+        "gamesPlayed": 106,
+        "wins": 47,
+        "winRate": 44.339622641509436,
+        "advantage": -5.660377358490564
+      },
+      "玛西": {
+        "gamesPlayed": 103,
+        "wins": 48,
+        "winRate": 46.601941747572816,
+        "advantage": -3.398058252427184
+      },
+      "百戏大王": {
+        "gamesPlayed": 102,
+        "wins": 49,
+        "winRate": 48.03921568627451,
+        "advantage": -1.9607843137254903
+      },
+      "巫妖": {
+        "gamesPlayed": 100,
+        "wins": 54,
+        "winRate": 54.0,
+        "advantage": 4.0
+      },
+      "邪影芳灵": {
+        "gamesPlayed": 99,
+        "wins": 51,
+        "winRate": 51.515151515151516,
+        "advantage": 1.5151515151515156
+      },
+      "凯": {
+        "gamesPlayed": 97,
+        "wins": 46,
+        "winRate": 47.42268041237113,
+        "advantage": -2.577319587628871
+      },
+      "剃刀": {
+        "gamesPlayed": 96,
+        "wins": 54,
+        "winRate": 56.25,
+        "advantage": 6.25
+      },
+      "裂魂人": {
+        "gamesPlayed": 91,
+        "wins": 44,
+        "winRate": 48.35164835164835,
+        "advantage": -1.6483516483516496
+      },
+      "恐怖利刃": {
+        "gamesPlayed": 90,
+        "wins": 33,
+        "winRate": 36.666666666666664,
+        "advantage": -13.333333333333336
+      },
+      "发条技师": {
+        "gamesPlayed": 89,
+        "wins": 38,
+        "winRate": 42.69662921348314,
+        "advantage": -7.303370786516858
+      },
+      "原始野兽": {
+        "gamesPlayed": 87,
+        "wins": 41,
+        "winRate": 47.12643678160919,
+        "advantage": -2.8735632183908066
+      },
+      "沙王": {
+        "gamesPlayed": 84,
+        "wins": 50,
+        "winRate": 59.523809523809526,
+        "advantage": 9.523809523809526
+      },
+      "狙击手": {
+        "gamesPlayed": 83,
+        "wins": 35,
+        "winRate": 42.168674698795186,
+        "advantage": -7.831325301204814
+      },
+      "斯拉克": {
+        "gamesPlayed": 82,
+        "wins": 39,
+        "winRate": 47.5609756097561,
+        "advantage": -2.439024390243901
+      },
+      "拉席克": {
+        "gamesPlayed": 82,
+        "wins": 43,
+        "winRate": 52.4390243902439,
+        "advantage": 2.439024390243901
+      },
+      "冥界亚龙": {
+        "gamesPlayed": 80,
+        "wins": 29,
+        "winRate": 36.25,
+        "advantage": -13.75
+      },
+      "不朽尸王": {
+        "gamesPlayed": 79,
+        "wins": 37,
+        "winRate": 46.835443037974684,
+        "advantage": -3.1645569620253156
+      },
+      "工程师": {
+        "gamesPlayed": 79,
+        "wins": 46,
+        "winRate": 58.22784810126582,
+        "advantage": 8.22784810126582
+      },
+      "美杜莎": {
+        "gamesPlayed": 79,
+        "wins": 39,
+        "winRate": 49.36708860759494,
+        "advantage": -0.6329113924050631
+      },
+      "魅惑魔女": {
+        "gamesPlayed": 78,
+        "wins": 34,
+        "winRate": 43.58974358974359,
+        "advantage": -6.410256410256409
+      },
+      "亚巴顿": {
+        "gamesPlayed": 76,
+        "wins": 36,
+        "winRate": 47.368421052631575,
+        "advantage": -2.631578947368425
+      },
+      "瘟疫法师": {
+        "gamesPlayed": 75,
+        "wins": 30,
+        "winRate": 40.0,
+        "advantage": -10.0
+      },
+      "军团指挥官": {
+        "gamesPlayed": 74,
+        "wins": 31,
+        "winRate": 41.891891891891895,
+        "advantage": -8.108108108108105
+      },
+      "虚空假面": {
+        "gamesPlayed": 73,
+        "wins": 37,
+        "winRate": 50.68493150684932,
+        "advantage": 0.6849315068493169
+      },
+      "莉娜": {
+        "gamesPlayed": 71,
+        "wins": 33,
+        "winRate": 46.478873239436616,
+        "advantage": -3.5211267605633836
+      },
+      "宙斯": {
+        "gamesPlayed": 71,
+        "wins": 32,
+        "winRate": 45.07042253521127,
+        "advantage": -4.9295774647887285
+      },
+      "树精卫士": {
+        "gamesPlayed": 69,
+        "wins": 29,
+        "winRate": 42.028985507246375,
+        "advantage": -7.971014492753625
+      },
+      "Largo": {
+        "gamesPlayed": 68,
+        "wins": 31,
+        "winRate": 45.588235294117645,
+        "advantage": -4.411764705882355
+      },
+      "昆卡": {
+        "gamesPlayed": 67,
+        "wins": 25,
+        "winRate": 37.3134328358209,
+        "advantage": -12.686567164179102
+      },
+      "撼地者": {
+        "gamesPlayed": 66,
+        "wins": 34,
+        "winRate": 51.515151515151516,
+        "advantage": 1.5151515151515156
+      },
+      "变体精灵": {
+        "gamesPlayed": 64,
+        "wins": 29,
+        "winRate": 45.3125,
+        "advantage": -4.6875
+      },
+      "水晶室女": {
+        "gamesPlayed": 64,
+        "wins": 30,
+        "winRate": 46.875,
+        "advantage": -3.125
+      },
+      "陈": {
+        "gamesPlayed": 63,
+        "wins": 22,
+        "winRate": 34.92063492063492,
+        "advantage": -15.079365079365083
+      },
+      "噬魂鬼": {
+        "gamesPlayed": 62,
+        "wins": 27,
+        "winRate": 43.54838709677419,
+        "advantage": -6.451612903225808
+      },
+      "炼金术士": {
+        "gamesPlayed": 62,
+        "wins": 27,
+        "winRate": 43.54838709677419,
+        "advantage": -6.451612903225808
+      },
+      "光之守卫": {
+        "gamesPlayed": 62,
+        "wins": 23,
+        "winRate": 37.096774193548384,
+        "advantage": -12.903225806451616
+      },
+      "主宰": {
+        "gamesPlayed": 62,
+        "wins": 29,
+        "winRate": 46.774193548387096,
+        "advantage": -3.225806451612904
+      },
+      "天涯墨客": {
+        "gamesPlayed": 61,
+        "wins": 32,
+        "winRate": 52.459016393442624,
+        "advantage": 2.4590163934426243
+      },
+      "酒仙": {
+        "gamesPlayed": 60,
+        "wins": 40,
+        "winRate": 66.66666666666666,
+        "advantage": 16.666666666666657
+      },
+      "卓尔游侠": {
+        "gamesPlayed": 60,
+        "wins": 24,
+        "winRate": 40.0,
+        "advantage": -10.0
+      },
+      "编织者": {
+        "gamesPlayed": 59,
+        "wins": 30,
+        "winRate": 50.847457627118644,
+        "advantage": 0.8474576271186436
+      },
+      "马格纳斯": {
+        "gamesPlayed": 58,
+        "wins": 24,
+        "winRate": 41.37931034482759,
+        "advantage": -8.620689655172413
+      },
+      "戴泽": {
+        "gamesPlayed": 58,
+        "wins": 24,
+        "winRate": 41.37931034482759,
+        "advantage": -8.620689655172413
+      },
+      "复仇之魂": {
+        "gamesPlayed": 55,
+        "wins": 30,
+        "winRate": 54.54545454545454,
+        "advantage": 4.54545454545454
+      },
+      "祸乱之源": {
+        "gamesPlayed": 53,
+        "wins": 19,
+        "winRate": 35.84905660377358,
+        "advantage": -14.150943396226417
+      },
+      "帕格纳": {
+        "gamesPlayed": 52,
+        "wins": 30,
+        "winRate": 57.692307692307686,
+        "advantage": 7.692307692307686
+      },
+      "斯温": {
+        "gamesPlayed": 52,
+        "wins": 24,
+        "winRate": 46.15384615384615,
+        "advantage": -3.8461538461538467
+      },
+      "哈斯卡": {
+        "gamesPlayed": 52,
+        "wins": 22,
+        "winRate": 42.30769230769231,
+        "advantage": -7.692307692307693
+      },
+      "司夜刺客": {
+        "gamesPlayed": 52,
+        "wins": 16,
+        "winRate": 30.76923076923077,
+        "advantage": -19.23076923076923
+      },
+      "巨魔战将": {
+        "gamesPlayed": 51,
+        "wins": 22,
+        "winRate": 43.13725490196079,
+        "advantage": -6.862745098039213
+      },
+      "狼人": {
+        "gamesPlayed": 49,
+        "wins": 18,
+        "winRate": 36.734693877551024,
+        "advantage": -13.265306122448976
+      },
+      "暗夜魔王": {
+        "gamesPlayed": 49,
+        "wins": 24,
+        "winRate": 48.97959183673469,
+        "advantage": -1.0204081632653086
+      },
+      "克林克兹": {
+        "gamesPlayed": 46,
+        "wins": 21,
+        "winRate": 45.65217391304348,
+        "advantage": -4.347826086956523
+      },
+      "谜团": {
+        "gamesPlayed": 43,
+        "wins": 20,
+        "winRate": 46.51162790697674,
+        "advantage": -3.4883720930232585
+      },
+      "剧毒术士": {
+        "gamesPlayed": 41,
+        "wins": 18,
+        "winRate": 43.90243902439025,
+        "advantage": -6.097560975609753
+      },
+      "远古冰魄": {
+        "gamesPlayed": 38,
+        "wins": 20,
+        "winRate": 52.63157894736842,
+        "advantage": 2.6315789473684177
+      },
+      "敌法师": {
+        "gamesPlayed": 37,
+        "wins": 20,
+        "winRate": 54.054054054054056,
+        "advantage": 4.054054054054056
+      },
+      "寒冬飞龙": {
+        "gamesPlayed": 37,
+        "wins": 18,
+        "winRate": 48.64864864864865,
+        "advantage": -1.3513513513513473
+      },
+      "巫医": {
+        "gamesPlayed": 37,
+        "wins": 14,
+        "winRate": 37.83783783783784,
+        "advantage": -12.162162162162161
+      },
+      "混沌骑士": {
+        "gamesPlayed": 34,
+        "wins": 16,
+        "winRate": 47.05882352941176,
+        "advantage": -2.941176470588239
+      },
+      "德鲁伊": {
+        "gamesPlayed": 34,
+        "wins": 13,
+        "winRate": 38.23529411764706,
+        "advantage": -11.764705882352942
+      },
+      "赏金猎人": {
+        "gamesPlayed": 32,
+        "wins": 15,
+        "winRate": 46.875,
+        "advantage": -3.125
+      },
+      "死亡先知": {
+        "gamesPlayed": 32,
+        "wins": 14,
+        "winRate": 43.75,
+        "advantage": -6.25
+      },
+      "艾欧": {
+        "gamesPlayed": 32,
+        "wins": 11,
+        "winRate": 34.375,
+        "advantage": -15.625
+      },
+      "殁境神蚀者": {
+        "gamesPlayed": 31,
+        "wins": 16,
+        "winRate": 51.61290322580645,
+        "advantage": 1.6129032258064484
+      },
+      "大地之灵": {
+        "gamesPlayed": 29,
+        "wins": 15,
+        "winRate": 51.724137931034484,
+        "advantage": 1.724137931034484
+      },
+      "修补匠": {
+        "gamesPlayed": 29,
+        "wins": 16,
+        "winRate": 55.172413793103445,
+        "advantage": 5.172413793103445
+      },
+      "黑暗贤者": {
+        "gamesPlayed": 29,
+        "wins": 10,
+        "winRate": 34.48275862068966,
+        "advantage": -15.517241379310342
+      },
+      "神谕者": {
+        "gamesPlayed": 28,
+        "wins": 16,
+        "winRate": 57.14285714285714,
+        "advantage": 7.142857142857139
+      },
+      "娜迦海妖": {
+        "gamesPlayed": 27,
+        "wins": 10,
+        "winRate": 37.03703703703704,
+        "advantage": -12.962962962962962
+      },
+      "冥魂大帝": {
+        "gamesPlayed": 26,
+        "wins": 9,
+        "winRate": 34.61538461538461,
+        "advantage": -15.384615384615387
+      },
+      "全能骑士": {
+        "gamesPlayed": 25,
+        "wins": 13,
+        "winRate": 52.0,
+        "advantage": 2.0
+      },
+      "幻影长矛手": {
+        "gamesPlayed": 24,
+        "wins": 13,
+        "winRate": 54.166666666666664,
+        "advantage": 4.166666666666664
+      },
+      "育母蜘蛛": {
+        "gamesPlayed": 19,
+        "wins": 9,
+        "winRate": 47.368421052631575,
+        "advantage": -2.631578947368425
+      },
+      "幻影刺客": {
+        "gamesPlayed": 18,
+        "wins": 9,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "米波": {
+        "gamesPlayed": 16,
+        "wins": 3,
+        "winRate": 18.75,
+        "advantage": -31.25
+      },
+      "力丸": {
+        "gamesPlayed": 14,
+        "wins": 9,
+        "winRate": 64.28571428571429,
+        "advantage": 14.285714285714292
+      },
+      "幽鬼": {
+        "gamesPlayed": 13,
+        "wins": 6,
+        "winRate": 46.15384615384615,
+        "advantage": -3.8461538461538467
+      },
+      "上古巨神": {
+        "gamesPlayed": 11,
+        "wins": 7,
+        "winRate": 63.63636363636363,
+        "advantage": 13.636363636363633
+      },
+      "维萨吉": {
+        "gamesPlayed": 9,
+        "wins": 3,
+        "winRate": 33.33333333333333,
+        "advantage": -16.66666666666667
+      },
+      "米拉娜": {
+        "gamesPlayed": 8,
+        "wins": 2,
+        "winRate": 25.0,
+        "advantage": -25.0
+      },
+      "血魔": {
+        "gamesPlayed": 8,
+        "wins": 4,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "天穹守望者": {
+        "gamesPlayed": 7,
+        "wins": 3,
+        "winRate": 42.857142857142854,
+        "advantage": -7.142857142857146
+      }
+    },
+    "马格纳斯": {
+      "影魔": {
+        "gamesPlayed": 238,
+        "wins": 116,
+        "winRate": 48.739495798319325,
+        "advantage": -1.260504201680675
+      },
+      "拉比克": {
+        "gamesPlayed": 216,
+        "wins": 90,
+        "winRate": 41.66666666666667,
+        "advantage": -8.333333333333329
+      },
+      "玛尔斯": {
+        "gamesPlayed": 190,
+        "wins": 93,
+        "winRate": 48.94736842105264,
+        "advantage": -1.0526315789473628
+      },
+      "食人魔魔法师": {
+        "gamesPlayed": 175,
+        "wins": 91,
+        "winRate": 52.0,
+        "advantage": 2.0
+      },
+      "电炎绝手": {
+        "gamesPlayed": 165,
+        "wins": 78,
+        "winRate": 47.27272727272727,
+        "advantage": -2.7272727272727266
+      },
+      "莱恩": {
+        "gamesPlayed": 155,
+        "wins": 81,
+        "winRate": 52.25806451612903,
+        "advantage": 2.258064516129032
+      },
+      "风行者": {
+        "gamesPlayed": 153,
+        "wins": 76,
+        "winRate": 49.673202614379086,
+        "advantage": -0.32679738562091387
+      },
+      "巨牙海民": {
+        "gamesPlayed": 152,
+        "wins": 62,
+        "winRate": 40.78947368421053,
+        "advantage": -9.210526315789473
+      },
+      "屠夫": {
+        "gamesPlayed": 148,
+        "wins": 84,
+        "winRate": 56.75675675675676,
+        "advantage": 6.756756756756758
+      },
+      "斧王": {
+        "gamesPlayed": 141,
+        "wins": 68,
+        "winRate": 48.226950354609926,
+        "advantage": -1.7730496453900741
+      },
+      "干扰者": {
+        "gamesPlayed": 138,
+        "wins": 69,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "痛苦女王": {
+        "gamesPlayed": 137,
+        "wins": 61,
+        "winRate": 44.52554744525548,
+        "advantage": -5.4744525547445235
+      },
+      "圣堂刺客": {
+        "gamesPlayed": 134,
+        "wins": 66,
+        "winRate": 49.25373134328358,
+        "advantage": -0.746268656716417
+      },
+      "小小": {
+        "gamesPlayed": 130,
+        "wins": 69,
+        "winRate": 53.07692307692308,
+        "advantage": 3.07692307692308
+      },
+      "先知": {
+        "gamesPlayed": 128,
+        "wins": 53,
+        "winRate": 41.40625,
+        "advantage": -8.59375
+      },
+      "破晓辰星": {
+        "gamesPlayed": 125,
+        "wins": 69,
+        "winRate": 55.2,
+        "advantage": 5.200000000000003
+      },
+      "杰奇洛": {
+        "gamesPlayed": 120,
+        "wins": 62,
+        "winRate": 51.66666666666667,
+        "advantage": 1.6666666666666714
+      },
+      "暗影萨满": {
+        "gamesPlayed": 110,
+        "wins": 50,
+        "winRate": 45.45454545454545,
+        "advantage": -4.545454545454547
+      },
+      "玛西": {
+        "gamesPlayed": 109,
+        "wins": 58,
+        "winRate": 53.21100917431193,
+        "advantage": 3.2110091743119327
+      },
+      "灰烬之灵": {
+        "gamesPlayed": 105,
+        "wins": 50,
+        "winRate": 47.61904761904761,
+        "advantage": -2.3809523809523867
+      },
+      "石鳞剑士": {
+        "gamesPlayed": 104,
+        "wins": 51,
+        "winRate": 49.03846153846153,
+        "advantage": -0.961538461538467
+      },
+      "不朽尸王": {
+        "gamesPlayed": 101,
+        "wins": 53,
+        "winRate": 52.475247524752476,
+        "advantage": 2.4752475247524757
+      },
+      "撼地者": {
+        "gamesPlayed": 99,
+        "wins": 50,
+        "winRate": 50.505050505050505,
+        "advantage": 0.5050505050505052
+      },
+      "龙骑士": {
+        "gamesPlayed": 98,
+        "wins": 49,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "天怒法师": {
+        "gamesPlayed": 97,
+        "wins": 51,
+        "winRate": 52.57731958762887,
+        "advantage": 2.577319587628871
+      },
+      "帕克": {
+        "gamesPlayed": 96,
+        "wins": 50,
+        "winRate": 52.083333333333336,
+        "advantage": 2.0833333333333357
+      },
+      "祈求者": {
+        "gamesPlayed": 92,
+        "wins": 37,
+        "winRate": 40.21739130434783,
+        "advantage": -9.782608695652172
+      },
+      "露娜": {
+        "gamesPlayed": 92,
+        "wins": 50,
+        "winRate": 54.347826086956516,
+        "advantage": 4.347826086956516
+      },
+      "熊战士": {
+        "gamesPlayed": 92,
+        "wins": 46,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "矮人直升机": {
+        "gamesPlayed": 91,
+        "wins": 46,
+        "winRate": 50.54945054945055,
+        "advantage": 0.5494505494505475
+      },
+      "森海飞霞": {
+        "gamesPlayed": 87,
+        "wins": 48,
+        "winRate": 55.172413793103445,
+        "advantage": 5.172413793103445
+      },
+      "斯拉达": {
+        "gamesPlayed": 86,
+        "wins": 41,
+        "winRate": 47.674418604651166,
+        "advantage": -2.3255813953488342
+      },
+      "邪影芳灵": {
+        "gamesPlayed": 85,
+        "wins": 41,
+        "winRate": 48.23529411764706,
+        "advantage": -1.764705882352942
+      },
+      "术士": {
+        "gamesPlayed": 85,
+        "wins": 48,
+        "winRate": 56.470588235294116,
+        "advantage": 6.470588235294116
+      },
+      "伐木机": {
+        "gamesPlayed": 85,
+        "wins": 48,
+        "winRate": 56.470588235294116,
+        "advantage": 6.470588235294116
+      },
+      "风暴之灵": {
+        "gamesPlayed": 84,
+        "wins": 44,
+        "winRate": 52.38095238095239,
+        "advantage": 2.3809523809523867
+      },
+      "亚巴顿": {
+        "gamesPlayed": 84,
+        "wins": 45,
+        "winRate": 53.57142857142857,
+        "advantage": 3.5714285714285694
+      },
+      "裂魂人": {
+        "gamesPlayed": 83,
+        "wins": 40,
+        "winRate": 48.19277108433735,
+        "advantage": -1.8072289156626482
+      },
+      "兽王": {
+        "gamesPlayed": 83,
+        "wins": 36,
+        "winRate": 43.373493975903614,
+        "advantage": -6.626506024096386
+      },
+      "潮汐猎人": {
+        "gamesPlayed": 82,
+        "wins": 38,
+        "winRate": 46.34146341463415,
+        "advantage": -3.6585365853658516
+      },
+      "凤凰": {
+        "gamesPlayed": 81,
+        "wins": 49,
+        "winRate": 60.49382716049383,
+        "advantage": 10.49382716049383
+      },
+      "半人马战行者": {
+        "gamesPlayed": 81,
+        "wins": 39,
+        "winRate": 48.148148148148145,
+        "advantage": -1.8518518518518547
+      },
+      "狙击手": {
+        "gamesPlayed": 80,
+        "wins": 38,
+        "winRate": 47.5,
+        "advantage": -2.5
+      },
+      "暗影恶魔": {
+        "gamesPlayed": 79,
+        "wins": 39,
+        "winRate": 49.36708860759494,
+        "advantage": -0.6329113924050631
+      },
+      "拉席克": {
+        "gamesPlayed": 78,
+        "wins": 43,
+        "winRate": 55.12820512820513,
+        "advantage": 5.128205128205131
+      },
+      "水晶室女": {
+        "gamesPlayed": 77,
+        "wins": 37,
+        "winRate": 48.05194805194805,
+        "advantage": -1.9480519480519476
+      },
+      "复仇之魂": {
+        "gamesPlayed": 76,
+        "wins": 38,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "沉默术士": {
+        "gamesPlayed": 76,
+        "wins": 38,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "百戏大王": {
+        "gamesPlayed": 73,
+        "wins": 37,
+        "winRate": 50.68493150684932,
+        "advantage": 0.6849315068493169
+      },
+      "主宰": {
+        "gamesPlayed": 71,
+        "wins": 28,
+        "winRate": 39.436619718309856,
+        "advantage": -10.563380281690144
+      },
+      "莉娜": {
+        "gamesPlayed": 70,
+        "wins": 36,
+        "winRate": 51.42857142857142,
+        "advantage": 1.4285714285714235
+      },
+      "帕格纳": {
+        "gamesPlayed": 69,
+        "wins": 33,
+        "winRate": 47.82608695652174,
+        "advantage": -2.173913043478258
+      },
+      "斯温": {
+        "gamesPlayed": 69,
+        "wins": 35,
+        "winRate": 50.72463768115942,
+        "advantage": 0.7246376811594217
+      },
+      "末日使者": {
+        "gamesPlayed": 68,
+        "wins": 39,
+        "winRate": 57.35294117647059,
+        "advantage": 7.352941176470587
+      },
+      "宙斯": {
+        "gamesPlayed": 68,
+        "wins": 31,
+        "winRate": 45.588235294117645,
+        "advantage": -4.411764705882355
+      },
+      "发条技师": {
+        "gamesPlayed": 66,
+        "wins": 37,
+        "winRate": 56.060606060606055,
+        "advantage": 6.060606060606055
+      },
+      "恐怖利刃": {
+        "gamesPlayed": 66,
+        "wins": 25,
+        "winRate": 37.878787878787875,
+        "advantage": -12.121212121212125
+      },
+      "噬魂鬼": {
+        "gamesPlayed": 64,
+        "wins": 30,
+        "winRate": 46.875,
+        "advantage": -3.125
+      },
+      "巫妖": {
+        "gamesPlayed": 63,
+        "wins": 30,
+        "winRate": 47.61904761904761,
+        "advantage": -2.3809523809523867
+      },
+      "编织者": {
+        "gamesPlayed": 60,
+        "wins": 33,
+        "winRate": 55.00000000000001,
+        "advantage": 5.000000000000007
+      },
+      "蝙蝠骑士": {
+        "gamesPlayed": 60,
+        "wins": 24,
+        "winRate": 40.0,
+        "advantage": -10.0
+      },
+      "戴泽": {
+        "gamesPlayed": 60,
+        "wins": 19,
+        "winRate": 31.666666666666664,
+        "advantage": -18.333333333333336
+      },
+      "虚无之灵": {
+        "gamesPlayed": 59,
+        "wins": 36,
+        "winRate": 61.016949152542374,
+        "advantage": 11.016949152542374
+      },
+      "钢背兽": {
+        "gamesPlayed": 58,
+        "wins": 34,
+        "winRate": 58.620689655172406,
+        "advantage": 8.620689655172406
+      },
+      "祸乱之源": {
+        "gamesPlayed": 56,
+        "wins": 27,
+        "winRate": 48.214285714285715,
+        "advantage": -1.7857142857142847
+      },
+      "昆卡": {
+        "gamesPlayed": 56,
+        "wins": 26,
+        "winRate": 46.42857142857143,
+        "advantage": -3.5714285714285694
+      },
+      "剃刀": {
+        "gamesPlayed": 55,
+        "wins": 27,
+        "winRate": 49.09090909090909,
+        "advantage": -0.9090909090909065
+      },
+      "虚空假面": {
+        "gamesPlayed": 55,
+        "wins": 29,
+        "winRate": 52.72727272727272,
+        "advantage": 2.7272727272727195
+      },
+      "天涯墨客": {
+        "gamesPlayed": 54,
+        "wins": 29,
+        "winRate": 53.70370370370371,
+        "advantage": 3.7037037037037095
+      },
+      "冥魂大帝": {
+        "gamesPlayed": 54,
+        "wins": 26,
+        "winRate": 48.148148148148145,
+        "advantage": -1.8518518518518547
+      },
+      "军团指挥官": {
+        "gamesPlayed": 52,
+        "wins": 26,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "变体精灵": {
+        "gamesPlayed": 50,
+        "wins": 24,
+        "winRate": 48.0,
+        "advantage": -2.0
+      },
+      "原始野兽": {
+        "gamesPlayed": 50,
+        "wins": 28,
+        "winRate": 56.00000000000001,
+        "advantage": 6.000000000000007
+      },
+      "美杜莎": {
+        "gamesPlayed": 50,
+        "wins": 28,
+        "winRate": 56.00000000000001,
+        "advantage": 6.000000000000007
+      },
+      "孽主": {
+        "gamesPlayed": 49,
+        "wins": 22,
+        "winRate": 44.89795918367347,
+        "advantage": -5.102040816326529
+      },
+      "齐天大圣": {
+        "gamesPlayed": 47,
+        "wins": 24,
+        "winRate": 51.06382978723404,
+        "advantage": 1.0638297872340416
+      },
+      "远古冰魄": {
+        "gamesPlayed": 45,
+        "wins": 23,
+        "winRate": 51.11111111111111,
+        "advantage": 1.1111111111111072
+      },
+      "工程师": {
+        "gamesPlayed": 45,
+        "wins": 18,
+        "winRate": 40.0,
+        "advantage": -10.0
+      },
+      "穆尔塔": {
+        "gamesPlayed": 45,
+        "wins": 21,
+        "winRate": 46.666666666666664,
+        "advantage": -3.3333333333333357
+      },
+      "瘟疫法师": {
+        "gamesPlayed": 44,
+        "wins": 19,
+        "winRate": 43.18181818181818,
+        "advantage": -6.81818181818182
+      },
+      "巨魔战将": {
+        "gamesPlayed": 44,
+        "wins": 20,
+        "winRate": 45.45454545454545,
+        "advantage": -4.545454545454547
+      },
+      "巫医": {
+        "gamesPlayed": 44,
+        "wins": 21,
+        "winRate": 47.72727272727273,
+        "advantage": -2.2727272727272734
+      },
+      "沙王": {
+        "gamesPlayed": 42,
+        "wins": 25,
+        "winRate": 59.523809523809526,
+        "advantage": 9.523809523809526
+      },
+      "暗夜魔王": {
+        "gamesPlayed": 42,
+        "wins": 20,
+        "winRate": 47.61904761904761,
+        "advantage": -2.3809523809523867
+      },
+      "魅惑魔女": {
+        "gamesPlayed": 40,
+        "wins": 16,
+        "winRate": 40.0,
+        "advantage": -10.0
+      },
+      "死亡先知": {
+        "gamesPlayed": 39,
+        "wins": 24,
+        "winRate": 61.53846153846154,
+        "advantage": 11.53846153846154
+      },
+      "光之守卫": {
+        "gamesPlayed": 39,
+        "wins": 11,
+        "winRate": 28.205128205128204,
+        "advantage": -21.794871794871796
+      },
+      "凯": {
+        "gamesPlayed": 38,
+        "wins": 19,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "司夜刺客": {
+        "gamesPlayed": 36,
+        "wins": 15,
+        "winRate": 41.66666666666667,
+        "advantage": -8.333333333333329
+      },
+      "神谕者": {
+        "gamesPlayed": 36,
+        "wins": 17,
+        "winRate": 47.22222222222222,
+        "advantage": -2.7777777777777786
+      },
+      "冥界亚龙": {
+        "gamesPlayed": 35,
+        "wins": 12,
+        "winRate": 34.285714285714285,
+        "advantage": -15.714285714285715
+      },
+      "混沌骑士": {
+        "gamesPlayed": 35,
+        "wins": 20,
+        "winRate": 57.14285714285714,
+        "advantage": 7.142857142857139
+      },
+      "斯拉克": {
+        "gamesPlayed": 35,
+        "wins": 15,
+        "winRate": 42.857142857142854,
+        "advantage": -7.142857142857146
+      },
+      "剧毒术士": {
+        "gamesPlayed": 34,
+        "wins": 11,
+        "winRate": 32.35294117647059,
+        "advantage": -17.647058823529413
+      },
+      "娜迦海妖": {
+        "gamesPlayed": 34,
+        "wins": 13,
+        "winRate": 38.23529411764706,
+        "advantage": -11.764705882352942
+      },
+      "树精卫士": {
+        "gamesPlayed": 32,
+        "wins": 14,
+        "winRate": 43.75,
+        "advantage": -6.25
+      },
+      "修补匠": {
+        "gamesPlayed": 32,
+        "wins": 14,
+        "winRate": 43.75,
+        "advantage": -6.25
+      },
+      "幻影长矛手": {
+        "gamesPlayed": 31,
+        "wins": 18,
+        "winRate": 58.06451612903226,
+        "advantage": 8.064516129032263
+      },
+      "卓尔游侠": {
+        "gamesPlayed": 30,
+        "wins": 18,
+        "winRate": 60.0,
+        "advantage": 10.0
+      },
+      "陈": {
+        "gamesPlayed": 29,
+        "wins": 12,
+        "winRate": 41.37931034482759,
+        "advantage": -8.620689655172413
+      },
+      "敌法师": {
+        "gamesPlayed": 28,
+        "wins": 16,
+        "winRate": 57.14285714285714,
+        "advantage": 7.142857142857139
+      },
+      "哈斯卡": {
+        "gamesPlayed": 28,
+        "wins": 21,
+        "winRate": 75.0,
+        "advantage": 25.0
+      },
+      "艾欧": {
+        "gamesPlayed": 28,
+        "wins": 15,
+        "winRate": 53.57142857142857,
+        "advantage": 3.5714285714285694
+      },
+      "克林克兹": {
+        "gamesPlayed": 27,
+        "wins": 14,
+        "winRate": 51.85185185185185,
+        "advantage": 1.8518518518518476
+      },
+      "狼人": {
+        "gamesPlayed": 27,
+        "wins": 9,
+        "winRate": 33.33333333333333,
+        "advantage": -16.66666666666667
+      },
+      "Largo": {
+        "gamesPlayed": 26,
+        "wins": 8,
+        "winRate": 30.76923076923077,
+        "advantage": -19.23076923076923
+      },
+      "黑暗贤者": {
+        "gamesPlayed": 25,
+        "wins": 12,
+        "winRate": 48.0,
+        "advantage": -2.0
+      },
+      "酒仙": {
+        "gamesPlayed": 24,
+        "wins": 16,
+        "winRate": 66.66666666666666,
+        "advantage": 16.666666666666657
+      },
+      "大地之灵": {
+        "gamesPlayed": 24,
+        "wins": 10,
+        "winRate": 41.66666666666667,
+        "advantage": -8.333333333333329
+      },
+      "米拉娜": {
+        "gamesPlayed": 23,
+        "wins": 13,
+        "winRate": 56.52173913043478,
+        "advantage": 6.521739130434781
+      },
+      "赏金猎人": {
+        "gamesPlayed": 20,
+        "wins": 10,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "幻影刺客": {
+        "gamesPlayed": 20,
+        "wins": 12,
+        "winRate": 60.0,
+        "advantage": 10.0
+      },
+      "寒冬飞龙": {
+        "gamesPlayed": 20,
+        "wins": 8,
+        "winRate": 40.0,
+        "advantage": -10.0
+      },
+      "炼金术士": {
+        "gamesPlayed": 19,
+        "wins": 11,
+        "winRate": 57.89473684210527,
+        "advantage": 7.894736842105267
+      },
+      "上古巨神": {
+        "gamesPlayed": 19,
+        "wins": 6,
+        "winRate": 31.57894736842105,
+        "advantage": -18.42105263157895
+      },
+      "全能骑士": {
+        "gamesPlayed": 18,
+        "wins": 10,
+        "winRate": 55.55555555555556,
+        "advantage": 5.555555555555557
+      },
+      "维萨吉": {
+        "gamesPlayed": 17,
+        "wins": 9,
+        "winRate": 52.94117647058824,
+        "advantage": 2.941176470588239
+      },
+      "谜团": {
+        "gamesPlayed": 16,
+        "wins": 7,
+        "winRate": 43.75,
+        "advantage": -6.25
+      },
+      "德鲁伊": {
+        "gamesPlayed": 16,
+        "wins": 8,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "力丸": {
+        "gamesPlayed": 14,
+        "wins": 6,
+        "winRate": 42.857142857142854,
+        "advantage": -7.142857142857146
+      },
+      "育母蜘蛛": {
+        "gamesPlayed": 14,
+        "wins": 6,
+        "winRate": 42.857142857142854,
+        "advantage": -7.142857142857146
+      },
+      "殁境神蚀者": {
+        "gamesPlayed": 14,
+        "wins": 6,
+        "winRate": 42.857142857142854,
+        "advantage": -7.142857142857146
+      },
+      "天穹守望者": {
+        "gamesPlayed": 13,
+        "wins": 6,
+        "winRate": 46.15384615384615,
+        "advantage": -3.8461538461538467
+      },
+      "幽鬼": {
+        "gamesPlayed": 12,
+        "wins": 7,
+        "winRate": 58.333333333333336,
+        "advantage": 8.333333333333336
+      },
+      "血魔": {
+        "gamesPlayed": 12,
+        "wins": 6,
+        "winRate": 50.0,
+        "advantage": 0.0
+      },
+      "米波": {
+        "gamesPlayed": 10,
+        "wins": 5,
+        "winRate": 50.0,
+        "advantage": 0.0
+      }
     }
   },
-  "errors": [
-    "巨魔战将: OpenDota 请求过于频繁。稍后重试，或在设置页填写 API Key。（{\"error\":\"minute rate limit exceeded\"}）",
-    "半人马战行者: OpenDota 请求过于频繁。稍后重试，或在设置页填写 API Key。（{\"error\":\"minute rate limit exceeded\"}）",
-    "马格纳斯: OpenDota 请求过于频繁。稍后重试，或在设置页填写 API Key。（{\"error\":\"minute rate limit exceeded\"}）",
-    "伐木机: OpenDota 请求过于频繁。稍后重试，或在设置页填写 API Key。（{\"error\":\"minute rate limit exceeded\"}）",
-    "钢背兽: OpenDota 请求过于频繁。稍后重试，或在设置页填写 API Key。（{\"error\":\"minute rate limit exceeded\"}）",
-    "巨牙海民: OpenDota 请求过于频繁。稍后重试，或在设置页填写 API Key。（{\"error\":\"minute rate limit exceeded\"}）",
-    "天怒法师: OpenDota 请求过于频繁。稍后重试，或在设置页填写 API Key。（{\"error\":\"minute rate limit exceeded\"}）"
-  ]
+  "errors": []
 }

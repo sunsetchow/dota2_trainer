@@ -608,12 +608,6 @@ async function syncOpenDotaHeroMatchups(force = false): Promise<HeroMatchupSyncR
   }
   store.set('heroMatchupCache', cache)
 
-  // 开发模式下把最新矩阵写回仓库，方便 git commit 后在其他机器上共享
-  if (!app.isPackaged) {
-    const snapshotPath = join(__dirname, '../../src/data/heroMatchupSnapshot.json')
-    writeFile(snapshotPath, JSON.stringify(cache, null, 2), 'utf-8').catch(() => {})
-  }
-
   return {
     status: errors.length > 0 ? 'partial' : 'synced',
     message: errors.length > 0
@@ -861,10 +855,18 @@ app.whenReady().then(() => {
     store.set('appState', { ...appState, activeCycleId: 'default' })
   }
 
-  // 全新安装 / 刚从 git pull 下来：本地还没有缓存时，用仓库里的快照兜底
+  // 全新安装 / 刚从 git pull 下来：本地没有缓存，或本地缓存不如 repo 快照完整时，用仓库快照兜底
   const existingMatchupCache = store.get('heroMatchupCache', null) as HeroMatchupCache | null
-  if (!existingMatchupCache?.matchupCount && (heroMatchupSnapshot as HeroMatchupCache).matchupCount > 0) {
-    store.set('heroMatchupCache', heroMatchupSnapshot)
+  const bundledMatchupCache = heroMatchupSnapshot as HeroMatchupCache
+  const shouldSeedMatchupCache = Boolean(
+    bundledMatchupCache.matchupCount > 0 && (
+      !existingMatchupCache?.matchupCount ||
+      (bundledMatchupCache.complete && !existingMatchupCache.complete) ||
+      ((bundledMatchupCache.syncedAt ?? 0) > (existingMatchupCache.syncedAt ?? 0) && bundledMatchupCache.matchupCount >= existingMatchupCache.matchupCount)
+    )
+  )
+  if (shouldSeedMatchupCache) {
+    store.set('heroMatchupCache', bundledMatchupCache)
   }
 
   createWindow()
