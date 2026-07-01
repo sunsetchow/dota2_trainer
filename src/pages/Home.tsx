@@ -35,7 +35,7 @@ export default function Home() {
   const freezeUsedDates = appState?.freezeUsedDates ?? []
   const freezeTokens = appState?.checklistFreezeTokens ?? 0
   const streak = calcStreak(checkins, freezeUsedDates)
-  const longestStreak = calcLongestStreak(checkins)
+  const longestStreak = calcLongestStreak(checkins, freezeUsedDates)
   const todayCheckin = checkins.find(c => c.date === todayStr())
   const dueNotesCount = heroNotes.filter(note => isDueForReview(note, todayStr())).length
 

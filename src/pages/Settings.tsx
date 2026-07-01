@@ -160,10 +160,14 @@ export default function Settings() {
 
   const handleSyncMatchups = async () => {
     setSyncingMatchups(true)
-    setStatusMsg(stratzApiKey.trim()
+    const trimmedStratzApiKey = stratzApiKey.trim()
+    setStatusMsg(trimmedStratzApiKey
       ? '正在通过 Stratz 同步本周 matchup 矩阵…'
       : '正在同步本周 matchup 矩阵，限速 1 req/sec，完整同步约 2 分钟。')
     try {
+      if (trimmedStratzApiKey !== (appState?.stratz?.apiKey ?? '') || stratzRankBracket !== (appState?.stratz?.rankBracket ?? 'ALL')) {
+        await updateAppState({ stratz: { apiKey: trimmedStratzApiKey, rankBracket: stratzRankBracket } })
+      }
       const result = await window.electronStore.syncOpenDotaHeroMatchups(true)
       setMatchupCache(result.cache)
       setStatusMsg(result.message)

@@ -221,6 +221,7 @@ export interface HeroMatchupCache {
   complete?: boolean;
   heroCount: number;
   matchupCount: number;
+  rankBracket?: StratzRankBracket;
   matchups: Record<string, Record<string, HeroMatchupStats>>;
   errors?: string[];
 }

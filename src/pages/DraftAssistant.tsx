@@ -18,11 +18,20 @@ const COUNTERED = getCountered()
 // 硬阈值会导致换敌方英雄时分数几乎不变。
 const MIN_SAMPLE_FLOOR = 10
 
+interface MatchupNote {
+  enemy: string
+  advantage: number
+  gamesPlayed?: number
+  source: 'dynamic' | 'static'
+  kind: 'counter' | 'risk'
+}
+
 interface RankedHero {
   hero: string
   threat: number
   cScore: number
   totalScore: number
+  matchupNotes: MatchupNote[]
   poolTier?: HeroConfig['tier']
   poolWeight: number
 }
@@ -54,6 +63,12 @@ function scoreFormula(item: RankedHero): string {
   // 未截断的 item.totalScore——否则两边精度不一致，手动验算会对不上。
   const displayedTotal = Number(cScoreText) - Number(riskText) + item.poolWeight
   return `综合 ${Math.round(displayedTotal)} = 反制 ${cScoreText} - 风险 ${riskText} + 英雄池 ${poolText}`
+}
+
+function formatMatchupNote(note: MatchupNote): string {
+  const sign = note.advantage > 0 ? '+' : ''
+  const games = note.gamesPlayed ? `（${note.gamesPlayed}局）` : ''
+  return `对 ${note.enemy} 胜率 ${sign}${note.advantage.toFixed(1)}%${games}`
 }
 
 function getRecommendationTone(item: RankedHero, index: number): 'success' | 'accent' | 'warning' {
@@ -186,6 +201,11 @@ function DraftHeroCard({
       </div>
       <div className="mt-3 space-y-1 text-xs leading-5 text-[var(--text-secondary)]">
         {reasons.map(reason => <div key={reason}>{reason}</div>)}
+        {item.matchupNotes.slice(0, 3).map(note => (
+          <div key={`${note.enemy}-${note.kind}`} className={note.kind === 'counter' ? 'text-[var(--text-success)]' : 'text-[var(--text-danger)]'}>
+            {note.kind === 'counter' ? '反制' : '风险'}：{formatMatchupNote(note)}
+          </div>
+        ))}
       </div>
     </button>
   )
@@ -229,9 +249,9 @@ export default function DraftAssistant() {
   const activePool = configuredPool.filter(h => h.active).map(h => h.name)
   const poolByHero = new Map(configuredPool.map(item => [item.name, item]))
   const minGames = appState?.openDota?.matchupMinGames ?? 50
-  const sgCarry = carry ? getSugg(carry) : []
-  const sg1 = s1 ? getSugg(s1) : []
-  const sg2 = s2 ? getSugg(s2) : []
+  const sgCarry = fCarry || carry ? getSugg(carry, 200) : []
+  const sg1 = f1 || s1 ? getSugg(s1, 200) : []
+  const sg2 = f2 || s2 ? getSugg(s2, 200) : []
   const enemyCarry = resolve(carry)
   const enemySupports = [resolve(s1), resolve(s2)].filter(Boolean) as string[]
   const enemyHeroes = [enemyCarry, ...enemySupports].filter(Boolean) as string[]
@@ -267,9 +287,9 @@ export default function DraftAssistant() {
     return stats.advantage * confidence
   }
 
-  const getDynamicCounterScore = (hero: string): number => {
+  const getDynamicCounterScore = (hero: string): number | null => {
     const matchups = matchupCache?.matchups[hero]
-    if (!matchups) return 0
+    if (!matchups) return null
     const topAdvantages = Object.values(matchups)
       .filter(stats => stats.gamesPlayed >= minGames && stats.advantage > 0)
       .sort((a, b) => b.advantage - a.advantage)
@@ -278,6 +298,32 @@ export default function DraftAssistant() {
     if (topAdvantages.length === 0) return 0
     return topAdvantages.reduce((sum, value) => sum + value, 0) / topAdvantages.length
   }
+
+  const getMatchupNote = (hero: string, enemy: string): MatchupNote | null => {
+    const stats = matchupCache?.matchups[hero]?.[enemy]
+    if (stats && stats.gamesPlayed >= MIN_SAMPLE_FLOOR && stats.advantage !== 0) {
+      return {
+        enemy,
+        advantage: stats.advantage,
+        gamesPlayed: stats.gamesPlayed,
+        source: 'dynamic',
+        kind: stats.advantage > 0 ? 'counter' : 'risk',
+      }
+    }
+
+    const staticCounter = COUNTERS[hero]?.[enemy]
+    if (staticCounter) return { enemy, advantage: staticCounter, source: 'static', kind: 'counter' }
+
+    const staticRisk = SUP_MAP[enemy]?.[hero]
+    if (staticRisk) return { enemy, advantage: -staticRisk, source: 'static', kind: 'risk' }
+
+    return null
+  }
+
+  const getMatchupNotes = (hero: string): MatchupNote[] => enemyHeroes
+    .map(enemy => getMatchupNote(hero, enemy))
+    .filter((note): note is MatchupNote => Boolean(note))
+    .sort((a, b) => Math.abs(b.advantage) - Math.abs(a.advantage))
 
   const threatMap = useMemo(() => {
     const c1 = resolve(s1), c2 = resolve(s2)
@@ -303,9 +349,11 @@ export default function DraftAssistant() {
       const config = poolByHero.get(hero)
       const carryAdvantage = enemyCarry ? getDynamicAdvantage(hero, enemyCarry) ?? 0 : 0
       const staticScore = Object.values(COUNTERS[hero] || {}).reduce((a: number, b: number) => a + b, 0)
+      const dynamicScore = getDynamicCounterScore(hero)
       // 不再 clamp 到 >= 0：被当前敌方 1 号位克制应该实打实地拉低分数，
       // 否则换一个敌方核心时分数只会涨不会跌，观感上"分数没反应"。
-      const cScore = (getDynamicCounterScore(hero) || staticScore) + carryAdvantage * 1.4
+      // dynamicScore === 0 是有效动态结果，不能用 || 回退到本地静态表。
+      const cScore = (dynamicScore ?? staticScore) + carryAdvantage * 1.4
       const threat = threatMap[hero] || 0
       const poolWeight = getPoolWeight(config?.tier, Boolean(config?.active))
       return {
@@ -313,11 +361,12 @@ export default function DraftAssistant() {
         threat,
         cScore,
         totalScore: cScore - threat * 2 + poolWeight,
+        matchupNotes: getMatchupNotes(hero),
         poolTier: config?.tier,
         poolWeight,
       }
     }).sort((a, b) => b.totalScore - a.totalScore),
-    [threatMap, matchupCache, configuredPool, enemyCarry, minGames]
+    [threatMap, matchupCache, configuredPool, enemyCarry, enemyHeroes.join('|'), minGames]
   )
 
   useEffect(() => {
@@ -353,9 +402,10 @@ export default function DraftAssistant() {
   const selectedCounters = hasDynamicCounters ? dynamicCounters : (selected ? COUNTERS[selected.hero] || {} : {})
   const selectedCountered = hasDynamicCountered ? dynamicCountered : (selected ? COUNTERED[selected.hero] || {} : {})
   // 两个列表各自独立判断数据来源，不能共用一个标签——否则其中一个列表回退到本地表时，
-  // 仍会被贴上"OpenDota"的标签，误导数据可信度。
-  const counterSource = hasDynamicCounters ? `OpenDota ≥${minGames} 局` : '本地表'
-  const counteredSource = hasDynamicCountered ? `OpenDota ≥${minGames} 局` : '本地表'
+  // 仍会被贴上动态数据标签，误导数据可信度。
+  const matchupSourceLabel = matchupCache?.source === 'stratz' ? 'Stratz' : 'OpenDota'
+  const counterSource = hasDynamicCounters ? `${matchupSourceLabel} ≥${minGames} 局` : '本地表'
+  const counteredSource = hasDynamicCountered ? `${matchupSourceLabel} ≥${minGames} 局` : '本地表'
 
   const handleSelectHero = (hero: string) => {
     navigate('/pre-game', { state: { hero, enemySupports, enemyCarry } })
@@ -452,6 +502,15 @@ export default function DraftAssistant() {
                   <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">为什么适合这局</div>
                   <div className="space-y-2 text-sm leading-6 text-[var(--text-secondary)]">
                     {buildReason(selected, enemyHeroes.length, Boolean(enemyCarry)).map(reason => <div key={reason}>{reason}</div>)}
+                    {selected.matchupNotes.length > 0 && (
+                      <div className="space-y-1 rounded-[var(--radius-sm)] bg-[var(--surface-2)] p-2 text-xs leading-5">
+                        {selected.matchupNotes.map(note => (
+                          <div key={`${note.enemy}-${note.kind}`} className={note.kind === 'counter' ? 'text-[var(--text-success)]' : 'text-[var(--text-danger)]'}>
+                            {note.kind === 'counter' ? '反制' : '风险'}：{formatMatchupNote(note)}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div>

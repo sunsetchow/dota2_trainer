@@ -68,8 +68,8 @@ export function calcStreak(checkins: DailyCheckin[], freezeUsedDates: string[] =
   return streak
 }
 
-export function calcLongestStreak(checkins: DailyCheckin[]): number {
-  const dates = [...new Set(checkins.map(c => c.date))].sort()
+export function calcLongestStreak(checkins: DailyCheckin[], freezeUsedDates: string[] = []): number {
+  const dates = [...new Set([...checkins.map(c => c.date), ...freezeUsedDates])].sort()
   if (dates.length === 0) return 0
 
   let longest = 0

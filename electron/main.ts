@@ -398,7 +398,8 @@ function buildImportedMatch(matchId: string, match: OpenDotaMatchResponse, playe
   const firstKeyItem = getFirstKeyItem(player.purchase_log)
   const laneEfficiency = getLaneEfficiency(player)
   const durationMin = Math.max(1, Math.round((match.duration ?? 0) / 60))
-  const phaseGpm = computePhaseGpm(player.gold_t, durationMin)
+  const phaseDurationMin = Math.max(1, Math.min(Math.floor((match.duration ?? 0) / 60), (player.gold_t?.length ?? 1) - 1))
+  const phaseGpm = computePhaseGpm(player.gold_t, phaseDurationMin)
   return {
     matchId,
     timestamp: match.start_time ? match.start_time * 1000 : Date.now(),
@@ -818,9 +819,10 @@ async function syncStratzHeroMatchups(apiKey: string, rankBracket: StratzRankBra
   const weekKey = getIsoWeekKey()
   const now = Date.now()
   const currentExpiresAt = current?.expiresAt ?? (current?.syncedAt ? current.syncedAt + HERO_MATCHUP_CACHE_TTL_MS : 0)
-  const isFresh = Boolean(current?.matchupCount && currentExpiresAt > now)
+  const currentMatchesSource = current?.source === 'stratz' && current.rankBracket === rankBracket
+  const isFresh = Boolean(currentMatchesSource && current?.matchupCount && currentExpiresAt > now)
 
-  if (!force && current?.matchupCount) {
+  if (!force && current?.matchupCount && currentMatchesSource) {
     return {
       status: isFresh ? 'fresh' : 'stale',
       message: isFresh
@@ -895,6 +897,7 @@ async function syncStratzHeroMatchups(apiKey: string, rankBracket: StratzRankBra
     complete: errors.length === 0 && Object.keys(matchups).length === OPEN_DOTA_HEROES.length,
     heroCount: Object.keys(matchups).length,
     matchupCount,
+    rankBracket,
     matchups,
     ...(errors.length > 0 && { errors: errors.slice(0, 12) }),
   }
@@ -1112,8 +1115,14 @@ ipcMain.handle('opendota:syncHeroMatchups', async (_, force?: boolean): Promise<
 
 // 导出（触发系统"另存为"对话框 + 写文件）
 ipcMain.handle('store:exportAll', async () => {
+  const appState = store.get('appState') as AppState
+  const safeAppState: AppState = {
+    ...appState,
+    openDota: appState.openDota ? { ...appState.openDota, apiKey: '' } : undefined,
+    stratz: appState.stratz ? { ...appState.stratz, apiKey: '' } : undefined,
+  }
   const data = {
-    appState:      store.get('appState'),
+    appState:      safeAppState,
     cycles:        store.get('cycles'),
     matchLogs:     store.get('matchLogs'),
     preGameSetups: store.get('preGameSetups'),

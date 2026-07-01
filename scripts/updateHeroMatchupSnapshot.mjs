@@ -244,6 +244,7 @@ async function main() {
     complete: errors.length === 0 && Object.keys(orderedMatchups).length === heroes.length,
     heroCount: Object.keys(orderedMatchups).length,
     matchupCount: Object.values(orderedMatchups).reduce((sum, row) => sum + Object.keys(row).length, 0),
+    ...(USE_STRATZ && { rankBracket: STRATZ_RANK_BRACKET }),
     matchups: orderedMatchups,
     ...(errors.length > 0 && { errors: errors.slice(0, 12) }),
   }

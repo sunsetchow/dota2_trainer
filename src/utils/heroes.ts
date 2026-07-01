@@ -53,9 +53,9 @@ export function resolve(input: string): string | null {
   }) ?? null
 }
 
-export function getSugg(val: string): string[] {
-  if (!val) return []
+export function getSugg(val = '', limit = 200): string[] {
   const v = normalize(val)
+  if (!v) return SELECTABLE_HEROES.slice(0, limit)
   const r = new Set<string>()
   for (const [alias, canonical] of aliasMap.entries()) {
     if (alias.includes(v) || normalize(canonical).includes(v)) r.add(canonical)
@@ -63,7 +63,7 @@ export function getSugg(val: string): string[] {
   for (const n of RESOLVABLE_HEROES) {
     if (normalize(n).includes(v)) r.add(n)
   }
-  return [...r].filter(n => RESOLVABLE_HEROES.includes(n)).slice(0, 8)
+  return [...r].filter(n => RESOLVABLE_HEROES.includes(n)).slice(0, limit)
 }
 
 export function getPool(): string[] {
