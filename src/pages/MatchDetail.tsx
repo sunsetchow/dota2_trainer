@@ -2,7 +2,7 @@ import React from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMatchLogs } from '../store/useStore.ts'
 import { getReviewDimensionLabel } from '../data/reviewDimensions.ts'
-import PercentileBar from '../components/PercentileBar.tsx'
+import PercentileBar, { buildPercentileMetrics } from '../components/PercentileBar.tsx'
 import { getPhaseRelativeScore } from '../utils/phasePerformance.ts'
 
 function Field({ label, value }: { label: string; value?: React.ReactNode }) {
@@ -137,16 +137,9 @@ export default function MatchDetail() {
         </div>
       </section>
 
-      <PercentileBar
-        metrics={[
-          { label: 'GPM', percentile: log.gpmPercentile, detail: log.gpm !== undefined ? `本局 ${log.gpm}` : undefined },
-          { label: 'XPM', percentile: log.xpmPercentile, detail: log.xpm !== undefined ? `本局 ${log.xpm}` : undefined },
-          { label: '补刀速度', percentile: log.lastHitsPercentile, detail: log.lastHits !== undefined ? `总补刀 ${log.lastHits}` : undefined },
-          { label: '英雄伤害', percentile: log.heroDamagePercentile },
-        ]}
-      />
+      <PercentileBar metrics={buildPercentileMetrics(log)} />
 
-      {(log.laningGpm || log.midGpm || log.lateGpm) && (
+      {(log.laningGpm !== undefined || log.midGpm !== undefined || log.lateGpm !== undefined) && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">分阶段表现</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

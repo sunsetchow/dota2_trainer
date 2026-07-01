@@ -13,6 +13,11 @@ const SUP_MAP = getSupMap()
 const COUNTERS = getCounters()
 const COUNTERED = getCountered()
 
+// 样本量低于这个数就完全不采信（噪声太大）；介于此值和 minGames 之间时按比例打折
+// 而不是硬阈值直接归零——具体某个英雄对某个英雄的样本量大多数达不到 minGames（默认 50），
+// 硬阈值会导致换敌方英雄时分数几乎不变。
+const MIN_SAMPLE_FLOOR = 10
+
 interface RankedHero {
   hero: string
   threat: number
@@ -42,8 +47,13 @@ function PercentBadge({ value, tone }: { value: number; tone: 'success' | 'dange
 }
 
 function scoreFormula(item: RankedHero): string {
+  const cScoreText = item.cScore.toFixed(1)
+  const riskText = (item.threat * 2).toFixed(1)
   const poolText = item.poolWeight === 0 ? '0' : `${item.poolWeight > 0 ? '+' : ''}${item.poolWeight}`
-  return `综合 ${Math.round(item.totalScore)} = 反制 ${item.cScore.toFixed(1)} - 风险 ${(item.threat * 2).toFixed(1)} + 英雄池 ${poolText}`
+  // 用这里实际展示的三个数字（都已 toFixed(1)）重新算"综合"，而不是直接四舍五入
+  // 未截断的 item.totalScore——否则两边精度不一致，手动验算会对不上。
+  const displayedTotal = Number(cScoreText) - Number(riskText) + item.poolWeight
+  return `综合 ${Math.round(displayedTotal)} = 反制 ${cScoreText} - 风险 ${riskText} + 英雄池 ${poolText}`
 }
 
 function getRecommendationTone(item: RankedHero, index: number): 'success' | 'accent' | 'warning' {
@@ -71,7 +81,8 @@ function buildReason(item: RankedHero, enemyCount: number, hasCarry: boolean): s
 
 function buildRisk(item: RankedHero): string {
   if (item.threat > 0) return '开局先保经验和关键补刀，不要为了换血把线打崩。'
-  if (item.cScore <= 0) return '缺少足够对位数据，锁定前先确认自己是否熟练。'
+  if (item.cScore < 0) return '对当前这套敌方阵容数据上偏劣势，锁定前想清楚打法调整。'
+  if (item.cScore === 0) return '缺少足够对位数据，锁定前先确认自己是否熟练。'
   return '如果对方后续补出高机动核心，第一件关键装前不要硬接无视野团。'
 }
 
@@ -251,8 +262,9 @@ export default function DraftAssistant() {
 
   const getDynamicAdvantage = (hero: string, enemy: string): number | null => {
     const stats = matchupCache?.matchups[hero]?.[enemy]
-    if (!stats || stats.gamesPlayed < minGames) return null
-    return stats.advantage
+    if (!stats || stats.gamesPlayed < MIN_SAMPLE_FLOOR) return null
+    const confidence = Math.min(1, stats.gamesPlayed / minGames)
+    return stats.advantage * confidence
   }
 
   const getDynamicCounterScore = (hero: string): number => {
@@ -291,7 +303,9 @@ export default function DraftAssistant() {
       const config = poolByHero.get(hero)
       const carryAdvantage = enemyCarry ? getDynamicAdvantage(hero, enemyCarry) ?? 0 : 0
       const staticScore = Object.values(COUNTERS[hero] || {}).reduce((a: number, b: number) => a + b, 0)
-      const cScore = (getDynamicCounterScore(hero) || staticScore) + Math.max(0, carryAdvantage) * 1.4
+      // 不再 clamp 到 >= 0：被当前敌方 1 号位克制应该实打实地拉低分数，
+      // 否则换一个敌方核心时分数只会涨不会跌，观感上"分数没反应"。
+      const cScore = (getDynamicCounterScore(hero) || staticScore) + carryAdvantage * 1.4
       const threat = threatMap[hero] || 0
       const poolWeight = getPoolWeight(config?.tier, Boolean(config?.active))
       return {
@@ -325,11 +339,23 @@ export default function DraftAssistant() {
     )
   }
 
-  const dynamicCounters = selected ? getDynamicDetailData(selected.hero, 'counters') : {}
-  const dynamicCountered = selected ? getDynamicDetailData(selected.hero, 'countered') : {}
-  const selectedCounters = Object.keys(dynamicCounters).length > 0 ? dynamicCounters : (selected ? COUNTERS[selected.hero] || {} : {})
-  const selectedCountered = Object.keys(dynamicCountered).length > 0 ? dynamicCountered : (selected ? COUNTERED[selected.hero] || {} : {})
-  const detailSource = Object.keys(dynamicCounters).length > 0 || Object.keys(dynamicCountered).length > 0 ? `OpenDota ≥${minGames} 局` : '本地表'
+  const { dynamicCounters, dynamicCountered } = useMemo(() => {
+    if (!selected) return { dynamicCounters: {}, dynamicCountered: {} }
+    return {
+      dynamicCounters: getDynamicDetailData(selected.hero, 'counters'),
+      dynamicCountered: getDynamicDetailData(selected.hero, 'countered'),
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.hero, matchupCache, minGames])
+
+  const hasDynamicCounters = Object.keys(dynamicCounters).length > 0
+  const hasDynamicCountered = Object.keys(dynamicCountered).length > 0
+  const selectedCounters = hasDynamicCounters ? dynamicCounters : (selected ? COUNTERS[selected.hero] || {} : {})
+  const selectedCountered = hasDynamicCountered ? dynamicCountered : (selected ? COUNTERED[selected.hero] || {} : {})
+  // 两个列表各自独立判断数据来源，不能共用一个标签——否则其中一个列表回退到本地表时，
+  // 仍会被贴上"OpenDota"的标签，误导数据可信度。
+  const counterSource = hasDynamicCounters ? `OpenDota ≥${minGames} 局` : '本地表'
+  const counteredSource = hasDynamicCountered ? `OpenDota ≥${minGames} 局` : '本地表'
 
   const handleSelectHero = (hero: string) => {
     navigate('/pre-game', { state: { hero, enemySupports, enemyCarry } })
@@ -413,7 +439,7 @@ export default function DraftAssistant() {
                   <h2 className="mt-3 text-2xl font-bold tracking-tight text-[var(--text-primary)]">{selected.hero}</h2>
                   <p className="number mt-1 text-sm text-[var(--text-muted)]">{scoreFormula(selected)}</p>
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <Badge tone="success">反制 +{selected.cScore.toFixed(1)}</Badge>
+                    <Badge tone={selected.cScore >= 0 ? 'success' : 'danger'}>反制 {selected.cScore >= 0 ? '+' : ''}{selected.cScore.toFixed(1)}</Badge>
                     <Badge tone={selected.threat > 0 ? 'danger' : 'neutral'}>风险 -{(selected.threat * 2).toFixed(1)}</Badge>
                     <Badge tone={selected.poolWeight >= 0 ? 'accent' : 'warning'}>英雄池 {selected.poolWeight > 0 ? '+' : ''}{selected.poolWeight}</Badge>
                   </div>
@@ -437,8 +463,8 @@ export default function DraftAssistant() {
               </div>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                <DetailList title={`克制对手 · ${detailSource}`} data={selectedCounters} tone="success" />
-                <DetailList title={`注意被克 · ${detailSource}`} data={selectedCountered} tone="danger" />
+                <DetailList title={`克制对手 · ${counterSource}`} data={selectedCounters} tone="success" />
+                <DetailList title={`注意被克 · ${counteredSource}`} data={selectedCountered} tone="danger" />
               </div>
             </Card>
           ) : (

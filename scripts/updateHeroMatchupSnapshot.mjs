@@ -7,8 +7,32 @@ const repoRoot = resolve(__dirname, '..')
 const heroesPath = resolve(repoRoot, 'src/data/opendotaHeroes.json')
 const snapshotPath = resolve(repoRoot, 'src/data/heroMatchupSnapshot.json')
 const OPEN_DOTA_BASE_URL = 'https://api.opendota.com/api'
-const RATE_LIMIT_DELAY_MS = Number(process.env.OPENDOTA_MATCHUP_DELAY_MS ?? 1100)
+const STRATZ_GRAPHQL_URL = 'https://api.stratz.com/graphql'
+// Stratz 在 Cloudflare 后面，默认 UA 会被当机器人拦截返回验证页而不是 JSON（已实测确认）。
+const STRATZ_USER_AGENT = 'STRATZ_API'
+const STRATZ_API_KEY = process.env.STRATZ_API_KEY
+const STRATZ_RANK_BRACKET = process.env.STRATZ_RANK_BRACKET || 'ALL'
+// Stratz 的 bracketBasicIds 枚举里没有真正代表"聚合全部分段"的值——传字面量 "ALL" 实测返回空数据，
+// 要拿到聚合结果得显式列出四个真实分段（已用真实 API 核对，等价于完全不传该参数的默认行为）。
+const STRATZ_ALL_BRACKETS = ['HERALD_GUARDIAN', 'CRUSADER_ARCHON', 'LEGEND_ANCIENT', 'DIVINE_IMMORTAL']
+const STRATZ_BRACKET_ARG = STRATZ_RANK_BRACKET === 'ALL' ? STRATZ_ALL_BRACKETS : [STRATZ_RANK_BRACKET]
+const USE_STRATZ = Boolean(STRATZ_API_KEY)
+const RATE_LIMIT_DELAY_MS = Number(process.env.OPENDOTA_MATCHUP_DELAY_MS ?? (USE_STRATZ ? 250 : 1100))
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+const HERO_VS_HERO_MATCHUP_QUERY = `
+  query HeroVsHeroMatchup($heroId: Short!, $bracketBasicIds: [RankBracketBasicEnum]) {
+    heroStats {
+      heroVsHeroMatchup(heroId: $heroId, bracketBasicIds: $bracketBasicIds) {
+        advantage {
+          heroId
+          matchCountVs
+          vs { heroId2 winsAverage matchCount }
+        }
+      }
+    }
+  }
+`
 
 const args = new Set(process.argv.slice(2))
 const validateOnly = args.has('--validate-only')
@@ -126,6 +150,45 @@ async function fetchHeroMatchups(hero, nameById) {
   return heroMatchups
 }
 
+async function fetchStratzHeroMatchups(hero, nameById) {
+  const response = await fetch(STRATZ_GRAPHQL_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${STRATZ_API_KEY}`,
+      'User-Agent': STRATZ_USER_AGENT,
+    },
+    body: JSON.stringify({
+      query: HERO_VS_HERO_MATCHUP_QUERY,
+      variables: { heroId: hero.id, bracketBasicIds: STRATZ_BRACKET_ARG },
+    }),
+  })
+  if (!response.ok) {
+    const body = await response.text().catch(() => '')
+    throw new Error(`HTTP ${response.status}: ${body}`)
+  }
+
+  const json = await response.json()
+  if (json.errors?.length) throw new Error(json.errors.map(e => e.message).join('; '))
+
+  // ⚠️ heroVsHeroMatchup 本身是个对象（不是数组），advantage 才是数组。
+  const rows = json.data?.heroStats?.heroVsHeroMatchup?.advantage?.[0]?.vs ?? []
+  const heroMatchups = {}
+  for (const row of rows) {
+    if (!row.heroId2 || !row.matchCount) continue
+    const enemyName = nameById.get(row.heroId2)
+    if (!enemyName) continue
+    const winRate = row.winsAverage * 100
+    heroMatchups[enemyName] = {
+      gamesPlayed: row.matchCount,
+      wins: Math.round(row.matchCount * row.winsAverage),
+      winRate,
+      advantage: winRate - 50,
+    }
+  }
+  return heroMatchups
+}
+
 async function main() {
   const heroes = await readJson(heroesPath)
   const existingSnapshot = await readJson(snapshotPath).catch(() => ({ matchups: {} }))
@@ -146,11 +209,15 @@ async function main() {
   const matchups = missingOnly ? { ...existingMatchups } : {}
   const errors = []
 
+  console.log(USE_STRATZ ? `使用 Stratz（分段 ${STRATZ_RANK_BRACKET}）` : '使用 OpenDota（无 STRATZ_API_KEY 环境变量）')
+
   for (const [index, hero] of heroesToFetch.entries()) {
     const name = heroDisplayName(hero)
     process.stdout.write(`[${index + 1}/${heroesToFetch.length}] ${name} ... `)
     try {
-      matchups[name] = await fetchHeroMatchups(hero, nameById)
+      matchups[name] = USE_STRATZ
+        ? await fetchStratzHeroMatchups(hero, nameById)
+        : await fetchHeroMatchups(hero, nameById)
       console.log(`${Object.keys(matchups[name]).length} rows`)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -168,7 +235,7 @@ async function main() {
   }
 
   const snapshot = {
-    source: 'opendota',
+    source: USE_STRATZ ? 'stratz' : 'opendota',
     version: 1,
     syncedAt,
     date: dateKeyFromDate(new Date(syncedAt)),

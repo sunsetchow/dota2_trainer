@@ -44,7 +44,7 @@ export default function AppShell({ children }: AppShellProps) {
   const activeCycle = cycles.find(c => c.cycleId === appState?.activeCycleId)
   const currentWeek = activeCycle ? getCurrentWeek(activeCycle) : undefined
   const weekTheme = activeCycle?.weekThemes.find(w => w.week === currentWeek)
-  const streak = calcStreak(checkins)
+  const streak = calcStreak(checkins, appState?.freezeUsedDates ?? [])
   const pendingSetup = setups.find(s => s.id === appState?.pendingPreGameSetupId)
 
   return (

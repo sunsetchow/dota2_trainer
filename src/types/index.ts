@@ -42,6 +42,14 @@ export interface OpenDotaSettings {
   matchupMinGames?: number;
 }
 
+// ── Stratz 设置（英雄克制矩阵可选数据源，天梯分段数据，比 OpenDota /matchups 只有职业赛数据样本大得多）
+export type StratzRankBracket = 'ALL' | 'HERALD_GUARDIAN' | 'CRUSADER_ARCHON' | 'LEGEND_ANCIENT' | 'DIVINE_IMMORTAL';
+
+export interface StratzSettings {
+  apiKey?: string;
+  rankBracket?: StratzRankBracket;
+}
+
 // ── 赛前设定
 export interface PreGameSetup {
   id: string;
@@ -149,6 +157,7 @@ export interface AppState {
   longestStreak: number;
   pendingPreGameSetupId?: string;
   openDota?: OpenDotaSettings;
+  stratz?: StratzSettings;
   checklistFreezeTokens?: number;
   freezeUsedDates?: string[];
 }
@@ -203,7 +212,7 @@ export interface HeroMatchupStats {
 }
 
 export interface HeroMatchupCache {
-  source: 'opendota';
+  source: 'opendota' | 'stratz';
   version?: number;
   syncedAt: number;
   date: string;

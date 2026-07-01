@@ -17,6 +17,10 @@ const store = new Store({
         accountId: '',
         apiKey: '',
       },
+      stratz: {
+        apiKey: '',
+        rankBracket: 'ALL',
+      },
     },
     cycles: [],
     matchLogs: [],

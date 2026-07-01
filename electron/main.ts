@@ -4,7 +4,7 @@ import { join } from 'path'
 import store from './store.ts'
 import opendotaHeroes from '../src/data/opendotaHeroes.json'
 import heroMatchupSnapshot from '../src/data/heroMatchupSnapshot.json'
-import type { AppState, TrainingCycle, MatchLog, PreGameSetup, DailyCheckin, MMRLog, HeroNote, OpenDotaImportedMatch, OpenDotaParseRequestResult, OpenDotaRecentMatch, HeroMatchupCache, HeroMatchupStats, HeroMatchupSyncResult, HeroBenchmarkCache } from '../src/types'
+import type { AppState, TrainingCycle, MatchLog, PreGameSetup, DailyCheckin, MMRLog, HeroNote, OpenDotaImportedMatch, OpenDotaParseRequestResult, OpenDotaRecentMatch, HeroMatchupCache, HeroMatchupStats, HeroMatchupSyncResult, HeroBenchmarkCache, StratzRankBracket } from '../src/types'
 
 interface OpenDotaPlayer {
   account_id?: number;
@@ -287,19 +287,27 @@ function getMinuteStat(values: number[] | undefined, minute: number): number | u
 
 function computePhaseGpm(goldT: number[] | undefined, durationMin: number): { laningGpm?: number; midGpm?: number; lateGpm?: number } {
   if (!goldT || goldT.length < 2) return {}
-  const at = (min: number) => goldT[Math.min(Math.max(min, 0), goldT.length - 1)] ?? 0
+  const lastIndex = goldT.length - 1
+  // ⚠️ 越界返回 undefined 而不是 clamp 到最后一格：clamp 会让两个越界分钟号读到同一个值，
+  // 相减得到虚假的 0（看起来像"这个阶段没赚到钱"，实际是"数据没到这么长"）。
+  const at = (min: number): number | undefined => (min >= 0 && min <= lastIndex ? goldT[min] : undefined)
   const laningEnd = Math.min(10, durationMin)
   const midEnd = Math.min(25, durationMin)
+  const atLaningEnd = at(laningEnd)
+  const atMidEnd = at(midEnd)
+  const atDuration = at(durationMin)
   return {
-    laningGpm: laningEnd > 0 ? at(laningEnd) / laningEnd : undefined,
-    midGpm: midEnd > laningEnd ? (at(midEnd) - at(laningEnd)) / (midEnd - laningEnd) : undefined,
-    lateGpm: durationMin > midEnd ? (at(durationMin) - at(midEnd)) / (durationMin - midEnd) : undefined,
+    laningGpm: laningEnd > 0 && atLaningEnd !== undefined ? atLaningEnd / laningEnd : undefined,
+    midGpm: midEnd > laningEnd && atMidEnd !== undefined && atLaningEnd !== undefined ? (atMidEnd - atLaningEnd) / (midEnd - laningEnd) : undefined,
+    lateGpm: durationMin > midEnd && atDuration !== undefined && atMidEnd !== undefined ? (atDuration - atMidEnd) / (durationMin - midEnd) : undefined,
   }
 }
 
 function interpolatePercentile(points: Array<{ percentile: number; value: number }> | undefined, actualValue: number | undefined): number | null {
   if (!points?.length || actualValue === undefined || !Number.isFinite(actualValue)) return null
   const sorted = [...points].sort((a, b) => a.value - b.value)
+  // 已用真实接口核对：OpenDota /benchmarks 的 percentile 恒为 0-1 小数（0.1/0.2/.../0.9），
+  // 不会是 0-100 整数，故 p <= 1 这支必然命中；保留 else 分支只是防御性兜底。
   const toPct = (p: number) => (p <= 1 ? p * 100 : p)
   if (actualValue <= sorted[0].value) return toPct(sorted[0].percentile)
   const last = sorted[sorted.length - 1]
@@ -317,19 +325,35 @@ function interpolatePercentile(points: Array<{ percentile: number; value: number
 
 const HERO_BENCHMARK_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
+function isCacheFresh(syncedAt: number, ttlMs: number): boolean {
+  return Date.now() - syncedAt < ttlMs
+}
+
+function isValidBenchmarkResponse(result: HeroBenchmarkCache['benchmarks'] | undefined): boolean {
+  return Boolean(result) && Object.values(result).some(points => Array.isArray(points) && points.length > 0)
+}
+
 async function getOrFetchHeroBenchmarks(heroId: number): Promise<HeroBenchmarkCache> {
-  const all = store.get('heroBenchmarkCache', {}) as Record<string, HeroBenchmarkCache>
-  const cached = all[String(heroId)]
-  if (cached && Date.now() - cached.syncedAt < HERO_BENCHMARK_TTL_MS) return cached
+  const cacheKey = String(heroId)
+  const cached = (store.get('heroBenchmarkCache', {}) as Record<string, HeroBenchmarkCache>)[cacheKey]
+  if (cached && isCacheFresh(cached.syncedAt, HERO_BENCHMARK_TTL_MS)) return cached
 
   const raw = await fetchOpenDotaJson<OpenDotaBenchmarkResponse>(`/benchmarks?hero_id=${heroId}`, 15_000)
+  if (!isValidBenchmarkResponse(raw.result)) {
+    if (cached) return cached // 响应异常（限速/格式变化）时优先沿用旧缓存，即使已过期
+    throw new Error('OpenDota benchmarks 返回数据异常。')
+  }
+
   const cache: HeroBenchmarkCache = {
     source: 'opendota',
     syncedAt: Date.now(),
     heroId,
     benchmarks: raw.result,
   }
-  store.set('heroBenchmarkCache', { ...all, [String(heroId)]: cache })
+  // 写回前重新读取最新缓存（而不是复用 await 之前的快照），避免并发导入不同英雄时
+  // 后完成的请求用旧快照覆盖、丢掉另一个英雄刚写入的数据（TOCTOU）。
+  const latest = store.get('heroBenchmarkCache', {}) as Record<string, HeroBenchmarkCache>
+  store.set('heroBenchmarkCache', { ...latest, [cacheKey]: cache })
   return cache
 }
 
@@ -403,18 +427,30 @@ function buildImportedMatch(matchId: string, match: OpenDotaMatchResponse, playe
   }
 }
 
+const BENCHMARK_METRICS: Array<{
+  key: keyof HeroBenchmarkCache['benchmarks']
+  field: 'gpmPercentile' | 'xpmPercentile' | 'lastHitsPercentile' | 'heroDamagePercentile'
+  getValue: (player: OpenDotaPlayer, durationMin: number) => number | undefined
+}> = [
+  { key: 'gold_per_min', field: 'gpmPercentile', getValue: player => player.gold_per_min },
+  { key: 'xp_per_min', field: 'xpmPercentile', getValue: player => player.xp_per_min },
+  // last_hits/hero_damage 是全场总数，benchmark 是"每分钟"速率，必须先换算成速率再插值；
+  // 缺失时要传 undefined（而不是 ?? 0 当真实 0 处理），否则会显示成一个虚假的极低百分位。
+  { key: 'last_hits_per_min', field: 'lastHitsPercentile', getValue: (player, durationMin) => player.last_hits !== undefined ? player.last_hits / durationMin : undefined },
+  { key: 'hero_damage_per_min', field: 'heroDamagePercentile', getValue: (player, durationMin) => player.hero_damage !== undefined ? player.hero_damage / durationMin : undefined },
+]
+
 async function enrichImportedMatchWithBenchmarks(imported: OpenDotaImportedMatch, player: OpenDotaPlayer): Promise<OpenDotaImportedMatch> {
   try {
     const benchmarks = await getOrFetchHeroBenchmarks(imported.heroId)
     const durationMin = Math.max(1, imported.durationMin)
-    return {
-      ...imported,
-      gpmPercentile: interpolatePercentile(benchmarks.benchmarks.gold_per_min, player.gold_per_min) ?? undefined,
-      xpmPercentile: interpolatePercentile(benchmarks.benchmarks.xp_per_min, player.xp_per_min) ?? undefined,
-      lastHitsPercentile: interpolatePercentile(benchmarks.benchmarks.last_hits_per_min, (player.last_hits ?? 0) / durationMin) ?? undefined,
-      heroDamagePercentile: interpolatePercentile(benchmarks.benchmarks.hero_damage_per_min, player.hero_damage !== undefined ? player.hero_damage / durationMin : undefined) ?? undefined,
+    const percentiles: Partial<OpenDotaImportedMatch> = {}
+    for (const metric of BENCHMARK_METRICS) {
+      percentiles[metric.field] = interpolatePercentile(benchmarks.benchmarks[metric.key], metric.getValue(player, durationMin)) ?? undefined
     }
-  } catch {
+    return { ...imported, ...percentiles }
+  } catch (error) {
+    console.error('[opendota:benchmarks] 赛后能力评分卡数据获取失败：', error instanceof Error ? error.message : error)
     return imported
   }
 }
@@ -693,6 +729,186 @@ async function syncOpenDotaHeroMatchups(force = false): Promise<HeroMatchupSyncR
   }
 }
 
+// ── Stratz 英雄克制矩阵（可选数据源）：走天梯分段对局，样本量比 OpenDota 的 /matchups
+// （职业赛专属数据，实测常年局数不到 50 场）大出两三个数量级，参见项目调研记录。
+
+const STRATZ_GRAPHQL_URL = 'https://api.stratz.com/graphql'
+// Stratz 的接口在 Cloudflare 后面，不带这个 UA 会被当机器人拦截返回验证页而不是 JSON（已实测确认）。
+const STRATZ_USER_AGENT = 'STRATZ_API'
+
+interface StratzMatchupVsRow {
+  heroId2: number;
+  winsAverage: number;
+  matchCount: number;
+}
+
+interface StratzGraphQLResponse<T> {
+  data?: T;
+  errors?: Array<{ message: string }>;
+}
+
+interface StratzHeroVsHeroMatchupData {
+  heroStats?: {
+    // ⚠️ heroVsHeroMatchup 本身是个对象（不是数组！），advantage 才是数组，已用真实 API 响应核对过。
+    heroVsHeroMatchup?: {
+      advantage?: Array<{
+        heroId: number;
+        matchCountVs: number;
+        vs: StratzMatchupVsRow[];
+      }>;
+    };
+  };
+}
+
+// Stratz 的 bracketBasicIds 枚举里没有真正代表"聚合全部分段"的值——传字面量 "ALL" 实测返回空数据，
+// 要拿到聚合结果得显式列出四个真实分段（等价于完全不传这个参数时的默认行为，已用真实 API 核对）。
+const STRATZ_ALL_BRACKETS: StratzRankBracket[] = ['HERALD_GUARDIAN', 'CRUSADER_ARCHON', 'LEGEND_ANCIENT', 'DIVINE_IMMORTAL']
+
+const HERO_VS_HERO_MATCHUP_QUERY = `
+  query HeroVsHeroMatchup($heroId: Short!, $bracketBasicIds: [RankBracketBasicEnum]) {
+    heroStats {
+      heroVsHeroMatchup(heroId: $heroId, bracketBasicIds: $bracketBasicIds) {
+        advantage {
+          heroId
+          matchCountVs
+          vs { heroId2 winsAverage matchCount }
+        }
+      }
+    }
+  }
+`
+
+async function fetchStratzGraphQL<T>(apiKey: string, query: string, variables: Record<string, unknown>, timeoutMs = 20_000): Promise<T> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const response = await fetch(STRATZ_GRAPHQL_URL, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+        'User-Agent': STRATZ_USER_AGENT,
+      },
+      body: JSON.stringify({ query, variables }),
+    })
+    if (!response.ok) {
+      const body = await readResponseBody(response)
+      throw new Error(`Stratz 请求失败：HTTP ${response.status}${body.trim() ? `（${body.trim().slice(0, 180)}）` : ''}`)
+    }
+    const json = await response.json() as StratzGraphQLResponse<T>
+    if (json.errors?.length) {
+      throw new Error(`Stratz GraphQL 错误：${json.errors.map(e => e.message).join('; ')}`)
+    }
+    if (!json.data) throw new Error('Stratz 返回了空数据。')
+    return json.data
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Stratz 请求超时，请稍后重试。')
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+async function syncStratzHeroMatchups(apiKey: string, rankBracket: StratzRankBracket, force = false): Promise<HeroMatchupSyncResult> {
+  const current = store.get('heroMatchupCache', null) as HeroMatchupCache | null
+  const date = todayKey()
+  const weekKey = getIsoWeekKey()
+  const now = Date.now()
+  const currentExpiresAt = current?.expiresAt ?? (current?.syncedAt ? current.syncedAt + HERO_MATCHUP_CACHE_TTL_MS : 0)
+  const isFresh = Boolean(current?.matchupCount && currentExpiresAt > now)
+
+  if (!force && current?.matchupCount) {
+    return {
+      status: isFresh ? 'fresh' : 'stale',
+      message: isFresh
+        ? `本周 matchup 矩阵仍有效（${current.heroCount} 个英雄，${current.matchupCount} 条对位，有效期至 ${formatDateTime(currentExpiresAt)}，数据源 Stratz）。`
+        : `matchup 矩阵已过期，继续使用上次缓存（${current.date}）。建议在设置页手动同步本周矩阵。`,
+      cache: current,
+    }
+  }
+
+  if (!force && !current?.matchupCount) {
+    throw new Error('本地还没有英雄克制矩阵。请先在设置页点击“同步本周 matchup 矩阵”。')
+  }
+
+  const matchups: HeroMatchupCache['matchups'] = {}
+  const errors: string[] = []
+  const bracketArg = rankBracket === 'ALL' ? STRATZ_ALL_BRACKETS : [rankBracket]
+
+  // Stratz 免费额度（登录后 2000 次/小时起）比 OpenDota 匿名限速宽松很多，并发拉取即可。
+  await runLimited(OPEN_DOTA_HEROES, 5, async hero => {
+    const heroName = openDotaHeroNameById.get(hero.id)
+    if (!heroName) return
+
+    try {
+      const result = await fetchStratzGraphQL<StratzHeroVsHeroMatchupData>(
+        apiKey,
+        HERO_VS_HERO_MATCHUP_QUERY,
+        { heroId: hero.id, bracketBasicIds: bracketArg },
+      )
+      const rows = result.heroStats?.heroVsHeroMatchup?.advantage?.[0]?.vs ?? []
+      const heroMatchups: Record<string, HeroMatchupStats> = {}
+
+      for (const row of rows) {
+        if (!row.heroId2 || !row.matchCount) continue
+        const enemyName = openDotaHeroNameById.get(row.heroId2)
+        if (!enemyName) continue
+        const winRate = row.winsAverage * 100
+        heroMatchups[enemyName] = {
+          gamesPlayed: row.matchCount,
+          wins: Math.round(row.matchCount * row.winsAverage),
+          winRate,
+          advantage: winRate - 50,
+        }
+      }
+
+      matchups[heroName] = heroMatchups
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      errors.push(`${heroName}: ${message}`)
+    }
+  })
+
+  const matchupCount = Object.values(matchups).reduce((sum, item) => sum + Object.keys(item).length, 0)
+  if (matchupCount === 0) {
+    if (current) {
+      return {
+        status: 'stale',
+        message: `Stratz 同步失败，继续使用上一次缓存（${current.date}）。`,
+        cache: current,
+      }
+    }
+    throw new Error('Stratz matchup 矩阵同步失败，且本地没有可用缓存。')
+  }
+
+  const syncedAt = Date.now()
+  const cache: HeroMatchupCache = {
+    source: 'stratz',
+    version: 1,
+    syncedAt,
+    date,
+    weekKey,
+    expiresAt: syncedAt + HERO_MATCHUP_CACHE_TTL_MS,
+    complete: errors.length === 0 && Object.keys(matchups).length === OPEN_DOTA_HEROES.length,
+    heroCount: Object.keys(matchups).length,
+    matchupCount,
+    matchups,
+    ...(errors.length > 0 && { errors: errors.slice(0, 12) }),
+  }
+  store.set('heroMatchupCache', cache)
+
+  return {
+    status: errors.length > 0 ? 'partial' : 'synced',
+    message: errors.length > 0
+      ? `已部分同步本周 matchup 矩阵（${cache.heroCount}/${OPEN_DOTA_HEROES.length} 个英雄，数据源 Stratz · ${rankBracket}）。`
+      : `已同步本周 matchup 矩阵（${cache.weekKey}，${cache.heroCount} 个英雄，${cache.matchupCount} 条对位，数据源 Stratz · ${rankBracket}）。`,
+    cache,
+  }
+}
+
 // ── 8 周主题常量
 const DEFAULT_WEEK_THEMES: TrainingCycle['weekThemes'] = [
   {
@@ -886,6 +1102,11 @@ ipcMain.handle('opendota:getHeroMatchupCache', (): HeroMatchupCache | null => {
 })
 
 ipcMain.handle('opendota:syncHeroMatchups', async (_, force?: boolean): Promise<HeroMatchupSyncResult> => {
+  const appState = store.get('appState') as AppState
+  const stratzApiKey = appState.stratz?.apiKey?.trim()
+  if (stratzApiKey) {
+    return syncStratzHeroMatchups(stratzApiKey, appState.stratz?.rankBracket ?? 'ALL', Boolean(force))
+  }
   return syncOpenDotaHeroMatchups(Boolean(force))
 })
 

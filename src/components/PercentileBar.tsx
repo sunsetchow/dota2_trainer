@@ -6,6 +6,25 @@ export interface PercentileMetric {
   detail?: string
 }
 
+export interface PercentileSource {
+  gpmPercentile?: number
+  xpmPercentile?: number
+  lastHitsPercentile?: number
+  heroDamagePercentile?: number
+  gpm?: number
+  xpm?: number
+  lastHits?: number
+}
+
+export function buildPercentileMetrics(source: PercentileSource): PercentileMetric[] {
+  return [
+    { label: 'GPM', percentile: source.gpmPercentile, detail: source.gpm !== undefined ? `本局 ${source.gpm}` : undefined },
+    { label: 'XPM', percentile: source.xpmPercentile, detail: source.xpm !== undefined ? `本局 ${source.xpm}` : undefined },
+    { label: '补刀速度', percentile: source.lastHitsPercentile, detail: source.lastHits !== undefined ? `总补刀 ${source.lastHits}` : undefined },
+    { label: '英雄伤害', percentile: source.heroDamagePercentile },
+  ]
+}
+
 function clamp(value: number): number {
   return Math.max(0, Math.min(100, value))
 }

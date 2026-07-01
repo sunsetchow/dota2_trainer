@@ -41,11 +41,23 @@ export default function Home() {
 
   useEffect(() => {
     if (!appState) return
-    const result = reconcileStreakFreeze(checkins, appState.checklistFreezeTokens ?? 0, appState.freezeUsedDates ?? [])
-    if (result.changed) {
-      updateAppState({ checklistFreezeTokens: result.freezeTokens, freezeUsedDates: result.freezeUsedDates })
-    }
-  }, [appState?.activeCycleId])
+    const previousFreezeDates = appState.freezeUsedDates ?? []
+    const result = reconcileStreakFreeze(checkins, appState.checklistFreezeTokens ?? 0, previousFreezeDates)
+    if (!result.changed) return
+
+    // 用 freeze 覆盖前后的 streak 差值判断这次自动补卡是否跨过了发放 token 的 7 天整数倍边界，
+    // 否则"某天靠 freeze 续上、刚好跨过第 7/14 天"这种情况永远不会发 token（只有手动打卡才会检查）。
+    const previousStreak = calcStreak(checkins, previousFreezeDates)
+    const nextStreak = calcStreak(checkins, result.freezeUsedDates)
+    const nextTokens = previousStreak !== nextStreak
+      ? grantFreezeTokenIfEarned(nextStreak, result.freezeTokens)
+      : result.freezeTokens
+
+    updateAppState({ checklistFreezeTokens: nextTokens, freezeUsedDates: result.freezeUsedDates })
+
+    const milestone = hitMilestoneToday(previousStreak, nextStreak)
+    if (milestone) setMilestoneBanner(`连训 ${milestone} 天，一个完整的训练阶段！`)
+  }, [checkins, appState])
 
   const handleStartGame = async () => {
     if (appState?.pendingPreGameSetupId) {

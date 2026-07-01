@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid'
 import { useAppState, useHeroNotes, useMatchLogs, useCycles } from '../store/useStore.ts'
 import HeroSelector from '../components/HeroSelector.tsx'
 import QuickSelect from '../components/QuickSelect.tsx'
-import PercentileBar from '../components/PercentileBar.tsx'
+import PercentileBar, { buildPercentileMetrics } from '../components/PercentileBar.tsx'
 import { REVIEW_DIMENSIONS } from '../data/reviewDimensions.ts'
 import type { HeroNote, MatchLog, PreGameSetup, OpenDotaImportedMatch, OpenDotaRecentMatch, TrainingDimension } from '../types'
 import { getCurrentWeek, todayStr } from '../utils/cycle.ts'
@@ -711,14 +711,7 @@ export default function PostGame() {
         )}
         {importedMatch && (
           <>
-            <PercentileBar
-              metrics={[
-                { label: 'GPM', percentile: importedMatch.gpmPercentile, detail: importedMatch.gpm !== undefined ? `本局 ${importedMatch.gpm}` : undefined },
-                { label: 'XPM', percentile: importedMatch.xpmPercentile, detail: importedMatch.xpm !== undefined ? `本局 ${importedMatch.xpm}` : undefined },
-                { label: '补刀速度', percentile: importedMatch.lastHitsPercentile, detail: importedMatch.lastHits !== undefined ? `总补刀 ${importedMatch.lastHits}` : undefined },
-                { label: '英雄伤害', percentile: importedMatch.heroDamagePercentile },
-              ]}
-            />
+            <PercentileBar metrics={buildPercentileMetrics(importedMatch)} />
           <div className="grid grid-cols-3 gap-2 pt-1 text-xs">
             <div className="px-2 py-1.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)]">
               KDA <span className="text-[var(--text-primary)]">{importedMatch.kills ?? '-'}/{importedMatch.deaths ?? '-'}/{importedMatch.assists ?? '-'}</span>
@@ -739,9 +732,9 @@ export default function PostGame() {
             <div className="px-2 py-1.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)] col-span-3">
               关键装 <span className="text-[var(--text-primary)]">{importedMatch.firstKeyItemName && importedMatch.firstKeyItemMin ? `${importedMatch.firstKeyItemName} · ${importedMatch.firstKeyItemMin} 分` : '未命中规则'}</span>
             </div>
-            {(importedMatch.laningGpm || importedMatch.midGpm || importedMatch.lateGpm) && (
+            {(importedMatch.laningGpm !== undefined || importedMatch.midGpm !== undefined || importedMatch.lateGpm !== undefined) && (
               <div className="px-2 py-1.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)] col-span-3">
-                分阶段 GPM <span className="text-[var(--text-primary)]">对线 {importedMatch.laningGpm ? Math.round(importedMatch.laningGpm) : '-'} · 中期 {importedMatch.midGpm ? Math.round(importedMatch.midGpm) : '-'} · 后期 {importedMatch.lateGpm ? Math.round(importedMatch.lateGpm) : '-'}</span>
+                分阶段 GPM <span className="text-[var(--text-primary)]">对线 {importedMatch.laningGpm !== undefined ? Math.round(importedMatch.laningGpm) : '-'} · 中期 {importedMatch.midGpm !== undefined ? Math.round(importedMatch.midGpm) : '-'} · 后期 {importedMatch.lateGpm !== undefined ? Math.round(importedMatch.lateGpm) : '-'}</span>
               </div>
             )}
           </div>

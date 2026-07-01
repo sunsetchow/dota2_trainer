@@ -2,7 +2,15 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppState, useCycles } from '../store/useStore.ts'
 import { getPool } from '../utils/heroes.ts'
-import type { HeroConfig, HeroMatchupCache, TrainingCycle } from '../types'
+import type { HeroConfig, HeroMatchupCache, StratzRankBracket, TrainingCycle } from '../types'
+
+const STRATZ_RANK_BRACKETS: Array<{ value: StratzRankBracket; label: string }> = [
+  { value: 'ALL', label: '全部分段' },
+  { value: 'HERALD_GUARDIAN', label: '先锋-卫士' },
+  { value: 'CRUSADER_ARCHON', label: '中军-统帅' },
+  { value: 'LEGEND_ANCIENT', label: '传奇-万古' },
+  { value: 'DIVINE_IMMORTAL', label: '神话-冠绝' },
+]
 import { nanoid } from 'nanoid'
 
 const ALL_POOL = getPool()
@@ -19,6 +27,8 @@ export default function Settings() {
   const [openDotaAccountId, setOpenDotaAccountId] = useState('')
   const [openDotaApiKey, setOpenDotaApiKey] = useState('')
   const [matchupMinGames, setMatchupMinGames] = useState('50')
+  const [stratzApiKey, setStratzApiKey] = useState('')
+  const [stratzRankBracket, setStratzRankBracket] = useState<StratzRankBracket>('ALL')
   const [statusMsg, setStatusMsg] = useState('')
   const [syncingMatchups, setSyncingMatchups] = useState(false)
   const [matchupCache, setMatchupCache] = useState<HeroMatchupCache | null>(null)
@@ -30,6 +40,11 @@ export default function Settings() {
     setOpenDotaApiKey(appState?.openDota?.apiKey ?? '')
     setMatchupMinGames(String(appState?.openDota?.matchupMinGames ?? 50))
   }, [appState?.openDota?.accountId, appState?.openDota?.apiKey, appState?.openDota?.matchupMinGames])
+
+  useEffect(() => {
+    setStratzApiKey(appState?.stratz?.apiKey ?? '')
+    setStratzRankBracket(appState?.stratz?.rankBracket ?? 'ALL')
+  }, [appState?.stratz?.apiKey, appState?.stratz?.rankBracket])
 
   useEffect(() => {
     window.electronStore.getHeroMatchupCache()
@@ -132,9 +147,22 @@ export default function Settings() {
     setTimeout(() => setStatusMsg(''), 3000)
   }
 
+  const handleSaveStratz = async () => {
+    await updateAppState({
+      stratz: {
+        apiKey: stratzApiKey.trim(),
+        rankBracket: stratzRankBracket,
+      },
+    })
+    setStatusMsg('Stratz 设置已保存。填了 Key 之后，「同步本周 matchup 矩阵」会优先用 Stratz 的天梯分段数据。')
+    setTimeout(() => setStatusMsg(''), 4000)
+  }
+
   const handleSyncMatchups = async () => {
     setSyncingMatchups(true)
-    setStatusMsg('正在同步本周 matchup 矩阵，限速 1 req/sec，完整同步约 2 分钟。')
+    setStatusMsg(stratzApiKey.trim()
+      ? '正在通过 Stratz 同步本周 matchup 矩阵…'
+      : '正在同步本周 matchup 矩阵，限速 1 req/sec，完整同步约 2 分钟。')
     try {
       const result = await window.electronStore.syncOpenDotaHeroMatchups(true)
       setMatchupCache(result.cache)
@@ -306,10 +334,52 @@ export default function Settings() {
         >
           保存 OpenDota 设置
         </button>
-        <div className="pt-2 space-y-2">
+      </div>
+
+      {/* Stratz */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Stratz（可选，英雄克制矩阵数据源）</h2>
+        <p className="text-xs text-[var(--text-muted)]">
+          OpenDota 的克制矩阵接口只统计职业联赛比赛，样本量常年不到 50 局；Stratz 按天梯分段统计，单个对位常有几百到几千局。填了 Key 之后「同步本周 matchup 矩阵」会自动改用 Stratz，不填就继续用 OpenDota。Key 在 stratz.com 登录后自己的账号页里生成。
+        </p>
+        <div className="space-y-2">
+          <label className="block text-xs text-[var(--text-muted)]">API Key</label>
+          <input
+            type="password"
+            value={stratzApiKey}
+            onChange={e => setStratzApiKey(e.target.value)}
+            placeholder="留空则继续使用 OpenDota 数据"
+            className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-border)]"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="block text-xs text-[var(--text-muted)]">天梯分段</label>
+          <select
+            value={stratzRankBracket}
+            onChange={e => setStratzRankBracket(e.target.value as StratzRankBracket)}
+            className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-border)]"
+          >
+            {STRATZ_RANK_BRACKETS.map(item => (
+              <option key={item.value} value={item.value}>{item.label}</option>
+            ))}
+          </select>
+        </div>
+        <button
+          type="button"
+          onClick={handleSaveStratz}
+          className="w-full py-2.5 rounded-lg bg-[var(--accent)] text-[var(--text-primary)] text-sm font-semibold hover:bg-[var(--accent-strong)] transition-colors"
+        >
+          保存 Stratz 设置
+        </button>
+      </div>
+
+      {/* 英雄克制矩阵同步（共用：优先 Stratz，未配置时用 OpenDota） */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">英雄克制矩阵</h2>
+        <div className="pt-1 space-y-2">
           <p className="text-xs text-[var(--text-muted)]">
             本周 matchup 矩阵：{matchupCache
-              ? `${matchupCache.weekKey ?? matchupCache.date} · ${matchupCache.heroCount} 个英雄 · ${matchupCache.matchupCount} 条对位 · 有效期至 ${formatCacheTime(matchupCache.expiresAt)}`
+              ? `${matchupCache.weekKey ?? matchupCache.date} · ${matchupCache.heroCount} 个英雄 · ${matchupCache.matchupCount} 条对位 · 数据源 ${matchupCache.source === 'stratz' ? 'Stratz' : 'OpenDota'} · 有效期至 ${formatCacheTime(matchupCache.expiresAt)}`
               : '尚未同步'}
           </p>
           <button
