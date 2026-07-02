@@ -123,7 +123,7 @@
   { "id": 135, "name": "npc_dota_hero_dawnbreaker", "localizedName": "Dawnbreaker", "displayName": "破晓辰星" },
   { "id": 136, "name": "npc_dota_hero_marci", "localizedName": "Marci", "displayName": "玛西" },
   { "id": 137, "name": "npc_dota_hero_primal_beast", "localizedName": "Primal Beast", "displayName": "原始野兽" },
-  { "id": 138, "name": "npc_dota_hero_muerta", "localizedName": "Muerta", "displayName": "穆尔塔" },
+  { "id": 138, "name": "npc_dota_hero_muerta", "localizedName": "Muerta", "displayName": "琼英碧灵" },
   { "id": 145, "name": "npc_dota_hero_kez", "localizedName": "Kez", "displayName": "凯" },
-  { "id": 155, "name": "npc_dota_hero_largo", "localizedName": "Largo", "displayName": "Largo" }
+  { "id": 155, "name": "npc_dota_hero_largo", "localizedName": "Largo", "displayName": "朗戈" }
 ]
