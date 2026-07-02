@@ -4,10 +4,11 @@ import HeroCard from '../components/HeroCard.tsx'
 import Button from '../components/ui/Button.tsx'
 import Badge from '../components/ui/Badge.tsx'
 import Card from '../components/ui/Card.tsx'
+import HeroNoteReviewCard from '../features/heroNotes/HeroNoteReviewCard.tsx'
 import { useAppState, useHeroNotes } from '../store/useStore.ts'
 import { getPool, getSugg, resolve } from '../utils/heroes.ts'
 import { todayStr } from '../utils/cycle.ts'
-import { isDueForReview } from '../utils/srs.ts'
+import { applySrsRating, isDueForReview, type SrsRating } from '../utils/srs.ts'
 import {
   getConfiguredHeroPositions,
   getDefaultHeroPositions,
@@ -115,7 +116,13 @@ export default function HeroNotes() {
   const mainCount = heroPool.filter(config => config.active && config.tier === 'main').length
   const practiceCount = heroPool.filter(config => config.active && (config.tier === 'practice' || !config.tier)).length
   const backupCount = heroPool.filter(config => config.active && config.tier === 'backup').length
-  const dueCount = heroNotes.filter(note => isDueForReview(note, today)).length
+  const dueNotes = useMemo(
+    () => heroNotes
+      .filter(note => isDueForReview(note, today))
+      .sort((a, b) => (a.srsNextReviewDate ?? '').localeCompare(b.srsNextReviewDate ?? '') || a.hero.localeCompare(b.hero, 'zh-CN')),
+    [heroNotes, today],
+  )
+  const dueCount = dueNotes.length
 
   const filteredHeroes = useMemo(() => {
     const searchCandidates = search.trim() ? getSugg(search, 200) : ALL_HEROES
@@ -198,6 +205,29 @@ export default function HeroNotes() {
     })
     setStatus('英雄档案已保存。')
     setTimeout(() => setStatus(''), 2500)
+  }
+
+  const handleRateSelectedNote = async (rating: SrsRating) => {
+    if (!selectedNote) return
+    const result = applySrsRating({ ease: selectedNote.srsEase, intervalDays: selectedNote.srsIntervalDays }, rating, today)
+    await upsert({
+      ...selectedNote,
+      srsEase: result.ease,
+      srsIntervalDays: result.intervalDays,
+      srsNextReviewDate: result.nextReviewDate,
+      srsLastRating: rating,
+      updatedAt: Date.now(),
+    })
+
+    const nextDue = dueNotes.find(note => note.hero !== selectedNote.hero)
+    if (nextDue) {
+      setSelectedHero(nextDue.hero)
+      setPoolFilter('due')
+      setStatus(`${selectedNote.hero} 已安排到 ${result.nextReviewDate}，已切到下一条待复习。`)
+    } else {
+      setStatus(`${selectedNote.hero} 已安排到 ${result.nextReviewDate}。今天的英雄笔记复习完成。`)
+    }
+    setTimeout(() => setStatus(''), 3000)
   }
 
   const inputCls = 'w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-border)]'
@@ -360,6 +390,10 @@ export default function HeroNotes() {
                 {form.srsEase ? ` · ease ${form.srsEase.toFixed(2)}` : ''}
               </div>
             </Card>
+          )}
+
+          {selectedNote && isDueForReview(selectedNote, today) && (
+            <HeroNoteReviewCard note={selectedNote} onRate={handleRateSelectedNote} />
           )}
 
           <Card className="space-y-4 p-5">
