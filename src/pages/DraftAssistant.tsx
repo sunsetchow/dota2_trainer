@@ -56,7 +56,10 @@ function SuggestionBox({ items, onSelect }: { items: string[]; onSelect: (hero: 
         <button
           key={item}
           type="button"
-          onMouseDown={() => onSelect(item)}
+          onMouseDown={event => {
+            event.preventDefault()
+            onSelect(item)
+          }}
           className="block w-full px-3 py-2 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-1)]"
         >
           {item}
@@ -82,13 +85,14 @@ function EnemyInput({
   onChange: (value: string) => void
 }) {
   return (
-    <div className="relative">
+    <div className={`relative ${focused ? 'z-[100]' : 'z-0'}`}>
       <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">{label}</label>
       <input
         value={value}
         onChange={e => onChange(e.target.value)}
         onFocus={() => setFocused(true)}
-        onBlur={() => setTimeout(() => setFocused(false), 150)}
+        onClick={() => setFocused(true)}
+        onBlur={() => setTimeout(() => setFocused(false), 250)}
         placeholder="如：敌法师、帕克、拉比克、CM"
         className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-border)] focus:outline-none"
       />

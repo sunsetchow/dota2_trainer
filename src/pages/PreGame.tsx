@@ -43,8 +43,9 @@ function FieldList({ title, items, empty }: { title: string; items: string[]; em
   )
 }
 
-function buildHeroNoteItems(note?: HeroNote): string[] {
+export function buildHeroNoteItems(note?: Partial<HeroNote>): string[] {
   if (!note) return []
+  const reviewRules = Array.isArray(note.reviewRules) ? note.reviewRules : []
   return [
     note.laneGoal && `对线目标：${note.laneGoal}`,
     note.firstKeyItem && `第一件关键装：${note.firstKeyItem}`,
@@ -53,7 +54,7 @@ function buildHeroNoteItems(note?: HeroNote): string[] {
     note.commonDeaths && `常见死亡：${note.commonDeaths}`,
     note.whenToFight && `何时打架：${note.whenToFight}`,
     note.whenToFarm && `何时刷钱：${note.whenToFarm}`,
-    ...splitNoteLines(note.reviewRules).map(rule => `复盘规则：${rule}`),
+    ...splitNoteLines(reviewRules.join('\n')).map(rule => `复盘规则：${rule}`),
   ].filter((value): value is string => Boolean(value && value.trim()))
 }
 
@@ -63,8 +64,9 @@ function relevantLines(value: string | undefined, enemies: string[]): string[] {
   return matched.length > 0 ? matched : []
 }
 
-function buildUserMatchupNotes(note: HeroNote | undefined, enemies: string[]): string[] {
+export function buildUserMatchupNotes(note: Partial<HeroNote> | undefined, enemies: string[]): string[] {
   if (!note) return []
+  const reviewRules = Array.isArray(note.reviewRules) ? note.reviewRules : []
   const structured = enemies.flatMap(enemy => {
     const item = note.matchupNotes?.[enemy]
     if (!item?.note?.trim()) return []
@@ -76,13 +78,14 @@ function buildUserMatchupNotes(note: HeroNote | undefined, enemies: string[]): s
     ...structured,
     ...relevantLines(note.counteredBy, enemies).map(line => `被克制笔记：${line}`),
     ...relevantLines(note.counters, enemies).map(line => `克制笔记：${line}`),
-    ...relevantLines(note.reviewRules.join('\n'), enemies).map(line => `复盘规则：${line}`),
+    ...relevantLines(reviewRules.join('\n'), enemies).map(line => `复盘规则：${line}`),
   ]
 }
 
-function buildDataMatchupNotes(hero: string, enemies: string[], cache: HeroMatchupCache | null): string[] {
+function buildDataMatchupNotes(hero: string, enemies: string[], cache: Partial<HeroMatchupCache> | null): string[] {
+  const heroMatchups = cache?.matchups?.[hero] ?? {}
   const dynamic = enemies
-    .map(enemy => ({ enemy, stats: cache?.matchups[hero]?.[enemy] }))
+    .map(enemy => ({ enemy, stats: heroMatchups[enemy] }))
     .filter((item): item is { enemy: string; stats: NonNullable<HeroMatchupCache['matchups'][string][string]> } => Boolean(item.stats))
     .sort((a, b) => a.stats.advantage - b.stats.advantage)
     .map(({ enemy, stats }) => {
