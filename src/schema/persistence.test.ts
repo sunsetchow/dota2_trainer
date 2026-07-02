@@ -7,6 +7,7 @@ import {
   parseHeroBenchmarkCacheMap,
   parseHeroMatchupCache,
   parseImportedBackupJson,
+  parsePreGameSetup,
 } from './persistence.ts'
 
 const validAppState = {
@@ -75,6 +76,22 @@ describe('persistence runtime schemas', () => {
     expect(parseAppStatePatch({ heroPool: [{ name: '帕克', active: false, positions: [] }] }).heroPool?.[0].positions).toEqual([])
     expect(() => parseAppStatePatch({ heroPool: [{ name: '帕克', active: 'false' }] })).toThrow(/应用状态数据无效/)
     expect(() => parseAppStatePatch({ madeUpField: true })).toThrow(/应用状态数据无效/)
+  })
+
+  it('accepts draft-created pre-game briefings without a manual training goal', () => {
+    const parsed = parsePreGameSetup({
+      id: 'pregame-1',
+      timestamp: 1,
+      hero: '斧王',
+      targetPosition: '3',
+      enemyByPosition: { '1': '敌法师', '2': '帕克', '4': '拉比克' },
+      enemyCarry: '敌法师',
+      enemySupports: ['拉比克'],
+      cycleId: 'default',
+    })
+
+    expect(parsed.trainingGoal).toBeUndefined()
+    expect(parsed.enemyByPosition?.['2']).toBe('帕克')
   })
 
   it('validates matchup cache data before it is persisted or exposed', () => {

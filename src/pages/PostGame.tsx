@@ -345,7 +345,7 @@ export default function PostGame() {
         <h1 className="text-xl font-bold text-[var(--text-primary)]">赛后记录</h1>
         {pendingSetup && (
           <p className="text-sm text-[var(--accent-strong)] mt-1">
-            关联赛前设定：{pendingSetup.hero} · {pendingSetup.trainingGoal}{pendingSetup.enemyCarry ? ` · 对方1号位 ${pendingSetup.enemyCarry}` : ''}
+            关联赛前设定：{pendingSetup.hero}{pendingSetup.targetPosition ? ` · ${pendingSetup.targetPosition}号位` : ''}{pendingSetup.trainingGoal ? ` · ${pendingSetup.trainingGoal}` : ''}{pendingSetup.enemyCarry ? ` · 对方1号位 ${pendingSetup.enemyCarry}` : ''}
           </p>
         )}
       </div>
@@ -399,7 +399,7 @@ export default function PostGame() {
       <div className="space-y-2">
         <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
           训练目标完成了吗？*
-          {pendingSetup && <span className="ml-2 text-[var(--accent-strong)] font-normal normal-case">目标：{pendingSetup.trainingGoal}</span>}
+          {pendingSetup && <span className="ml-2 text-[var(--accent-strong)] font-normal normal-case">赛前：{pendingSetup.hero}{pendingSetup.targetPosition ? ` · ${pendingSetup.targetPosition}号位` : ''}</span>}
         </label>
         <div className="flex gap-2">
           {(['yes', 'partial', 'no'] as const).map(v => (

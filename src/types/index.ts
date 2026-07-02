@@ -98,7 +98,10 @@ export interface PreGameSetup {
   id: string;
   timestamp: number;
   hero: string;
-  trainingGoal: string;
+  trainingGoal?: string;
+  preGameFocus?: string;
+  targetPosition?: DotaPosition;
+  enemyByPosition?: EnemyByPosition;
   enemyCarry?: string;
   enemySupports?: string[];
   cycleId?: string;

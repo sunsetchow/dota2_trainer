@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { nanoid } from 'nanoid'
 import { useAppState } from '../store/useStore.ts'
 import { resolve, getSugg, getPool, getSupMap, getCounters, getCountered } from '../utils/heroes.ts'
 import {
@@ -12,7 +13,7 @@ import {
 } from '../utils/draftScoring.ts'
 import positionMetaJson from '../data/positionMetaHeroes.json'
 import { isHeroPlayableAtPosition } from '../utils/heroPool.ts'
-import type { DotaPosition, EnemyByPosition, HeroConfig, HeroMatchupCache, PositionMetaSnapshot, RankedDraftHero } from '../types'
+import type { DotaPosition, EnemyByPosition, HeroConfig, HeroMatchupCache, PositionMetaSnapshot, PreGameSetup, RankedDraftHero } from '../types'
 import Button from '../components/ui/Button.tsx'
 import Card from '../components/ui/Card.tsx'
 import Badge from '../components/ui/Badge.tsx'
@@ -184,7 +185,7 @@ function reasonClass(score: number, type: string): string {
 
 export default function DraftAssistant() {
   const navigate = useNavigate()
-  const { appState } = useAppState()
+  const { appState, update: updateAppState } = useAppState()
   const [targetPosition, setTargetPosition] = useState<DotaPosition>('3')
   const [enemyByPosition, setEnemyByPosition] = useState<EnemyByPosition>({})
   const [focusedPosition, setFocusedPosition] = useState<DotaPosition | null>(null)
@@ -305,8 +306,27 @@ export default function DraftAssistant() {
     setEnemyByPosition(current => ({ ...current, [position]: value }))
   }
 
-  const handleSelectHero = (hero: string) => {
-    navigate('/pre-game', { state: { hero, targetPosition, enemySupports, enemyCarry, enemyByPosition: resolvedEnemyByPosition } })
+  const handleSelectHero = async (hero: string) => {
+    if (!appState) return
+    if (appState.pendingPreGameSetupId) {
+      const ok = window.confirm('上一条赛前设定还未关联对局，是否放弃？')
+      if (!ok) return
+    }
+
+    const setup: PreGameSetup = {
+      id: nanoid(),
+      timestamp: Date.now(),
+      hero,
+      targetPosition,
+      enemyByPosition: resolvedEnemyByPosition,
+      ...(enemyCarry && { enemyCarry }),
+      ...(enemySupports.length && { enemySupports }),
+      cycleId: appState.activeCycleId,
+    }
+
+    await window.electronStore.addPreGameSetup(setup)
+    await updateAppState({ pendingPreGameSetupId: setup.id })
+    navigate('/pre-game', { state: { setup } })
   }
 
   const riskItems = ranked

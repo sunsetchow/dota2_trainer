@@ -73,7 +73,7 @@ export default function Home() {
       if (!ok) return
       await updateAppState({ pendingPreGameSetupId: undefined })
     }
-    navigate('/pre-game')
+    navigate('/draft')
   }
 
   const recentMatches: MatchLog[] = [...matchLogs]
@@ -100,7 +100,7 @@ export default function Home() {
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] md:text-3xl">今日训练驾驶舱</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
-                先锁定训练目标，再进入对局。赛后只记录最大错误和下局唯一改进点。
+                先在 Draft 锁定英雄和敌方阵容，赛前只看英雄笔记与对位提醒；赛后记录最大错误和下局唯一改进点。
               </p>
             </div>
             <div className="shrink-0">

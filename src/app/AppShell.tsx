@@ -90,7 +90,7 @@ export default function AppShell({ children }: AppShellProps) {
             ) : (
               <Button variant="primary" size="sm" onClick={() => navigate('/draft')}>进入 Draft</Button>
             )}
-            <Button variant="secondary" size="sm" onClick={() => navigate('/pre-game')}>开始新局</Button>
+            <Button variant="secondary" size="sm" onClick={() => navigate('/draft')}>开始新局</Button>
             <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>设置</Button>
           </div>
         </header>
