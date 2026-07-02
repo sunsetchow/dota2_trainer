@@ -65,7 +65,15 @@ function relevantLines(value: string | undefined, enemies: string[]): string[] {
 
 function buildUserMatchupNotes(note: HeroNote | undefined, enemies: string[]): string[] {
   if (!note) return []
+  const structured = enemies.flatMap(enemy => {
+    const item = note.matchupNotes?.[enemy]
+    if (!item?.note?.trim()) return []
+    const label = item.stance === 'counteredBy' ? '风险/被克制' : item.stance === 'counters' ? '优势/克制' : '心得'
+    return [`${label} vs ${enemy}：${item.note}`]
+  })
+
   return [
+    ...structured,
     ...relevantLines(note.counteredBy, enemies).map(line => `被克制笔记：${line}`),
     ...relevantLines(note.counters, enemies).map(line => `克制笔记：${line}`),
     ...relevantLines(note.reviewRules.join('\n'), enemies).map(line => `复盘规则：${line}`),

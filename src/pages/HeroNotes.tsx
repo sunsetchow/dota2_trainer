@@ -36,6 +36,7 @@ const emptyNote = (hero: string): HeroNote => ({
   whenToFarm: '',
   commonDeaths: '',
   reviewRules: [],
+  matchupNotes: {},
   updatedAt: Date.now(),
 })
 
@@ -60,6 +61,7 @@ function hasNoteContent(note?: HeroNote): boolean {
     note.whenToFarm,
     note.commonDeaths,
     ...(note.reviewRules ?? []),
+    ...Object.values(note.matchupNotes ?? {}).map(item => item.note),
   ].some(value => String(value ?? '').trim()))
 }
 
@@ -197,6 +199,7 @@ export default function HeroNotes() {
       ...form,
       hero,
       reviewRules: parseRules(reviewRulesText),
+      matchupNotes: form.matchupNotes,
       srsEase: form.srsEase,
       srsIntervalDays: form.srsIntervalDays,
       srsNextReviewDate: form.srsNextReviewDate,
@@ -422,6 +425,30 @@ export default function HeroNotes() {
               <span className="block text-xs text-[var(--text-muted)]">复盘规则</span>
               <textarea value={reviewRulesText} onChange={e => setReviewRulesText(e.target.value)} className={`${textareaCls} min-h-28`} />
             </label>
+
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-4">
+              <div className="text-sm font-semibold text-[var(--text-primary)]">对位英雄笔记</div>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">赛后复盘可按对位英雄沉淀心得；这里按英雄聚合展示。`counteredBy` / `counters` 仍是自由文本兼容字段。</p>
+              {Object.values(form.matchupNotes ?? {}).length > 0 ? (
+                <div className="mt-3 space-y-2">
+                  {Object.values(form.matchupNotes ?? {})
+                    .sort((a, b) => a.opponentHero.localeCompare(b.opponentHero, 'zh-CN'))
+                    .map(item => (
+                      <div key={item.opponentHero} className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3 text-sm">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-[var(--text-primary)]">vs {item.opponentHero}</span>
+                          <Badge tone={item.stance === 'counteredBy' ? 'warning' : item.stance === 'counters' ? 'success' : 'neutral'}>
+                            {item.stance === 'counteredBy' ? '风险/被克制' : item.stance === 'counters' ? '优势/克制' : '心得'}
+                          </Badge>
+                        </div>
+                        <div className="mt-2 whitespace-pre-wrap text-[var(--text-secondary)]">{item.note}</div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className="mt-3 text-sm text-[var(--text-muted)]">暂无对位笔记。赛后记录时可以邀请保存。</div>
+              )}
+            </div>
           </Card>
         </div>
       </div>

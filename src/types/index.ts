@@ -297,6 +297,15 @@ export interface HeroBenchmarkCache {
   };
 }
 
+export interface HeroMatchupNote {
+  opponentHero: string;
+  note: string;
+  stance?: 'counters' | 'counteredBy' | 'general';
+  updatedAt: number;
+  source?: 'manual' | 'postgame';
+  lastMatchId?: string;
+}
+
 // ── 英雄档案（P1）
 export interface HeroNote {
   hero: string;
@@ -311,6 +320,7 @@ export interface HeroNote {
   whenToFarm: string;
   commonDeaths: string;
   reviewRules: string[];
+  matchupNotes?: Record<string, HeroMatchupNote>;
   updatedAt: number;
   reviewClip1?: string;
   reviewClip2?: string;

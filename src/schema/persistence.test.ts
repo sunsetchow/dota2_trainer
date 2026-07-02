@@ -8,6 +8,7 @@ import {
   parseHeroMatchupCache,
   parseImportedBackupJson,
   parsePreGameSetup,
+  parseHeroNote,
 } from './persistence.ts'
 
 const validAppState = {
@@ -92,6 +93,36 @@ describe('persistence runtime schemas', () => {
 
     expect(parsed.trainingGoal).toBeUndefined()
     expect(parsed.enemyByPosition?.['2']).toBe('帕克')
+  })
+
+  it('accepts structured per-opponent hero matchup notes', () => {
+    const parsed = parseHeroNote({
+      hero: '斧王',
+      position: '',
+      strongPeriod: '',
+      weakPeriod: '',
+      laneGoal: '',
+      firstKeyItem: '',
+      counters: '幻影长矛手：可以多叫队友打早期节奏',
+      counteredBy: '帕克：跳前先确认相位/沉默状态',
+      whenToFight: '',
+      whenToFarm: '',
+      commonDeaths: '',
+      reviewRules: [],
+      matchupNotes: {
+        '帕克': {
+          opponentHero: '帕克',
+          note: '跳前先确认相位和沉默状态。',
+          stance: 'counteredBy',
+          updatedAt: 1,
+          source: 'postgame',
+          lastMatchId: 'match-1',
+        },
+      },
+      updatedAt: 1,
+    })
+
+    expect(parsed.matchupNotes?.['帕克']?.stance).toBe('counteredBy')
   })
 
   it('validates matchup cache data before it is persisted or exposed', () => {

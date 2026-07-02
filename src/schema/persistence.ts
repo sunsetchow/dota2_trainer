@@ -145,6 +145,15 @@ export const MatchLogSchema = z.object({
 
 export const MatchLogPatchSchema = MatchLogSchema.partial().strict()
 
+const HeroMatchupNoteSchema = z.object({
+  opponentHero: z.string().min(1),
+  note: z.string(),
+  stance: z.enum(['counters', 'counteredBy', 'general']).optional(),
+  updatedAt: z.number().finite(),
+  source: z.enum(['manual', 'postgame']).optional(),
+  lastMatchId: z.string().optional(),
+}).strict()
+
 export const HeroNoteSchema = z.object({
   hero: z.string().min(1),
   position: z.string(),
@@ -158,6 +167,7 @@ export const HeroNoteSchema = z.object({
   whenToFarm: z.string(),
   commonDeaths: z.string(),
   reviewRules: z.array(z.string()),
+  matchupNotes: z.record(z.string(), HeroMatchupNoteSchema).optional(),
   updatedAt: z.number().finite(),
   reviewClip1: z.string().optional(),
   reviewClip2: z.string().optional(),

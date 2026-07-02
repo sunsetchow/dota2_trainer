@@ -33,6 +33,7 @@ Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 
   - 用户维护的 `counters` / `counteredBy` / `reviewRules` 中命中敌方英雄的注意事项。
   - OpenDota / Stratz matchup cache 的对位优势/劣势和样本数；没有 cache 时回退本地克制表。
 - `counteredBy` 是自由文本字段，不只是英雄列表。推荐每行写成「英雄名：具体打法提醒」，例如：`帕克：跳前先确认相位/沉默状态`。
+- 新的 `matchupNotes` 是按对位英雄聚合的结构化记录，赛前提醒会优先读取它；`counters` / `counteredBy` 保留为兼容和快速编辑用的自由文本。
 
 ### 英雄中心 / 英雄笔记
 
@@ -46,6 +47,11 @@ Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 
   - 何时打架 / 何时刷钱
   - 克制 / 被克制
   - 复盘规则
+  - 按对位英雄保存的结构化 matchup 笔记
+- 赛后复盘可以邀请记录本局对位英雄心得，并沉淀回当前英雄档案：
+  - “风险/被克制”会保存到结构化 `matchupNotes`，并同步到兼容文本字段 `counteredBy`。
+  - “优势/克制”会保存到结构化 `matchupNotes`，并同步到兼容文本字段 `counters`。
+  - “心得”只保存到结构化 `matchupNotes`，不污染 counters/counteredBy。
 - 支持英雄笔记间隔复习（SRS）：
   - 没有排程的笔记按「首次复习」处理，会进入待复习列表。
   - 已排程笔记在 `srsNextReviewDate <= 今天` 时到期。
@@ -204,3 +210,4 @@ git diff --check
 - 英雄笔记复习：采用方案 A，未排程笔记进入首次复习；英雄中心支持直接评分并自动跳到下一条待复习。
 - Draft / 赛前职责拆分：Draft 负责锁英雄和阵容；赛前页只展示英雄笔记、用户维护对位提醒和数据 matchup 提示。
 - 修复启动兼容性：持久化 schema 避免使用运行时不可用的 `z.partialRecord`，改用显式 1-5 号位对象。
+- 英雄档案 / 赛后复盘联动：赛后可按对位英雄记录心得，并保存为结构化 matchup 笔记；赛前页会优先展示这些按英雄聚合的个人经验。

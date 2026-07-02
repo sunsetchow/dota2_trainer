@@ -5,7 +5,7 @@ import { useAppState, useHeroNotes, useMatchLogs, useCycles } from '../store/use
 import HeroSelector from '../components/HeroSelector.tsx'
 import QuickSelect from '../components/QuickSelect.tsx'
 import { REVIEW_DIMENSIONS } from '../data/reviewDimensions.ts'
-import type { HeroNote, MatchLog, PreGameSetup, OpenDotaImportedMatch, OpenDotaRecentMatch, TrainingDimension } from '../types'
+import type { HeroMatchupNote, HeroNote, MatchLog, PreGameSetup, OpenDotaImportedMatch, OpenDotaRecentMatch, TrainingDimension } from '../types'
 import { FOCUS_OPTIONS_BY_DIMENSION, FOCUS_OPTIONS_BY_LANE_RESULT, FOCUS_OPTIONS_BY_WEEK, compactMistake, compactPreviousFocus, getHeroFocusOptions, getHeroNoteFocusOptions, uniqueOptions, type LaneResult } from '../features/postgame/focusSuggestions.ts'
 import { buildPostGameMatchLog } from '../features/postgame/matchLogBuilder.ts'
 import SrsReviewPrompt from '../features/postgame/SrsReviewPrompt.tsx'
@@ -58,6 +58,8 @@ export default function PostGame() {
   const [autoImportAttempted, setAutoImportAttempted] = useState(false)
   const [srsPromptNotes, setSrsPromptNotes] = useState<HeroNote[]>([])
   const [saveStatus, setSaveStatus] = useState('')
+  const [matchupNoteDrafts, setMatchupNoteDrafts] = useState<Record<string, string>>({})
+  const [matchupNoteStances, setMatchupNoteStances] = useState<Record<string, HeroMatchupNote['stance']>>({})
 
   // 加载 pending 赛前设定
   useEffect(() => {
@@ -85,6 +87,14 @@ export default function PostGame() {
   const heroPool = appState?.heroPool.filter(h => h.active).map(h => h.name) ?? []
   const selectedReviewDimension = REVIEW_DIMENSIONS.find(item => item.id === reviewDimension)
   const selectedHeroNote = selectedHero ? heroNotes.find(note => note.hero === selectedHero) : undefined
+  const matchupTargets = pendingSetup
+    ? [
+      ...Object.values(pendingSetup.enemyByPosition ?? {}),
+      pendingSetup.enemyCarry,
+      ...(pendingSetup.enemySupports ?? []),
+    ].filter((value): value is string => Boolean(value && value !== selectedHero))
+      .filter((value, index, array) => array.indexOf(value) === index)
+    : []
   const previousHeroFocus = compactPreviousFocus(lastSameHeroMatch?.nextGameFocus)
   const quickFocusOptions = uniqueOptions([
     previousHeroFocus,
@@ -106,6 +116,63 @@ export default function PostGame() {
     trainingGoalMet &&
     biggestMistake.trim() &&
     nextGameFocus.trim()
+
+  const appendMatchupLine = (value: string, opponent: string, note: string): string => {
+    const line = `${opponent}：${note}`
+    const lines = value.split('\n').map(item => item.trim()).filter(Boolean)
+    const withoutOld = lines.filter(item => !item.startsWith(`${opponent}：`) && !item.startsWith(`${opponent}:`))
+    return [...withoutOld, line].join('\n')
+  }
+
+  const saveMatchupNotesToHeroProfile = async (logId: string) => {
+    const cleanHero = hero.trim()
+    if (!cleanHero) return
+    const entries = Object.entries(matchupNoteDrafts)
+      .map(([opponentHero, value]) => ({ opponentHero, note: value.trim(), stance: matchupNoteStances[opponentHero] ?? 'general' as const }))
+      .filter(item => item.note)
+    if (entries.length === 0) return
+
+    const existing = heroNotes.find(note => note.hero === cleanHero)
+    const now = Date.now()
+    const nextNote: HeroNote = {
+      hero: cleanHero,
+      position: existing?.position ?? '',
+      strongPeriod: existing?.strongPeriod ?? '',
+      weakPeriod: existing?.weakPeriod ?? '',
+      laneGoal: existing?.laneGoal ?? '',
+      firstKeyItem: existing?.firstKeyItem ?? '',
+      counters: existing?.counters ?? '',
+      counteredBy: existing?.counteredBy ?? '',
+      whenToFight: existing?.whenToFight ?? '',
+      whenToFarm: existing?.whenToFarm ?? '',
+      commonDeaths: existing?.commonDeaths ?? '',
+      reviewRules: existing?.reviewRules ?? [],
+      matchupNotes: { ...(existing?.matchupNotes ?? {}) },
+      srsEase: existing?.srsEase,
+      srsIntervalDays: existing?.srsIntervalDays,
+      srsNextReviewDate: existing?.srsNextReviewDate,
+      srsLastRating: existing?.srsLastRating,
+      updatedAt: now,
+    }
+
+    for (const entry of entries) {
+      nextNote.matchupNotes![entry.opponentHero] = {
+        opponentHero: entry.opponentHero,
+        note: entry.note,
+        stance: entry.stance,
+        updatedAt: now,
+        source: 'postgame',
+        lastMatchId: logId,
+      }
+      if (entry.stance === 'counteredBy') {
+        nextNote.counteredBy = appendMatchupLine(nextNote.counteredBy, entry.opponentHero, entry.note)
+      } else if (entry.stance === 'counters') {
+        nextNote.counters = appendMatchupLine(nextNote.counters, entry.opponentHero, entry.note)
+      }
+    }
+
+    await upsertHeroNote(nextNote)
+  }
 
   const handleSave = async () => {
     if (!canSave || saving) return
@@ -156,6 +223,7 @@ export default function PostGame() {
       }
 
       await window.electronStore.addMatchLog(log)
+      await saveMatchupNotesToHeroProfile(logId)
       const relatedHeroes = new Set([log.hero, ...(log.enemySupports ?? []), log.enemyCarry].filter((value): value is string => Boolean(value)))
       const dueNotes = heroNotes.filter(note => relatedHeroes.has(note.hero) && isDueForReview(note, todayStr()))
       if (dueNotes.length > 0) {
@@ -493,6 +561,49 @@ export default function PostGame() {
           <textarea value={reviewClipObjective} onChange={e => setReviewClipObjective(e.target.value)} placeholder="如：32:00 赢团后追人，没有转 Roshan 或推塔。" rows={2} className={`${inputCls} resize-none`} />
         </label>
       </div>
+
+      {matchupTargets.length > 0 && (
+        <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-4">
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">沉淀对位英雄笔记</h2>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">把这局对某个英雄的心得保存到当前英雄档案。选择“风险/被克制”会同步写入 counteredBy；选择“优势/克制”会同步写入 counters。</p>
+          </div>
+          <div className="space-y-3">
+            {matchupTargets.map(opponent => (
+              <div key={opponent} className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">{selectedHero || '当前英雄'} vs {opponent}</div>
+                  <div className="flex gap-1">
+                    {([
+                      ['counteredBy', '风险/被克制'],
+                      ['counters', '优势/克制'],
+                      ['general', '心得'],
+                    ] as Array<[NonNullable<HeroMatchupNote['stance']>, string]>).map(([stance, label]) => (
+                      <button
+                        key={stance}
+                        type="button"
+                        onClick={() => setMatchupNoteStances(prev => ({ ...prev, [opponent]: stance }))}
+                        className={`rounded border px-2 py-1 text-xs ${
+                          (matchupNoteStances[opponent] ?? 'general') === stance ? btnActive : btnInactive
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <textarea
+                  value={matchupNoteDrafts[opponent] ?? ''}
+                  onChange={e => setMatchupNoteDrafts(prev => ({ ...prev, [opponent]: e.target.value }))}
+                  placeholder={`例如：${opponent}：这局哪里难打/怎么处理，下次怎么调整…`}
+                  rows={2}
+                  className={`${inputCls} resize-none`}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 选填折叠 */}
       <div>
