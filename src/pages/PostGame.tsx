@@ -27,6 +27,19 @@ export function isOpenDotaParsePendingMessage(message: string): boolean {
   return message.includes('解析') || message.includes('HTTP 500') || message.includes('HTTP 404') || message.includes('没有返回玩家明细')
 }
 
+export function buildMatchupTargets(selectedHero: string, pendingSetup: PreGameSetup | null, importedMatch: OpenDotaImportedMatch | null): string[] {
+  const rawTargets = [
+    ...(pendingSetup ? Object.values(pendingSetup.enemyByPosition ?? {}) : []),
+    pendingSetup?.enemyCarry,
+    ...(pendingSetup?.enemySupports ?? []),
+    ...(importedMatch?.enemyHeroes ?? []),
+  ]
+
+  return rawTargets
+    .filter((value): value is string => Boolean(value && value !== selectedHero))
+    .filter((value, index, array) => array.indexOf(value) === index)
+}
+
 export default function PostGame() {
   const navigate = useNavigate()
   const { appState } = useAppState()
@@ -100,14 +113,7 @@ export default function PostGame() {
   const heroPool = appState?.heroPool.filter(h => h.active).map(h => h.name) ?? []
   const selectedReviewDimension = REVIEW_DIMENSIONS.find(item => item.id === reviewDimension)
   const selectedHeroNote = selectedHero ? heroNotes.find(note => note.hero === selectedHero) : undefined
-  const matchupTargets = pendingSetup
-    ? [
-      ...Object.values(pendingSetup.enemyByPosition ?? {}),
-      pendingSetup.enemyCarry,
-      ...(pendingSetup.enemySupports ?? []),
-    ].filter((value): value is string => Boolean(value && value !== selectedHero))
-      .filter((value, index, array) => array.indexOf(value) === index)
-    : []
+  const matchupTargets = buildMatchupTargets(selectedHero, pendingSetup, importedMatch)
   const previousHeroFocus = compactPreviousFocus(lastSameHeroMatch?.nextGameFocus)
   const quickFocusOptions = uniqueOptions([
     previousHeroFocus,
@@ -237,7 +243,7 @@ export default function PostGame() {
 
       await window.electronStore.addMatchLog(log)
       await saveMatchupNotesToHeroProfile(logId)
-      const relatedHeroes = new Set([log.hero, ...(log.enemySupports ?? []), log.enemyCarry].filter((value): value is string => Boolean(value)))
+      const relatedHeroes = new Set([log.hero, ...(log.enemyHeroes ?? []), ...(log.enemySupports ?? []), log.enemyCarry].filter((value): value is string => Boolean(value)))
       const dueNotes = heroNotes.filter(note => relatedHeroes.has(note.hero) && isDueForReview(note, todayStr()))
       if (dueNotes.length > 0) {
         setSrsPromptNotes(dueNotes)

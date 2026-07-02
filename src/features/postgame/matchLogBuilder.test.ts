@@ -79,6 +79,7 @@ describe('buildPostGameMatchLog', () => {
       firstKeyItemName: '闪烁匕首',
       firstKeyItemMin: 16,
       gpmPercentile: 55,
+      enemyHeroes: ['帕克', '敌法师'],
     }
 
     const log = buildPostGameMatchLog({
@@ -106,6 +107,7 @@ describe('buildPostGameMatchLog', () => {
       xpm: 520,
       firstKeyItemName: '闪烁匕首',
       gpmPercentile: 55,
+      enemyHeroes: ['帕克', '敌法师'],
     })
   })
 })

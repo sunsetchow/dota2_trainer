@@ -61,6 +61,7 @@ export function buildPostGameMatchLog(input: PostGameMatchLogInput): MatchLog {
     ...(csAt10 !== undefined && { csAt10 }),
     ...(input.pendingSetup?.enemyCarry && { enemyCarry: input.pendingSetup.enemyCarry }),
     ...(input.pendingSetup?.enemySupports?.length && { enemySupports: input.pendingSetup.enemySupports }),
+    ...(imported?.enemyHeroes?.length && { enemyHeroes: imported.enemyHeroes }),
     ...(cleanMatchId && { matchId: cleanMatchId }),
     ...(imported && {
       source: 'opendota' as const,

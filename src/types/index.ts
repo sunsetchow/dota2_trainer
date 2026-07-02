@@ -135,6 +135,7 @@ export interface MatchLog {
   csAt10?: number;
   enemyCarry?: string;
   enemySupports?: string[];
+  enemyHeroes?: string[];
   matchId?: string;
   source?: 'manual' | 'opendota';
   heroId?: number;
@@ -235,6 +236,7 @@ export interface OpenDotaImportedMatch {
   laneDeaths?: number;
   playerSlot?: number;
   isRadiant?: boolean;
+  enemyHeroes?: string[];
   gpmPercentile?: number;
   xpmPercentile?: number;
   lastHitsPercentile?: number;

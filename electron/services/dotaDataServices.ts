@@ -370,6 +370,17 @@ function getMatchResult(match: OpenDotaMatchResponse, player: OpenDotaPlayer): '
   throw new Error('OpenDota 返回的数据缺少胜负信息，无法可靠导入这场比赛。')
 }
 
+function getEnemyHeroNames(match: OpenDotaMatchResponse, player: OpenDotaPlayer): string[] {
+  const isRadiant = getIsRadiant(player)
+  if (isRadiant === undefined) return []
+
+  return (match.players ?? [])
+    .filter(row => getIsRadiant(row) === !isRadiant)
+    .map(row => row.hero_id ? openDotaHeroNameById.get(row.hero_id) : undefined)
+    .filter((name): name is string => Boolean(name))
+    .filter((name, index, array) => array.indexOf(name) === index)
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
@@ -424,7 +435,8 @@ function buildImportedMatch(matchId: string, match: OpenDotaMatchResponse, playe
     laneEfficiency,
     laneKills: player.lane_kills,
     playerSlot: player.player_slot,
-    isRadiant: player.isRadiant,
+    isRadiant: getIsRadiant(player),
+    enemyHeroes: getEnemyHeroNames(match, player),
     ...phaseGpm,
   }
 }

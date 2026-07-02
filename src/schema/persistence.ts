@@ -111,6 +111,7 @@ export const MatchLogSchema = z.object({
   csAt10: z.number().finite().optional(),
   enemyCarry: z.string().optional(),
   enemySupports: z.array(z.string()).optional(),
+  enemyHeroes: z.array(z.string()).optional(),
   matchId: z.string().optional(),
   source: z.enum(['manual', 'opendota']).optional(),
   heroId: z.number().finite().optional(),
