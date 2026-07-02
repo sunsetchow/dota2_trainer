@@ -400,7 +400,9 @@ export default function DraftAssistant() {
                     return hero === currentResolved || !POSITIONS.some(other => other !== position && resolvedEnemyByPosition[other] === hero)
                   })}
                   focused={focused}
-                  setFocused={isFocused => setFocusedPosition(isFocused ? position : null)}
+                  setFocused={isFocused => {
+                    setFocusedPosition(current => (isFocused ? position : current === position ? null : current))
+                  }}
                   placeholder={getPositionHotHeroPlaceholder(position)}
                   onChange={nextValue => handleEnemyChange(position, nextValue)}
                 />
