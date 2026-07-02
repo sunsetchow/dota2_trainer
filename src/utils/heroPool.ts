@@ -18,7 +18,7 @@ export function getDefaultHeroPositions(hero: string): DotaPosition[] {
 }
 
 export function getConfiguredHeroPositions(hero: string, config?: HeroConfig): DotaPosition[] {
-  return config?.positions?.length ? config.positions : getDefaultHeroPositions(hero)
+  return Array.isArray(config?.positions) ? config.positions : getDefaultHeroPositions(hero)
 }
 
 export function isHeroPlayableAtPosition(hero: string, position: DotaPosition, config?: HeroConfig): boolean {

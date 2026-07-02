@@ -1,0 +1,302 @@
+import { z } from 'zod'
+
+export const CURRENT_SCHEMA_VERSION = 1
+
+const DotaPositionSchema = z.enum(['1', '2', '3', '4', '5'])
+const StratzRankBracketSchema = z.enum(['ALL', 'HERALD_GUARDIAN', 'CRUSADER_ARCHON', 'LEGEND_ANCIENT', 'DIVINE_IMMORTAL'])
+const TrainingDimensionSchema = z.enum(['ops', 'pregame', 'economy', 'combat', 'objective'])
+const SessionTypeSchema = z.enum(['30min', '90min', '3hr'])
+
+const OpenDotaSettingsSchema = z.object({
+  accountId: z.string().optional(),
+  apiKey: z.string().optional(),
+  matchupMinGames: z.number().int().positive().optional(),
+}).strict()
+
+const StratzSettingsSchema = z.object({
+  apiKey: z.string().optional(),
+  rankBracket: StratzRankBracketSchema.optional(),
+}).strict()
+
+export const HeroConfigSchema = z.object({
+  name: z.string().trim().min(1),
+  active: z.boolean(),
+  tier: z.enum(['main', 'practice', 'backup']).optional(),
+  positions: z.array(DotaPositionSchema).optional(),
+}).strict()
+
+export const AppStateSchema = z.object({
+  activeCycleId: z.string(),
+  heroPool: z.array(HeroConfigSchema),
+  currentStreak: z.number().int().nonnegative(),
+  longestStreak: z.number().int().nonnegative(),
+  pendingPreGameSetupId: z.string().optional(),
+  openDota: OpenDotaSettingsSchema.optional(),
+  stratz: StratzSettingsSchema.optional(),
+  checklistFreezeTokens: z.number().int().nonnegative().optional(),
+  freezeUsedDates: z.array(z.string()).optional(),
+}).strict()
+
+export const AppStatePatchSchema = AppStateSchema.partial().strict()
+
+const WeekThemeSchema = z.object({
+  week: z.number().int().nonnegative(),
+  theme: z.string(),
+  checklistItemIds: z.array(z.string()),
+}).strict()
+
+export const TrainingCycleSchema = z.object({
+  cycleId: z.string().min(1),
+  startDate: z.string(),
+  weekThemes: z.array(WeekThemeSchema),
+  endDate: z.string().optional(),
+}).strict()
+
+export const PreGameSetupSchema = z.object({
+  id: z.string().min(1),
+  timestamp: z.number().finite(),
+  hero: z.string(),
+  trainingGoal: z.string(),
+  enemyCarry: z.string().optional(),
+  enemySupports: z.array(z.string()).optional(),
+  cycleId: z.string().optional(),
+  linkedMatchId: z.string().optional(),
+}).strict()
+
+export const PreGameSetupPatchSchema = PreGameSetupSchema.partial().strict()
+
+export const DailyCheckinSchema = z.object({
+  id: z.string().min(1),
+  date: z.string(),
+  sessionType: SessionTypeSchema,
+  checkedItems: z.array(z.string()),
+}).strict()
+
+export const MMRLogSchema = z.object({
+  id: z.string().min(1),
+  date: z.string(),
+  mmr: z.number().finite(),
+  notes: z.string().optional(),
+}).strict()
+
+export const MatchLogSchema = z.object({
+  id: z.string().min(1),
+  timestamp: z.number().finite(),
+  preGameSetupId: z.string().optional(),
+  hero: z.string().min(1),
+  result: z.enum(['win', 'loss']),
+  durationMin: z.number().finite().positive(),
+  cycleId: z.string().optional(),
+  trainingGoalMet: z.enum(['yes', 'partial', 'no']),
+  biggestMistake: z.string(),
+  nextGameFocus: z.string(),
+  reviewDimension: TrainingDimensionSchema.optional(),
+  reviewTopic: z.string().optional(),
+  worstDeathZone: z.enum(['green', 'orange', 'red']).optional(),
+  laneResult: z.enum(['dominated', 'even', 'lost']).optional(),
+  firstKeyItemMin: z.number().finite().optional(),
+  firstKeyItemName: z.string().optional(),
+  goodInitiations: z.number().finite().optional(),
+  draftScore: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional(),
+  csAt10: z.number().finite().optional(),
+  enemyCarry: z.string().optional(),
+  enemySupports: z.array(z.string()).optional(),
+  matchId: z.string().optional(),
+  source: z.enum(['manual', 'opendota']).optional(),
+  heroId: z.number().finite().optional(),
+  kills: z.number().finite().optional(),
+  deaths: z.number().finite().optional(),
+  assists: z.number().finite().optional(),
+  lastHits: z.number().finite().optional(),
+  denies: z.number().finite().optional(),
+  dnAt10: z.number().finite().optional(),
+  gpm: z.number().finite().optional(),
+  xpm: z.number().finite().optional(),
+  level: z.number().finite().optional(),
+  laneRole: z.number().finite().optional(),
+  laneEfficiency: z.number().finite().optional(),
+  laneKills: z.number().finite().optional(),
+  laneDeaths: z.number().finite().optional(),
+  playerSlot: z.number().finite().optional(),
+  isRadiant: z.boolean().optional(),
+  opendotaImportedAt: z.number().finite().optional(),
+  notes: z.string().optional(),
+  reviewClipDeath: z.string().optional(),
+  reviewClipFight: z.string().optional(),
+  reviewClipObjective: z.string().optional(),
+  gpmPercentile: z.number().finite().optional(),
+  xpmPercentile: z.number().finite().optional(),
+  lastHitsPercentile: z.number().finite().optional(),
+  heroDamagePercentile: z.number().finite().optional(),
+  laningGpm: z.number().finite().optional(),
+  midGpm: z.number().finite().optional(),
+  lateGpm: z.number().finite().optional(),
+}).strict()
+
+export const MatchLogPatchSchema = MatchLogSchema.partial().strict()
+
+export const HeroNoteSchema = z.object({
+  hero: z.string().min(1),
+  position: z.string(),
+  strongPeriod: z.string(),
+  weakPeriod: z.string(),
+  laneGoal: z.string(),
+  firstKeyItem: z.string(),
+  counters: z.string(),
+  counteredBy: z.string(),
+  whenToFight: z.string(),
+  whenToFarm: z.string(),
+  commonDeaths: z.string(),
+  reviewRules: z.array(z.string()),
+  updatedAt: z.number().finite(),
+  reviewClip1: z.string().optional(),
+  reviewClip2: z.string().optional(),
+  reviewClip3: z.string().optional(),
+  srsEase: z.number().finite().optional(),
+  srsIntervalDays: z.number().finite().optional(),
+  srsNextReviewDate: z.string().optional(),
+  srsLastRating: z.enum(['forgot', 'hard', 'good', 'easy']).optional(),
+}).strict()
+
+const HeroMatchupStatsSchema = z.object({
+  gamesPlayed: z.number().finite().nonnegative(),
+  wins: z.number().finite().nonnegative(),
+  winRate: z.number().finite(),
+  advantage: z.number().finite(),
+}).strict()
+
+export const HeroMatchupCacheSchema = z.object({
+  source: z.enum(['opendota', 'stratz']),
+  version: z.number().int().positive().optional(),
+  syncedAt: z.number().finite(),
+  date: z.string(),
+  weekKey: z.string().optional(),
+  expiresAt: z.number().finite().optional(),
+  complete: z.boolean().optional(),
+  heroCount: z.number().finite().nonnegative(),
+  matchupCount: z.number().finite().nonnegative(),
+  rankBracket: StratzRankBracketSchema.optional(),
+  matchups: z.record(z.string(), z.record(z.string(), HeroMatchupStatsSchema)),
+  errors: z.array(z.string()).optional(),
+}).strict()
+
+const HeroBenchmarkPercentileSchema = z.object({
+  percentile: z.number().finite(),
+  value: z.number().finite(),
+}).strict()
+
+export const HeroBenchmarkCacheSchema = z.object({
+  source: z.literal('opendota'),
+  syncedAt: z.number().finite(),
+  heroId: z.number().finite(),
+  // OpenDota may add benchmark categories over time. Keep known keys typed for the app,
+  // but allow extra percentile-array metrics so runtime validation does not break when
+  // the upstream response grows.
+  benchmarks: z.object({
+    gold_per_min: z.array(HeroBenchmarkPercentileSchema).optional(),
+    xp_per_min: z.array(HeroBenchmarkPercentileSchema).optional(),
+    kills_per_min: z.array(HeroBenchmarkPercentileSchema).optional(),
+    last_hits_per_min: z.array(HeroBenchmarkPercentileSchema).optional(),
+    hero_damage_per_min: z.array(HeroBenchmarkPercentileSchema).optional(),
+  }).catchall(z.array(HeroBenchmarkPercentileSchema)),
+}).strict()
+
+export const HeroBenchmarkCacheMapSchema = z.record(z.string(), HeroBenchmarkCacheSchema)
+
+export const BackupSchema = z.object({
+  schemaVersion: z.number().int().nonnegative().default(CURRENT_SCHEMA_VERSION),
+  appState: AppStateSchema.optional(),
+  cycles: z.array(TrainingCycleSchema).optional(),
+  matchLogs: z.array(MatchLogSchema).optional(),
+  preGameSetups: z.array(PreGameSetupSchema).optional(),
+  dailyCheckins: z.array(DailyCheckinSchema).optional(),
+  mmrLogs: z.array(MMRLogSchema).optional(),
+  heroNotes: z.array(HeroNoteSchema).optional(),
+  heroMatchupCache: HeroMatchupCacheSchema.nullable().optional(),
+  heroBenchmarkCache: z.record(z.string(), HeroBenchmarkCacheSchema).optional(),
+}).strict()
+
+export type ParsedBackupData = z.infer<typeof BackupSchema>
+
+function formatZodError(error: z.ZodError): string {
+  return error.issues
+    .slice(0, 5)
+    .map(issue => `${issue.path.length ? issue.path.join('.') : 'root'}: ${issue.message}`)
+    .join('；')
+}
+
+function parseWithMessage<T>(schema: z.ZodType<T>, value: unknown, message: string): T {
+  const result = schema.safeParse(value)
+  if (!result.success) {
+    throw new Error(`${message}：${formatZodError(result.error)}`)
+  }
+  return result.data
+}
+
+export function parseAppStatePatch(value: unknown) {
+  return parseWithMessage(AppStatePatchSchema, value, '应用状态数据无效')
+}
+
+export function parseMatchLog(value: unknown) {
+  return parseWithMessage(MatchLogSchema, value, '对局记录数据无效')
+}
+
+export function parseMatchLogPatch(value: unknown) {
+  return parseWithMessage(MatchLogPatchSchema, value, '对局记录更新数据无效')
+}
+
+export function parsePreGameSetup(value: unknown) {
+  return parseWithMessage(PreGameSetupSchema, value, '赛前设定数据无效')
+}
+
+export function parsePreGameSetupPatch(value: unknown) {
+  return parseWithMessage(PreGameSetupPatchSchema, value, '赛前设定更新数据无效')
+}
+
+export function parseDailyCheckin(value: unknown) {
+  return parseWithMessage(DailyCheckinSchema, value, '每日打卡数据无效')
+}
+
+export function parseMMRLog(value: unknown) {
+  return parseWithMessage(MMRLogSchema, value, 'MMR 记录数据无效')
+}
+
+export function parseHeroNote(value: unknown) {
+  return parseWithMessage(HeroNoteSchema, value, '英雄档案数据无效')
+}
+
+export function parseHeroMatchupCache(value: unknown) {
+  return parseWithMessage(HeroMatchupCacheSchema, value, '英雄克制缓存数据无效')
+}
+
+export function parseHeroBenchmarkCache(value: unknown) {
+  return parseWithMessage(HeroBenchmarkCacheSchema, value, '英雄 benchmark 缓存数据无效')
+}
+
+export function parseHeroBenchmarkCacheMap(value: unknown) {
+  return parseWithMessage(HeroBenchmarkCacheMapSchema, value, '英雄 benchmark 缓存集合数据无效')
+}
+
+export function parseTrainingCycle(value: unknown) {
+  return parseWithMessage(TrainingCycleSchema, value, '训练周期数据无效')
+}
+
+export function parseBackupData(value: unknown): ParsedBackupData {
+  return parseWithMessage(BackupSchema, value, '导入数据格式无效')
+}
+
+export function parseImportedBackupJson(json: string): ParsedBackupData {
+  let raw: unknown
+  try {
+    raw = JSON.parse(json)
+  } catch {
+    throw new Error('备份文件不是有效 JSON。')
+  }
+  return parseBackupData(raw)
+}
+
+export function normalizeSchemaVersion(value: unknown): number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0
+    ? value
+    : 0
+}
