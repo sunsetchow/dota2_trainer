@@ -188,6 +188,10 @@ git diff --check
 - OpenDota / Stratz 配置保存在本地。
 - 备份导出会 redaction API key；不要把真实 token、API key 或私密配置提交到仓库。
 
+## Implementation plan
+
+架构 review 后的分阶段实现计划见 [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)。当前最高优先级是 Phase A：持久化韧性和 migration 地基。
+
 ## 维护约定
 
 - 每次功能或行为改动都要同步更新 README。
