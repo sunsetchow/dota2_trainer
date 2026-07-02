@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { nanoid } from 'nanoid'
 import { useAppState, useHeroNotes, useMatchLogs, useCycles } from '../store/useStore.ts'
@@ -24,7 +24,12 @@ function wait(ms: number): Promise<void> {
 }
 
 export function isOpenDotaParsePendingMessage(message: string): boolean {
-  return message.includes('解析') || message.includes('HTTP 500') || message.includes('HTTP 404') || message.includes('没有返回玩家明细')
+  return message.includes('解析')
+    || message.includes('HTTP 500')
+    || message.includes('HTTP 404')
+    || message.includes('没有返回玩家明细')
+    || message.includes('请求超时')
+    || message.includes('请求过于频繁')
 }
 
 export function buildMatchupTargets(selectedHero: string, pendingSetup: PreGameSetup | null, importedMatch: OpenDotaImportedMatch | null): string[] {
@@ -86,6 +91,13 @@ export default function PostGame() {
   const [saveStatus, setSaveStatus] = useState('')
   const [matchupNoteDrafts, setMatchupNoteDrafts] = useState<Record<string, string>>({})
   const [matchupNoteStances, setMatchupNoteStances] = useState<Record<string, HeroMatchupNote['stance']>>({})
+  const openDotaAnalysisRunRef = useRef(0)
+
+  useEffect(() => {
+    return () => {
+      openDotaAnalysisRunRef.current += 1
+    }
+  }, [])
 
   // 加载 pending 赛前设定
   useEffect(() => {
@@ -135,6 +147,14 @@ export default function PostGame() {
     trainingGoalMet &&
     biggestMistake.trim() &&
     nextGameFocus.trim()
+
+  const shouldOfferParseRequest = (message: string): boolean => isOpenDotaParsePendingMessage(message)
+
+  const handleMatchIdChange = (value: string) => {
+    setMatchId(value)
+    setCanRequestParse(false)
+    if (importedMatch?.matchId !== value.trim()) setImportedMatch(null)
+  }
 
   const appendMatchupLine = (value: string, opponent: string, note: string): string => {
     const line = `${opponent}：${note}`
@@ -276,7 +296,7 @@ export default function PostGame() {
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e)
       setImportedMatch(null)
-      setCanRequestParse(message.includes('解析') || message.includes('HTTP 500') || message.includes('HTTP 404'))
+      setCanRequestParse(shouldOfferParseRequest(message))
       setOpenDotaStatus(message)
     } finally {
       setImportingOpenDota(false)
@@ -341,7 +361,7 @@ export default function PostGame() {
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e)
       setImportedMatch(null)
-      setCanRequestParse(message.includes('解析') || message.includes('HTTP 500') || message.includes('HTTP 404'))
+      setCanRequestParse(shouldOfferParseRequest(message))
       setOpenDotaStatus(message)
     } finally {
       setImportingOpenDota(false)
@@ -389,19 +409,27 @@ export default function PostGame() {
       return
     }
 
+    const runId = openDotaAnalysisRunRef.current + 1
+    openDotaAnalysisRunRef.current = runId
+    const isCurrentRun = () => openDotaAnalysisRunRef.current === runId
+
     setAnalyzingOpenDota(true)
     setOpenDotaStatus('正在向 OpenDota 提交解析请求…提交成功后会先等待 2 分钟，再每 30 秒尝试导入一次，最多等到 5 分钟；拿到详细数据就填入赛后表单，仍需要你手动保存复盘。')
     setCanRequestParse(false)
     try {
       await window.electronStore.requestOpenDotaParse(cleanMatchId)
+      if (!isCurrentRun()) return
       setOpenDotaStatus('已提交解析请求。先等待 2 分钟让 OpenDota 生成详细数据，然后开始自动导入轮询。')
       await wait(OPEN_DOTA_ANALYZE_INITIAL_WAIT_MS)
+      if (!isCurrentRun()) return
 
       let lastError: Error | null = null
       for (let attempt = 1; attempt <= OPEN_DOTA_ANALYZE_POLL_ATTEMPTS; attempt += 1) {
+        if (!isCurrentRun()) return
         setOpenDotaStatus(`已提交解析请求，正在尝试自动导入…第 ${attempt}/${OPEN_DOTA_ANALYZE_POLL_ATTEMPTS} 次检查；会持续到 5 分钟。成功后会自动填入赛后表单。`)
         try {
           const data = await window.electronStore.importOpenDotaMatch(cleanMatchId)
+          if (!isCurrentRun()) return
           applyImportedOpenDota(data)
           return
         } catch (error) {
@@ -413,12 +441,13 @@ export default function PostGame() {
 
       throw new Error(lastError?.message ?? 'OpenDota 已收到解析请求，但几分钟内还没有返回详细数据。请稍后再点“导入”。')
     } catch (e) {
+      if (!isCurrentRun()) return
       const message = e instanceof Error ? e.message : String(e)
       setImportedMatch(null)
-      setCanRequestParse(message.includes('解析') || message.includes('HTTP 500') || message.includes('HTTP 404'))
+      setCanRequestParse(shouldOfferParseRequest(message))
       setOpenDotaStatus(message)
     } finally {
-      setAnalyzingOpenDota(false)
+      if (isCurrentRun()) setAnalyzingOpenDota(false)
     }
   }
 
@@ -465,10 +494,7 @@ export default function PostGame() {
         analyzingOpenDota={analyzingOpenDota}
         loadingRecentMatches={loadingRecentMatches}
         inputCls={inputCls}
-        onMatchIdChange={value => {
-          setMatchId(value)
-          if (importedMatch?.matchId !== value.trim()) setImportedMatch(null)
-        }}
+        onMatchIdChange={handleMatchIdChange}
         onImportOpenDota={handleImportOpenDota}
         onAutoImportOpenDota={() => handleAutoImportOpenDota(false)}
         onLoadRecentOpenDotaMatches={handleLoadRecentOpenDotaMatches}
@@ -730,7 +756,7 @@ export default function PostGame() {
                 type="text"
                 inputMode="numeric"
                 value={matchId}
-                onChange={e => setMatchId(e.target.value)}
+                onChange={e => handleMatchIdChange(e.target.value)}
                 placeholder="可手动填写或从 OpenDota 导入"
                 className={inputCls}
               />

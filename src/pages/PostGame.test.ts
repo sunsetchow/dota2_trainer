@@ -7,6 +7,8 @@ describe('PostGame OpenDota analysis helpers', () => {
     expect(isOpenDotaParsePendingMessage('OpenDota 没有返回玩家明细。这场比赛可能还没有解析，可以先请求解析，几分钟后重试。')).toBe(true)
     expect(isOpenDotaParsePendingMessage('HTTP 404: match not found')).toBe(true)
     expect(isOpenDotaParsePendingMessage('HTTP 500: parse pending')).toBe(true)
+    expect(isOpenDotaParsePendingMessage('OpenDota 请求超时，请稍后重试。')).toBe(true)
+    expect(isOpenDotaParsePendingMessage('OpenDota 请求过于频繁。稍后重试，或在设置页填写 API Key。')).toBe(true)
   })
 
   it('stops polling on non-parse errors', () => {
