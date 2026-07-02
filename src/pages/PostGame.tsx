@@ -14,6 +14,17 @@ import { getCurrentWeek, todayStr } from '../utils/cycle.ts'
 import { getOpenDotaHeroName } from '../utils/opendotaHeroes.ts'
 import { isDueForReview } from '../utils/srs.ts'
 
+const OPEN_DOTA_ANALYZE_POLL_ATTEMPTS = 18
+const OPEN_DOTA_ANALYZE_POLL_INTERVAL_MS = 10_000
+
+function wait(ms: number): Promise<void> {
+  return new Promise(resolve => window.setTimeout(resolve, ms))
+}
+
+export function isOpenDotaParsePendingMessage(message: string): boolean {
+  return message.includes('解析') || message.includes('HTTP 500') || message.includes('HTTP 404') || message.includes('没有返回玩家明细')
+}
+
 export default function PostGame() {
   const navigate = useNavigate()
   const { appState } = useAppState()
@@ -371,11 +382,26 @@ export default function PostGame() {
     }
 
     setAnalyzingOpenDota(true)
-    setOpenDotaStatus('已请求 OpenDota 分析录像，正在等待详细数据返回。通常需要几十秒到几分钟。')
+    setOpenDotaStatus('正在向 OpenDota 提交解析请求…成功后会每 10 秒检查一次，拿到详细数据就填入赛后表单；仍需要你手动保存复盘。')
     setCanRequestParse(false)
     try {
-      const data = await window.electronStore.analyzeAndImportOpenDotaMatch(cleanMatchId)
-      applyImportedOpenDota(data)
+      await window.electronStore.requestOpenDotaParse(cleanMatchId)
+
+      let lastError: Error | null = null
+      for (let attempt = 1; attempt <= OPEN_DOTA_ANALYZE_POLL_ATTEMPTS; attempt += 1) {
+        setOpenDotaStatus(`已提交解析请求，正在等待 OpenDota 生成详细数据…第 ${attempt}/${OPEN_DOTA_ANALYZE_POLL_ATTEMPTS} 次检查。成功后会自动填入赛后表单。`)
+        try {
+          const data = await window.electronStore.importOpenDotaMatch(cleanMatchId)
+          applyImportedOpenDota(data)
+          return
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error(String(error))
+          if (!isOpenDotaParsePendingMessage(lastError.message)) throw lastError
+          if (attempt < OPEN_DOTA_ANALYZE_POLL_ATTEMPTS) await wait(OPEN_DOTA_ANALYZE_POLL_INTERVAL_MS)
+        }
+      }
+
+      throw new Error(lastError?.message ?? 'OpenDota 已收到解析请求，但几分钟内还没有返回详细数据。请稍后再点“导入”。')
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e)
       setImportedMatch(null)

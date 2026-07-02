@@ -67,7 +67,7 @@ Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 
 - OpenDota Match ID 导入。
 - 自动同步最近一局未记录比赛。
 - 最近比赛列表。
-- 请求 OpenDota 解析并自动导入。
+- 请求 OpenDota 解析并自动导入：点击后会先提交解析请求，再每 10 秒轮询一次 Match ID 导入；拿到详细数据后会自动填入赛后表单，但仍需要手动保存复盘。
 - 英雄 benchmark percentile enrichment。
 - OpenDota / Stratz matchup cache 同步。
 - bundled matchup snapshot 冷启动兜底。
