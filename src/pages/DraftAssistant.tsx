@@ -37,6 +37,11 @@ function signed(value: number): string {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}`
 }
 
+export function getPositionHotHeroPlaceholder(position: DotaPosition, meta: PositionMetaSnapshot = POSITION_META): string {
+  const heroes = meta.positions[position]?.slice(0, 3).map(item => item.hero).filter(Boolean) ?? []
+  return heroes.length > 0 ? `如：${heroes.join('、')}` : '搜索敌方英雄'
+}
+
 function PercentBadge({ value, tone }: { value: number; tone: 'success' | 'danger' }) {
   return <Badge tone={tone} className="number">{value > 0 ? '+' : ''}{value.toFixed(1)}%</Badge>
 }
@@ -75,6 +80,7 @@ function EnemyInput({
   suggestions,
   focused,
   setFocused,
+  placeholder,
   onChange,
 }: {
   label: string
@@ -82,6 +88,7 @@ function EnemyInput({
   suggestions: string[]
   focused: boolean
   setFocused: (value: boolean) => void
+  placeholder: string
   onChange: (value: string) => void
 }) {
   return (
@@ -93,7 +100,7 @@ function EnemyInput({
         onFocus={() => setFocused(true)}
         onClick={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 250)}
-        placeholder="如：敌法师、帕克、拉比克、CM"
+        placeholder={placeholder}
         className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-border)] focus:outline-none"
       />
       {focused && <SuggestionBox items={suggestions} onSelect={hero => { onChange(hero); setFocused(false) }} />}
@@ -394,6 +401,7 @@ export default function DraftAssistant() {
                   })}
                   focused={focused}
                   setFocused={isFocused => setFocusedPosition(isFocused ? position : null)}
+                  placeholder={getPositionHotHeroPlaceholder(position)}
                   onChange={nextValue => handleEnemyChange(position, nextValue)}
                 />
               )
