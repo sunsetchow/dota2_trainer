@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import HeroCard from '../components/HeroCard.tsx'
 import Button from '../components/ui/Button.tsx'
 import Badge from '../components/ui/Badge.tsx'
 import Card from '../components/ui/Card.tsx'
 import { useAppState, useHeroNotes } from '../store/useStore.ts'
-import { getPool, getSugg } from '../utils/heroes.ts'
+import { getPool, getSugg, resolve } from '../utils/heroes.ts'
 import { todayStr } from '../utils/cycle.ts'
 import { isDueForReview } from '../utils/srs.ts'
 import {
@@ -64,6 +64,7 @@ function hasNoteContent(note?: HeroNote): boolean {
 
 export default function HeroNotes() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { appState, update: updateAppState } = useAppState()
   const { heroNotes, upsert } = useHeroNotes()
   const heroPool = appState?.heroPool ?? []
@@ -76,8 +77,21 @@ export default function HeroNotes() {
   const [status, setStatus] = useState('')
 
   const today = todayStr()
+  const requestedHero = searchParams.get('hero')
+  const requestedFilter = searchParams.get('filter')
   const configByHero = useMemo(() => new Map(heroPool.map(config => [config.name, config])), [heroPool])
   const noteByHero = useMemo(() => new Map(heroNotes.map(note => [note.hero, note])), [heroNotes])
+
+  useEffect(() => {
+    if (requestedFilter === 'due') setPoolFilter('due')
+  }, [requestedFilter])
+
+  useEffect(() => {
+    const targetHero = requestedHero ? resolve(requestedHero) : null
+    if (targetHero && ALL_HEROES.includes(targetHero)) {
+      setSelectedHero(targetHero)
+    }
+  }, [requestedHero])
 
   useEffect(() => {
     if (!selectedHero) {

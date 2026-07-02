@@ -5,11 +5,12 @@ import { todayStr } from '../../utils/cycle.ts'
 interface SrsReviewPromptProps {
   notes: HeroNote[]
   onSkip: () => void
+  onOpenNote: (hero: string) => void
   onReviewed: (hero: string) => void
   upsertHeroNote: (note: HeroNote) => Promise<void>
 }
 
-export default function SrsReviewPrompt({ notes, onSkip, onReviewed, upsertHeroNote }: SrsReviewPromptProps) {
+export default function SrsReviewPrompt({ notes, onSkip, onOpenNote, onReviewed, upsertHeroNote }: SrsReviewPromptProps) {
   if (notes.length === 0) return null
 
   return (
@@ -20,7 +21,12 @@ export default function SrsReviewPrompt({ notes, onSkip, onReviewed, upsertHeroN
       </div>
       {notes.map(note => (
         <div key={note.hero} className="space-y-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] p-3">
-          <div className="text-sm font-semibold text-[var(--text-primary)]">{note.hero}</div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-sm font-semibold text-[var(--text-primary)]">{note.hero}</div>
+            <button type="button" onClick={() => onOpenNote(note.hero)} className="rounded-lg border border-[var(--border)] px-2 py-1 text-xs text-[var(--text-secondary)] hover:border-[var(--accent-border)]">
+              打开档案
+            </button>
+          </div>
           <div className="grid grid-cols-4 gap-1">
             {([
               ['forgot', '忘了'],

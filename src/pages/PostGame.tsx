@@ -334,6 +334,7 @@ export default function PostGame() {
       <SrsReviewPrompt
         notes={srsPromptNotes}
         onSkip={() => navigate('/')}
+        onOpenNote={heroName => navigate(`/hero-notes?hero=${encodeURIComponent(heroName)}&filter=due`)}
         onReviewed={heroName => setSrsPromptNotes(prev => prev.filter(item => item.hero !== heroName))}
         upsertHeroNote={upsertHeroNote}
       />

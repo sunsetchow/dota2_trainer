@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppState, useMatchLogs, useDailyCheckins, useMMRLogs, useCycles, useHeroNotes } from '../store/useStore.ts'
 import WeekBadge from '../components/WeekBadge.tsx'
@@ -37,7 +37,15 @@ export default function Home() {
   const streak = calcStreak(checkins, freezeUsedDates)
   const longestStreak = calcLongestStreak(checkins, freezeUsedDates)
   const todayCheckin = checkins.find(c => c.date === todayStr())
-  const dueNotesCount = heroNotes.filter(note => isDueForReview(note, todayStr())).length
+  const today = todayStr()
+  const dueNotes = useMemo(
+    () => heroNotes
+      .filter(note => isDueForReview(note, today))
+      .sort((a, b) => (a.srsNextReviewDate ?? '').localeCompare(b.srsNextReviewDate ?? '') || a.hero.localeCompare(b.hero, 'zh-CN')),
+    [heroNotes, today],
+  )
+  const dueNotesCount = dueNotes.length
+  const firstDueHero = dueNotes[0]?.hero
 
   useEffect(() => {
     if (!appState) return
@@ -168,7 +176,7 @@ export default function Home() {
           )}
 
           {dueNotesCount > 0 && (
-            <Banner tone="info" action={<Button variant="secondary" size="sm" onClick={() => navigate('/hero-notes')}>去复习</Button>}>
+            <Banner tone="info" action={<Button variant="secondary" size="sm" onClick={() => navigate(firstDueHero ? `/hero-notes?hero=${encodeURIComponent(firstDueHero)}&filter=due` : '/hero-notes?filter=due')}>去复习</Button>}>
               今天有 {dueNotesCount} 条英雄笔记到期复习。
             </Banner>
           )}
