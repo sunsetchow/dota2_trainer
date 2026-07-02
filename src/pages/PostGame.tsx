@@ -14,8 +14,10 @@ import { getCurrentWeek, todayStr } from '../utils/cycle.ts'
 import { getOpenDotaHeroName } from '../utils/opendotaHeroes.ts'
 import { isDueForReview } from '../utils/srs.ts'
 
-const OPEN_DOTA_ANALYZE_POLL_ATTEMPTS = 18
-const OPEN_DOTA_ANALYZE_POLL_INTERVAL_MS = 10_000
+const OPEN_DOTA_ANALYZE_INITIAL_WAIT_MS = 120_000
+const OPEN_DOTA_ANALYZE_POLL_INTERVAL_MS = 30_000
+const OPEN_DOTA_ANALYZE_MAX_WAIT_MS = 300_000
+const OPEN_DOTA_ANALYZE_POLL_ATTEMPTS = Math.floor((OPEN_DOTA_ANALYZE_MAX_WAIT_MS - OPEN_DOTA_ANALYZE_INITIAL_WAIT_MS) / OPEN_DOTA_ANALYZE_POLL_INTERVAL_MS) + 1
 
 function wait(ms: number): Promise<void> {
   return new Promise(resolve => window.setTimeout(resolve, ms))
@@ -382,14 +384,16 @@ export default function PostGame() {
     }
 
     setAnalyzingOpenDota(true)
-    setOpenDotaStatus('正在向 OpenDota 提交解析请求…成功后会每 10 秒检查一次，拿到详细数据就填入赛后表单；仍需要你手动保存复盘。')
+    setOpenDotaStatus('正在向 OpenDota 提交解析请求…提交成功后会先等待 2 分钟，再每 30 秒尝试导入一次，最多等到 5 分钟；拿到详细数据就填入赛后表单，仍需要你手动保存复盘。')
     setCanRequestParse(false)
     try {
       await window.electronStore.requestOpenDotaParse(cleanMatchId)
+      setOpenDotaStatus('已提交解析请求。先等待 2 分钟让 OpenDota 生成详细数据，然后开始自动导入轮询。')
+      await wait(OPEN_DOTA_ANALYZE_INITIAL_WAIT_MS)
 
       let lastError: Error | null = null
       for (let attempt = 1; attempt <= OPEN_DOTA_ANALYZE_POLL_ATTEMPTS; attempt += 1) {
-        setOpenDotaStatus(`已提交解析请求，正在等待 OpenDota 生成详细数据…第 ${attempt}/${OPEN_DOTA_ANALYZE_POLL_ATTEMPTS} 次检查。成功后会自动填入赛后表单。`)
+        setOpenDotaStatus(`已提交解析请求，正在尝试自动导入…第 ${attempt}/${OPEN_DOTA_ANALYZE_POLL_ATTEMPTS} 次检查；会持续到 5 分钟。成功后会自动填入赛后表单。`)
         try {
           const data = await window.electronStore.importOpenDotaMatch(cleanMatchId)
           applyImportedOpenDota(data)
