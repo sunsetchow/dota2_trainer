@@ -3,6 +3,13 @@ import { z } from 'zod'
 export const CURRENT_SCHEMA_VERSION = 1
 
 const DotaPositionSchema = z.enum(['1', '2', '3', '4', '5'])
+const EnemyByPositionSchema = z.object({
+  '1': z.string().optional(),
+  '2': z.string().optional(),
+  '3': z.string().optional(),
+  '4': z.string().optional(),
+  '5': z.string().optional(),
+}).strict()
 const StratzRankBracketSchema = z.enum(['ALL', 'HERALD_GUARDIAN', 'CRUSADER_ARCHON', 'LEGEND_ANCIENT', 'DIVINE_IMMORTAL'])
 const TrainingDimensionSchema = z.enum(['ops', 'pregame', 'economy', 'combat', 'objective'])
 const SessionTypeSchema = z.enum(['30min', '90min', '3hr'])
@@ -59,7 +66,7 @@ export const PreGameSetupSchema = z.object({
   trainingGoal: z.string().optional(),
   preGameFocus: z.string().optional(),
   targetPosition: DotaPositionSchema.optional(),
-  enemyByPosition: z.partialRecord(DotaPositionSchema, z.string()).optional(),
+  enemyByPosition: EnemyByPositionSchema.optional(),
   enemyCarry: z.string().optional(),
   enemySupports: z.array(z.string()).optional(),
   cycleId: z.string().optional(),
