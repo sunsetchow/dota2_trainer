@@ -2,7 +2,7 @@
 
 Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 2 个人训练、英雄池管理、Draft 辅助、赛前计划、赛后复盘、数据导入和英雄笔记间隔复习。
 
-当前版本：`0.2.9`
+当前版本：`0.2.10`
 
 ## 核心功能
 
@@ -67,8 +67,8 @@ Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 
 
 - OpenDota Match ID 导入。
 - OpenDota IPC 错误使用结构化 code（如 `PARSE_PENDING`、`RATE_LIMITED`、`TIMEOUT`），renderer 不再依赖中文错误文案 substring 判断是否继续轮询或显示“请求解析”。
-- 自动同步最近一局未记录比赛。
-- 最近比赛列表。
+- 自动同步最近一局未记录比赛；主进程会同时读取 renderer 传入列表和本地 `matchLogs`，避免赛后页初始加载竞态导致重复导入已记录比赛。
+- 最近比赛列表会用同一套本地记录兜底标记已记录状态。
 - 请求 OpenDota 解析并自动导入：点击后会先提交解析请求，等待 2 分钟后每 30 秒轮询一次 Match ID 导入，最多等到 5 分钟；拿到详细数据后会自动填入赛后表单，但仍需要手动保存复盘。
 - OpenDota 导入会解析敌方 5 个英雄；即使没有从 Draft / 赛前链路进入赛后页，也会显示对位英雄笔记卡片。
 - 英雄 benchmark percentile enrichment。

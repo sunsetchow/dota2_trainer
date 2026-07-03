@@ -1,6 +1,6 @@
 import store from '../store.ts'
 import opendotaHeroes from '../../src/data/opendotaHeroes.json'
-import type { AppState, OpenDotaImportedMatch, OpenDotaParseRequestResult, OpenDotaRecentMatch, HeroBenchmarkCache, HeroMatchupCache, HeroMatchupStats, HeroMatchupSyncResult, StratzRankBracket } from '../../src/types'
+import type { AppState, MatchLog, OpenDotaImportedMatch, OpenDotaParseRequestResult, OpenDotaRecentMatch, HeroBenchmarkCache, HeroMatchupCache, HeroMatchupStats, HeroMatchupSyncResult, StratzRankBracket } from '../../src/types'
 import {
   parseHeroBenchmarkCache,
   parseHeroBenchmarkCacheMap,
@@ -414,6 +414,25 @@ function normalizeMatchId(matchIdInput: string): string {
   return matchId
 }
 
+function getPersistedMatchIds(): string[] {
+  const logs = store.get('matchLogs', [])
+  if (!Array.isArray(logs)) return []
+
+  return (logs as Partial<MatchLog>[])
+    .map(log => log.matchId)
+    .filter((matchId): matchId is string => typeof matchId === 'string' && matchId.trim().length > 0)
+    .map(matchId => matchId.trim())
+}
+
+function getKnownMatchIdSet(existingMatchIds: string[] = []): Set<string> {
+  return new Set([
+    ...existingMatchIds.map(String),
+    ...getPersistedMatchIds(),
+  ]
+    .map(matchId => matchId.trim())
+    .filter(matchId => matchId.length > 0))
+}
+
 function buildImportedMatch(matchId: string, match: OpenDotaMatchResponse, player: OpenDotaPlayer): OpenDotaImportedMatch {
   if (!player.hero_id) {
     throw createOpenDotaError('PARSE_PENDING', 'OpenDota 返回的数据缺少英雄信息。')
@@ -516,7 +535,7 @@ async function fetchOpenDotaImportedMatch(matchId: string, accountId: string, ti
 
 async function autoImportLatestOpenDotaMatch(existingMatchIds: string[] = []): Promise<OpenDotaImportedMatch> {
   const accountId = getOpenDotaAccountId()
-  const known = new Set(existingMatchIds.map(String))
+  const known = getKnownMatchIdSet(existingMatchIds)
   const recent = await fetchOpenDotaJson<OpenDotaRecentMatchResponseItem[]>(`/players/${accountId}/recentMatches`, 15_000)
   const candidates = recent
     .map(row => row.match_id)
@@ -542,7 +561,7 @@ async function autoImportLatestOpenDotaMatch(existingMatchIds: string[] = []): P
 
 async function listRecentOpenDotaMatches(existingMatchIds: string[] = []): Promise<OpenDotaRecentMatch[]> {
   const accountId = getOpenDotaAccountId()
-  const known = new Set(existingMatchIds.map(String))
+  const known = getKnownMatchIdSet(existingMatchIds)
   const recent = await fetchOpenDotaJson<OpenDotaRecentMatchResponseItem[]>(`/players/${accountId}/recentMatches`, 15_000)
 
   return recent
