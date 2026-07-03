@@ -2,8 +2,8 @@ import { dialog, ipcMain } from 'electron'
 import { copyFileSync, existsSync } from 'fs'
 import { dirname, extname, join, basename } from 'path'
 import { writeFile } from 'fs/promises'
-import type { AppState, DailyCheckin, DotaPosition, HeroMatchupNote, HeroNote, MatchLog, MMRLog, PreGameSetup, TrainingCycle } from '../../src/types'
-import { compactHeroIdMap, compactHeroIds, getHeroIdByName, sameHeroReference } from '../../src/utils/heroIdentity.ts'
+import type { AppState, DailyCheckin, DotaPosition, HeroMatchupCache, HeroMatchupNote, HeroNote, MatchLog, MMRLog, PreGameSetup, TrainingCycle } from '../../src/types'
+import { compactHeroIdMap, compactHeroIds, getCanonicalHeroName, getCanonicalHeroNameByReference, getHeroIdByName, sameHeroReference } from '../../src/utils/heroIdentity.ts'
 import {
   CURRENT_SCHEMA_VERSION,
   normalizeSchemaVersion,
@@ -133,53 +133,122 @@ function warnRecovery(message: string) {
   console.warn(message)
 }
 
-function withOwnHeroId<T extends { hero: string; heroId?: number }>(value: T): T {
-  if (value.heroId !== undefined) return value
-  const heroId = getHeroIdByName(value.hero)
-  return heroId === undefined ? value : { ...value, heroId }
+function canonicalizeHeroName(heroName?: string): string | undefined {
+  return getCanonicalHeroName(heroName) ?? heroName
+}
+
+function canonicalizeHeroNames(values?: string[]): string[] | undefined {
+  return values?.map(value => canonicalizeHeroName(value) ?? value)
+}
+
+function canonicalizeEnemyByPosition(values?: Partial<Record<DotaPosition, string>>): Partial<Record<DotaPosition, string>> | undefined {
+  if (!values) return values
+  return Object.fromEntries(
+    Object.entries(values).map(([position, hero]) => [position, canonicalizeHeroName(hero) ?? hero]),
+  ) as Partial<Record<DotaPosition, string>>
+}
+
+function withCanonicalHeroReference<T extends { hero: string; heroId?: number }>(value: T): T {
+  const heroId = value.heroId ?? getHeroIdByName(value.hero)
+  const hero = getCanonicalHeroNameByReference({ hero: value.hero, heroId }) ?? value.hero
+  return {
+    ...value,
+    hero,
+    ...(heroId !== undefined && { heroId }),
+  }
 }
 
 function enrichHeroPool(appState: AppState): AppState {
   return {
     ...appState,
     heroPool: appState.heroPool.map(config => {
-      if (config.heroId !== undefined) return config
-      const heroId = getHeroIdByName(config.name)
-      return heroId === undefined ? config : { ...config, heroId }
+      const heroId = config.heroId ?? getHeroIdByName(config.name)
+      const name = getCanonicalHeroNameByReference({ hero: config.name, heroId }) ?? config.name
+      return {
+        ...config,
+        name,
+        ...(heroId !== undefined && { heroId }),
+      }
     }),
   }
 }
 
 function enrichPreGameSetup(setup: PreGameSetup): PreGameSetup {
-  const enemyHeroIdsByPosition = setup.enemyHeroIdsByPosition ?? compactHeroIdMap(setup.enemyByPosition ?? {}) as Partial<Record<DotaPosition, number>> | undefined
+  const enemyByPosition = canonicalizeEnemyByPosition(setup.enemyByPosition)
+  const enemyCarry = canonicalizeHeroName(setup.enemyCarry)
+  const enemySupports = canonicalizeHeroNames(setup.enemySupports)
+  const enemyHeroIdsByPosition = setup.enemyHeroIdsByPosition ?? compactHeroIdMap(enemyByPosition ?? {}) as Partial<Record<DotaPosition, number>> | undefined
   return {
-    ...withOwnHeroId(setup),
+    ...withCanonicalHeroReference(setup),
+    ...(enemyByPosition && { enemyByPosition }),
     ...(enemyHeroIdsByPosition && { enemyHeroIdsByPosition }),
-    ...(setup.enemyCarryHeroId === undefined && setup.enemyCarry && getHeroIdByName(setup.enemyCarry) !== undefined && { enemyCarryHeroId: getHeroIdByName(setup.enemyCarry) }),
-    ...(setup.enemySupportHeroIds === undefined && setup.enemySupports?.length && compactHeroIds(setup.enemySupports) && { enemySupportHeroIds: compactHeroIds(setup.enemySupports) }),
+    ...(enemyCarry && { enemyCarry }),
+    ...(enemySupports && { enemySupports }),
+    ...(setup.enemyCarryHeroId === undefined && enemyCarry && getHeroIdByName(enemyCarry) !== undefined && { enemyCarryHeroId: getHeroIdByName(enemyCarry) }),
+    ...(setup.enemySupportHeroIds === undefined && enemySupports?.length && compactHeroIds(enemySupports) && { enemySupportHeroIds: compactHeroIds(enemySupports) }),
   }
 }
 
 function enrichMatchLog(log: MatchLog): MatchLog {
+  const enemyCarry = canonicalizeHeroName(log.enemyCarry)
+  const enemySupports = canonicalizeHeroNames(log.enemySupports)
+  const enemyHeroes = canonicalizeHeroNames(log.enemyHeroes)
   return {
-    ...withOwnHeroId(log),
-    ...(log.enemyCarryHeroId === undefined && log.enemyCarry && getHeroIdByName(log.enemyCarry) !== undefined && { enemyCarryHeroId: getHeroIdByName(log.enemyCarry) }),
-    ...(log.enemySupportHeroIds === undefined && log.enemySupports?.length && compactHeroIds(log.enemySupports) && { enemySupportHeroIds: compactHeroIds(log.enemySupports) }),
-    ...(log.enemyHeroIds === undefined && log.enemyHeroes?.length && compactHeroIds(log.enemyHeroes) && { enemyHeroIds: compactHeroIds(log.enemyHeroes) }),
+    ...withCanonicalHeroReference(log),
+    ...(enemyCarry && { enemyCarry }),
+    ...(enemySupports && { enemySupports }),
+    ...(enemyHeroes && { enemyHeroes }),
+    ...(log.enemyCarryHeroId === undefined && enemyCarry && getHeroIdByName(enemyCarry) !== undefined && { enemyCarryHeroId: getHeroIdByName(enemyCarry) }),
+    ...(log.enemySupportHeroIds === undefined && enemySupports?.length && compactHeroIds(enemySupports) && { enemySupportHeroIds: compactHeroIds(enemySupports) }),
+    ...(log.enemyHeroIds === undefined && enemyHeroes?.length && compactHeroIds(enemyHeroes) && { enemyHeroIds: compactHeroIds(enemyHeroes) }),
   }
 }
 
 function enrichHeroNote(note: HeroNote): HeroNote {
   const matchupNotes = note.matchupNotes
-    ? Object.fromEntries(Object.entries(note.matchupNotes).map(([key, matchupNote]) => {
+    ? Object.fromEntries(Object.values(note.matchupNotes).map(matchupNote => {
       const opponentHeroId = matchupNote.opponentHeroId ?? getHeroIdByName(matchupNote.opponentHero)
-      const enriched: HeroMatchupNote = opponentHeroId === undefined ? matchupNote : { ...matchupNote, opponentHeroId }
-      return [key, enriched]
+      const opponentHero = getCanonicalHeroNameByReference({ hero: matchupNote.opponentHero, heroId: opponentHeroId }) ?? matchupNote.opponentHero
+      const enriched: HeroMatchupNote = {
+        ...matchupNote,
+        opponentHero,
+        ...(opponentHeroId !== undefined && { opponentHeroId }),
+      }
+      if (Object.prototype.hasOwnProperty.call(note.matchupNotes, opponentHero) && note.matchupNotes[opponentHero] !== matchupNote) {
+        warnRecovery(`[store:migrate] 合并重复英雄对位笔记：${opponentHero}`)
+      }
+      return [opponentHero, enriched]
     }))
     : note.matchupNotes
   return {
-    ...withOwnHeroId(note),
+    ...withCanonicalHeroReference(note),
     ...(matchupNotes && { matchupNotes }),
+  }
+}
+
+function canonicalizeHeroMatchupCache(cache: HeroMatchupCache): HeroMatchupCache {
+  const matchups: HeroMatchupCache['matchups'] = {}
+  for (const [hero, row] of Object.entries(cache.matchups)) {
+    const canonicalHero = canonicalizeHeroName(hero) ?? hero
+    if (matchups[canonicalHero] && hero !== canonicalHero) {
+      warnRecovery(`[store:migrate] 合并重复英雄 matchup cache 行：${canonicalHero}`)
+    }
+    const targetRow = matchups[canonicalHero] ?? {}
+    for (const [enemy, stats] of Object.entries(row)) {
+      const canonicalEnemy = canonicalizeHeroName(enemy) ?? enemy
+      if (targetRow[canonicalEnemy] && enemy !== canonicalEnemy) {
+        warnRecovery(`[store:migrate] 合并重复英雄 matchup cache：${canonicalHero} vs ${canonicalEnemy}`)
+      }
+      targetRow[canonicalEnemy] = stats
+    }
+    matchups[canonicalHero] = targetRow
+  }
+
+  return {
+    ...cache,
+    heroCount: Object.keys(matchups).length,
+    matchupCount: Object.values(matchups).reduce((sum, row) => sum + Object.keys(row).length, 0),
+    matchups,
   }
 }
 
@@ -235,7 +304,7 @@ function salvageArray<T>(key: ArrayKey, raw: unknown): T[] {
 function recoverHeroMatchupCacheValue(raw: unknown) {
   if (raw === null || raw === undefined) return null
   try {
-    return parseHeroMatchupCache(raw)
+    return canonicalizeHeroMatchupCache(parseHeroMatchupCache(raw) as HeroMatchupCache)
   } catch (error) {
     warnRecovery(`[store:migrate] 清理无效 heroMatchupCache：${error instanceof Error ? error.message : error}`)
     return null

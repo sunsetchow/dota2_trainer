@@ -43,6 +43,15 @@ export function getHeroNameById(heroId?: number | null): string | undefined {
   return hero?.displayName || hero?.localizedName
 }
 
+export function getCanonicalHeroName(heroName?: string | null): string | undefined {
+  const heroId = getHeroIdByName(heroName)
+  return getHeroNameById(heroId) ?? (heroName?.trim() || undefined)
+}
+
+export function getCanonicalHeroNameByReference(reference: { hero?: string; heroId?: number }): string | undefined {
+  return getHeroNameById(reference.heroId) ?? getCanonicalHeroName(reference.hero)
+}
+
 export function sameHeroReference(left: { hero?: string; heroId?: number }, right: { hero?: string; heroId?: number }): boolean {
   if (left.heroId !== undefined && right.heroId !== undefined) return left.heroId === right.heroId
   const leftId = left.heroId ?? getHeroIdByName(left.hero)

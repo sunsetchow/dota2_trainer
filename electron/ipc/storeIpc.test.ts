@@ -232,6 +232,86 @@ describe('store IPC validation helpers', () => {
     expect(migrated.heroNotes?.[0].matchupNotes?.['帕克']).toMatchObject({ opponentHero: '帕克', opponentHeroId: 13 })
   })
 
+  it('canonicalizes legacy English hero names to the current display name during migration', () => {
+    const migrated = migrateImportedBackupJson(JSON.stringify({
+      schemaVersion: 3,
+      appState: {
+        ...validAppState,
+        heroPool: [{ name: 'Largo', heroId: 155, active: true, positions: ['3'] }],
+      },
+      matchLogs: [{ ...validMatchLog, hero: 'Largo', heroId: 155, enemyHeroes: ['Axe'] }],
+      preGameSetups: [{
+        id: 'setup-largo',
+        timestamp: 1,
+        hero: 'Largo',
+        heroId: 155,
+        enemyByPosition: { '3': 'Axe' },
+        enemyCarry: 'Anti-Mage',
+        enemySupports: ['Rubick'],
+      }],
+      heroNotes: [{
+        hero: 'Largo',
+        heroId: 155,
+        position: '',
+        strongPeriod: '',
+        weakPeriod: '',
+        laneGoal: '',
+        firstKeyItem: '',
+        counters: '',
+        counteredBy: '',
+        whenToFight: '',
+        whenToFarm: '',
+        commonDeaths: '',
+        reviewRules: [],
+        matchupNotes: {
+          Axe: {
+            opponentHero: 'Axe',
+            note: '斧王会打断节奏。',
+            updatedAt: 1,
+          },
+        },
+        updatedAt: 1,
+      }],
+      heroMatchupCache: null,
+      heroBenchmarkCache: {},
+    }))
+
+    expect(migrated.appState?.heroPool[0]).toMatchObject({ name: '朗戈', heroId: 155 })
+    expect(migrated.matchLogs?.[0]).toMatchObject({ hero: '朗戈', heroId: 155, enemyHeroes: ['斧王'], enemyHeroIds: [2] })
+    expect(migrated.preGameSetups?.[0]).toMatchObject({ hero: '朗戈', heroId: 155, enemyCarry: '敌法师', enemySupports: ['拉比克'] })
+    expect(migrated.preGameSetups?.[0].enemyByPosition).toEqual({ '3': '斧王' })
+    expect(migrated.heroNotes?.[0]).toMatchObject({ hero: '朗戈', heroId: 155 })
+    expect(migrated.heroNotes?.[0].matchupNotes?.['斧王']).toMatchObject({ opponentHero: '斧王', opponentHeroId: 2 })
+  })
+
+  it('canonicalizes legacy English hero names inside Stratz matchup cache keys', () => {
+    const migrated = migrateImportedBackupJson(JSON.stringify({
+      schemaVersion: 3,
+      appState: validAppState,
+      matchLogs: [],
+      preGameSetups: [],
+      heroNotes: [],
+      heroMatchupCache: {
+        source: 'stratz',
+        syncedAt: 1,
+        date: '2026-07-03',
+        heroCount: 2,
+        matchupCount: 2,
+        matchups: {
+          Largo: { Axe: { gamesPlayed: 100, wins: 40, winRate: 40, advantage: -10 } },
+          Axe: { Largo: { gamesPlayed: 100, wins: 60, winRate: 60, advantage: 10 } },
+        },
+      },
+      heroBenchmarkCache: {},
+    }))
+
+    expect(migrated.heroMatchupCache?.source).toBe('stratz')
+    expect(migrated.heroMatchupCache?.heroCount).toBe(2)
+    expect(migrated.heroMatchupCache?.matchupCount).toBe(2)
+    expect(migrated.heroMatchupCache?.matchups.朗戈.斧王).toMatchObject({ gamesPlayed: 100, advantage: -10 })
+    expect(migrated.heroMatchupCache?.matchups.斧王.朗戈).toMatchObject({ gamesPlayed: 100, advantage: 10 })
+  })
+
   it('backs up the raw corrupt store file before destructive recovery', () => {
     const dir = mkdtempSync(join(tmpdir(), 'dota2-store-'))
     try {

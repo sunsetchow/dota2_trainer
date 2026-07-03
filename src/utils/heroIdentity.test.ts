@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compactHeroIdMap, compactHeroIds, getHeroIdByName, getHeroNameById, sameHeroReference } from './heroIdentity.ts'
+import { compactHeroIdMap, compactHeroIds, getCanonicalHeroName, getCanonicalHeroNameByReference, getHeroIdByName, getHeroNameById, sameHeroReference } from './heroIdentity.ts'
 
 describe('hero identity helpers', () => {
   it('resolves display names, English names, raw OpenDota names, and aliases to stable hero ids', () => {
@@ -8,6 +8,9 @@ describe('hero identity helpers', () => {
     expect(getHeroIdByName('npc_dota_hero_axe')).toBe(2)
     expect(getHeroIdByName('Anti-Mage')).toBe(1)
     expect(getHeroNameById(2)).toBe('斧王')
+    expect(getHeroIdByName('Largo')).toBe(155)
+    expect(getCanonicalHeroName('Largo')).toBe('朗戈')
+    expect(getCanonicalHeroNameByReference({ hero: 'Largo', heroId: 155 })).toBe('朗戈')
   })
 
   it('compares renamed hero records by id and falls back to resolved names', () => {

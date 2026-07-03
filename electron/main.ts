@@ -7,6 +7,7 @@ import { createDotaDataServices, todayKey } from './services/dotaDataServices.ts
 import heroMatchupSnapshot from '../src/data/heroMatchupSnapshot.json'
 import type { AppState, TrainingCycle, HeroMatchupCache } from '../src/types'
 import { parseHeroMatchupCache } from '../src/schema/persistence.ts'
+import { shouldSeedBundledHeroMatchupCache } from '../src/utils/heroMatchupCacheSeed.ts'
 
 // ── 8 周主题常量
 const DEFAULT_WEEK_THEMES: TrainingCycle['weekThemes'] = [
@@ -104,13 +105,7 @@ app.whenReady().then(() => {
   const existingRaw = store.get('heroMatchupCache', null)
   const existingMatchupCache = existingRaw ? parseHeroMatchupCache(existingRaw) as HeroMatchupCache : null
   const bundledMatchupCache = parseHeroMatchupCache(heroMatchupSnapshot) as HeroMatchupCache
-  const shouldSeedMatchupCache = Boolean(
-    bundledMatchupCache.matchupCount > 0 && (
-      !existingMatchupCache?.matchupCount ||
-      (bundledMatchupCache.complete && !existingMatchupCache.complete) ||
-      ((bundledMatchupCache.syncedAt ?? 0) > (existingMatchupCache.syncedAt ?? 0) && bundledMatchupCache.matchupCount >= existingMatchupCache.matchupCount)
-    )
-  )
+  const shouldSeedMatchupCache = shouldSeedBundledHeroMatchupCache(existingMatchupCache, bundledMatchupCache)
   if (shouldSeedMatchupCache) {
     store.set('heroMatchupCache', bundledMatchupCache)
   }
