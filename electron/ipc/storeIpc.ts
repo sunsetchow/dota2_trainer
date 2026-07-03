@@ -231,20 +231,51 @@ function enrichHeroNote(note: HeroNote): HeroNote {
 
 function canonicalizeHeroMatchupCache(cache: HeroMatchupCache): HeroMatchupCache {
   const matchups: HeroMatchupCache['matchups'] = {}
-  for (const [hero, row] of Object.entries(cache.matchups)) {
+  let duplicateRowCount = 0
+  let duplicateCellCount = 0
+  const duplicateCellExamples: string[] = []
+
+  const heroEntries = Object.entries(cache.matchups).sort(([left], [right]) => {
+    const leftCanonical = canonicalizeHeroName(left) ?? left
+    const rightCanonical = canonicalizeHeroName(right) ?? right
+    if (left === leftCanonical && right !== rightCanonical) return -1
+    if (left !== leftCanonical && right === rightCanonical) return 1
+    return 0
+  })
+
+  for (const [hero, row] of heroEntries) {
     const canonicalHero = canonicalizeHeroName(hero) ?? hero
     if (matchups[canonicalHero] && hero !== canonicalHero) {
-      warnRecovery(`[store:migrate] 合并重复英雄 matchup cache 行：${canonicalHero}`)
+      duplicateRowCount += 1
     }
     const targetRow = matchups[canonicalHero] ?? {}
-    for (const [enemy, stats] of Object.entries(row)) {
+    const enemyEntries = Object.entries(row).sort(([left], [right]) => {
+      const leftCanonical = canonicalizeHeroName(left) ?? left
+      const rightCanonical = canonicalizeHeroName(right) ?? right
+      if (left === leftCanonical && right !== rightCanonical) return -1
+      if (left !== leftCanonical && right === rightCanonical) return 1
+      return 0
+    })
+    for (const [enemy, stats] of enemyEntries) {
       const canonicalEnemy = canonicalizeHeroName(enemy) ?? enemy
-      if (targetRow[canonicalEnemy] && enemy !== canonicalEnemy) {
-        warnRecovery(`[store:migrate] 合并重复英雄 matchup cache：${canonicalHero} vs ${canonicalEnemy}`)
+      if (targetRow[canonicalEnemy]) {
+        if (enemy !== canonicalEnemy) {
+          duplicateCellCount += 1
+          if (duplicateCellExamples.length < 3) duplicateCellExamples.push(`${canonicalHero} vs ${canonicalEnemy}`)
+        }
+        // Prefer the already-canonical entry when both canonical and legacy alias keys exist.
+        // This prevents old English-key duplicates (e.g. Arc Warden + 天穹守望者) from spamming
+        // startup logs or letting alias data overwrite the canonical Stratz snapshot cell.
+        continue
       }
       targetRow[canonicalEnemy] = stats
     }
     matchups[canonicalHero] = targetRow
+  }
+
+  if (duplicateRowCount > 0 || duplicateCellCount > 0) {
+    const details = duplicateCellExamples.length ? `，示例：${duplicateCellExamples.join('、')}` : ''
+    warnRecovery(`[store:migrate] 合并重复英雄 matchup cache：${duplicateRowCount} 行、${duplicateCellCount} 个对位${details}`)
   }
 
   return {

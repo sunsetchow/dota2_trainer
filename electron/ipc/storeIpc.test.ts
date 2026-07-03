@@ -385,6 +385,52 @@ describe('store IPC validation helpers', () => {
     expect(migrated.heroMatchupCache?.matchups.斧王.朗戈).toMatchObject({ gamesPlayed: 100, advantage: 10 })
   })
 
+  it('summarizes duplicate matchup cache aliases instead of logging every duplicated cell', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const store = createStore({
+      schemaVersion: 3,
+      appState: validAppState,
+      cycles: [],
+      matchLogs: [],
+      preGameSetups: [],
+      dailyCheckins: [],
+      mmrLogs: [],
+      heroNotes: [],
+      heroMatchupCache: {
+        source: 'stratz',
+        syncedAt: 1,
+        date: '2026-07-03',
+        heroCount: 2,
+        matchupCount: 4,
+        matchups: {
+          Axe: {
+            '天穹守望者': { gamesPlayed: 100, wins: 55, winRate: 55, advantage: 5 },
+            'Arc Warden': { gamesPlayed: 80, wins: 30, winRate: 37.5, advantage: -12.5 },
+          },
+          'Arc Warden': {
+            Axe: { gamesPlayed: 80, wins: 50, winRate: 62.5, advantage: 12.5 },
+          },
+          '天穹守望者': {
+            Axe: { gamesPlayed: 100, wins: 45, winRate: 45, advantage: -5 },
+          },
+        },
+      },
+      heroBenchmarkCache: {},
+      heroTimingCache: null,
+    })
+
+    validateAndMigratePersistedStore(store)
+
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('1 行、2 个对位'))
+    const cache = store.data.get('heroMatchupCache') as any
+    expect(cache.heroCount).toBe(2)
+    expect(cache.matchupCount).toBe(2)
+    expect(cache.matchups.斧王['天穹守望者']).toMatchObject({ gamesPlayed: 100, advantage: 5 })
+    expect(cache.matchups['天穹守望者'].斧王).toMatchObject({ gamesPlayed: 100, advantage: -5 })
+    expect(cache.matchups.斧王['Arc Warden']).toBeUndefined()
+  })
+
   it('backs up the raw corrupt store file before destructive recovery', () => {
     const dir = mkdtempSync(join(tmpdir(), 'dota2-store-'))
     try {
