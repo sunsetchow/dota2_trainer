@@ -2,7 +2,7 @@
 
 Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 2 个人训练、英雄池管理、Draft 辅助、赛前计划、赛后复盘、数据导入和英雄笔记间隔复习。
 
-当前版本：`0.2.8`
+当前版本：`0.2.9`
 
 ## 核心功能
 
@@ -40,6 +40,7 @@ Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 
 ### 英雄中心 / 英雄笔记
 
 - 统一管理英雄池、位置池、熟练度和英雄档案。
+- 英雄池、赛前、赛后、英雄档案和 matchup 笔记会保存稳定 `heroId`，中文名继续用于展示；后续英雄改名不会让历史数据失联。
 - 英雄档案字段包括：
   - 位置笔记
   - 第一件关键装
@@ -80,7 +81,7 @@ Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 
 - Electron IPC 写入前做 payload validation。
 - 备份导入前校验完整 JSON shape，拒绝未知 top-level key 和坏数据。
 - 备份导出会移除 API key 等敏感字段。
-- 启动时会执行 v2 migration / recovery：核心数组逐条 salvage，坏条目丢弃且健康数据保留。
+- 启动时会执行 v3 migration / recovery：核心数组逐条 salvage，坏条目丢弃且健康数据保留，并为旧的中文名 keyed 英雄数据补齐稳定 `heroId`。
 - 坏 matchup / benchmark cache 会自动清空为可重建状态，不会拖垮核心训练数据。
 - 发生 destructive recovery 时会优先备份当前 store 为 `*.corrupt-YYYYMMDD-HHmmss.json`。
 - 备份导入会先 migration / salvage 到当前 `schemaVersion`，再写入本地 store。
@@ -129,7 +130,7 @@ src/
     persistence.test.ts           schema/parser tests
   store/
     useStore.ts                   renderer store hooks
-  utils/                          hero resolve、SRS、cycle、OpenDota structured errors 等工具
+  utils/                          hero resolve / identity、SRS、cycle、OpenDota structured errors 等工具
 ```
 
 ## 本地开发
@@ -212,6 +213,7 @@ git diff --check
 - Phase 1：Zod runtime schema、Vitest、backup/import validation、schemaVersion 地基。
 - Phase 2：拆分 Electron main，抽出 store/openDota IPC 和 Dota data services。
 - Phase 3：拆分 PostGame，抽出 postgame feature helpers/UI，并补测试。
+- Phase 25：稳定 hero id 迁移，schemaVersion 升级到 v3；英雄池、赛前、赛后、英雄档案、matchupNotes 会补齐并持续写入 `heroId` / 对手 `heroId`，UI 查找支持 id 优先回退中文名。
 - Phase 24：OpenDota IPC/service contract 收敛，导入错误改为结构化 code，renderer 不再依赖中文文案判断 parse pending / rate limit / timeout，并移除旧 `analyzeAndImportOpenDotaMatch` IPC 暴露。
 - Phase 23：持久化韧性和 migration 地基，schemaVersion 升级到 v2，启动/备份导入支持 salvage、坏 store 备份和备份失败兜底。
 - 英雄名修正：`Muerta` 显示为 `琼英碧灵`，别名包含 `穆尔塔` / `奶绿`；`Largo` 显示为 `朗戈`。

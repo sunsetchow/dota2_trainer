@@ -129,8 +129,8 @@ describe('store IPC validation helpers', () => {
     })
 
     expect(() => validateAndMigratePersistedStore(store)).not.toThrow()
-    expect(store.data.get('schemaVersion')).toBe(2)
-    expect(store.data.get('matchLogs')).toEqual([validMatchLog])
+    expect(store.data.get('schemaVersion')).toBe(3)
+    expect(store.data.get('matchLogs')).toEqual([{ ...validMatchLog, heroId: 2 }])
     expect(store.data.get('heroBenchmarkCache')).toEqual({})
   })
 
@@ -150,8 +150,8 @@ describe('store IPC validation helpers', () => {
     })
 
     expect(() => validateAndMigratePersistedStore(store)).not.toThrow()
-    expect(store.data.get('schemaVersion')).toBe(2)
-    expect(store.data.get('matchLogs')).toEqual([validMatchLog])
+    expect(store.data.get('schemaVersion')).toBe(3)
+    expect(store.data.get('matchLogs')).toEqual([{ ...validMatchLog, heroId: 2 }])
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('丢弃 1 条无效 matchLogs'))
   })
 
@@ -170,11 +170,66 @@ describe('store IPC validation helpers', () => {
       },
     }))
 
-    expect(migrated.schemaVersion).toBe(2)
+    expect(migrated.schemaVersion).toBe(3)
     expect(migrated.appState?.currentStreak).toBe(0)
     expect(migrated.appState?.longestStreak).toBe(0)
-    expect(migrated.matchLogs ?? []).toEqual([validMatchLog])
+    expect(migrated.matchLogs ?? []).toEqual([{ ...validMatchLog, heroId: 2 }])
     expect(migrated.heroMatchupCache).toBeNull()
+  })
+
+
+  it('migrates v2 name-keyed hero data to v3 stable hero ids', () => {
+    const migrated = migrateImportedBackupJson(JSON.stringify({
+      schemaVersion: 2,
+      appState: validAppState,
+      matchLogs: [{
+        ...validMatchLog,
+        enemyCarry: '敌法师',
+        enemySupports: ['拉比克'],
+        enemyHeroes: ['帕克', '敌法师'],
+      }],
+      preGameSetups: [{
+        id: 'setup-1',
+        timestamp: 1,
+        hero: '斧王',
+        targetPosition: '3',
+        enemyByPosition: { '1': '敌法师', '2': '帕克' },
+        enemyCarry: '敌法师',
+        enemySupports: ['拉比克'],
+      }],
+      heroNotes: [{
+        hero: '斧王',
+        position: '',
+        strongPeriod: '',
+        weakPeriod: '',
+        laneGoal: '',
+        firstKeyItem: '',
+        counters: '',
+        counteredBy: '',
+        whenToFight: '',
+        whenToFarm: '',
+        commonDeaths: '',
+        reviewRules: [],
+        matchupNotes: {
+          '帕克': {
+            opponentHero: '帕克',
+            note: '跳前先确认相位。',
+            updatedAt: 1,
+          },
+        },
+        updatedAt: 1,
+      }],
+      heroMatchupCache: null,
+      heroBenchmarkCache: {},
+    }))
+
+    expect(migrated.schemaVersion).toBe(3)
+    expect(migrated.appState?.heroPool[0]).toMatchObject({ name: '斧王', heroId: 2 })
+    expect(migrated.matchLogs?.[0]).toMatchObject({ hero: '斧王', heroId: 2, enemyCarryHeroId: 1, enemySupportHeroIds: [86], enemyHeroIds: [13, 1] })
+    expect(migrated.preGameSetups?.[0]).toMatchObject({ hero: '斧王', heroId: 2, enemyCarryHeroId: 1, enemySupportHeroIds: [86] })
+    expect(migrated.preGameSetups?.[0].enemyHeroIdsByPosition).toEqual({ '1': 1, '2': 13 })
+    expect(migrated.heroNotes?.[0]).toMatchObject({ hero: '斧王', heroId: 2 })
+    expect(migrated.heroNotes?.[0].matchupNotes?.['帕克']).toMatchObject({ opponentHero: '帕克', opponentHeroId: 13 })
   })
 
   it('backs up the raw corrupt store file before destructive recovery', () => {
@@ -217,7 +272,7 @@ describe('store IPC validation helpers', () => {
       const backupPath = findCorruptBackup(dir)
       expect(backupPath).toBeTruthy()
       expect(existsSync(storePath)).toBe(true)
-      expect(store.data.get('matchLogs')).toEqual([validMatchLog])
+      expect(store.data.get('matchLogs')).toEqual([{ ...validMatchLog, heroId: 2 }])
       expect(readFileSync(backupPath as string, 'utf-8')).toBe(rawStoreJson)
     } finally {
       rmSync(dir, { recursive: true, force: true })
@@ -250,7 +305,7 @@ describe('store IPC validation helpers', () => {
       expect(() => recoverPersistedStoreForStartup(store, () => {
         throw new Error('disk full')
       })).not.toThrow()
-      expect(store.data.get('matchLogs')).toEqual([validMatchLog])
+      expect(store.data.get('matchLogs')).toEqual([{ ...validMatchLog, heroId: 2 }])
       expect(warn).toHaveBeenCalled()
     } finally {
       rmSync(dir, { recursive: true, force: true })

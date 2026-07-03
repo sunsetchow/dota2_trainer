@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const CURRENT_SCHEMA_VERSION = 2
+export const CURRENT_SCHEMA_VERSION = 3
 
 const DotaPositionSchema = z.enum(['1', '2', '3', '4', '5'])
 const EnemyByPositionSchema = z.object({
@@ -9,6 +9,13 @@ const EnemyByPositionSchema = z.object({
   '3': z.string().optional(),
   '4': z.string().optional(),
   '5': z.string().optional(),
+}).strict()
+const EnemyHeroIdByPositionSchema = z.object({
+  '1': z.number().int().positive().optional(),
+  '2': z.number().int().positive().optional(),
+  '3': z.number().int().positive().optional(),
+  '4': z.number().int().positive().optional(),
+  '5': z.number().int().positive().optional(),
 }).strict()
 const StratzRankBracketSchema = z.enum(['ALL', 'HERALD_GUARDIAN', 'CRUSADER_ARCHON', 'LEGEND_ANCIENT', 'DIVINE_IMMORTAL'])
 const TrainingDimensionSchema = z.enum(['ops', 'pregame', 'economy', 'combat', 'objective'])
@@ -27,6 +34,7 @@ const StratzSettingsSchema = z.object({
 
 export const HeroConfigSchema = z.object({
   name: z.string().trim().min(1),
+  heroId: z.number().int().positive().optional(),
   active: z.boolean(),
   tier: z.enum(['main', 'practice', 'backup']).optional(),
   positions: z.array(DotaPositionSchema).optional(),
@@ -73,12 +81,16 @@ export const PreGameSetupSchema = z.object({
   id: z.string().min(1),
   timestamp: z.number().finite(),
   hero: z.string(),
+  heroId: z.number().int().positive().optional(),
   trainingGoal: z.string().optional(),
   preGameFocus: z.string().optional(),
   targetPosition: DotaPositionSchema.optional(),
   enemyByPosition: EnemyByPositionSchema.optional(),
+  enemyHeroIdsByPosition: EnemyHeroIdByPositionSchema.optional(),
   enemyCarry: z.string().optional(),
+  enemyCarryHeroId: z.number().int().positive().optional(),
   enemySupports: z.array(z.string()).optional(),
+  enemySupportHeroIds: z.array(z.number().int().positive()).optional(),
   cycleId: z.string().optional(),
   linkedMatchId: z.string().optional(),
 }).strict()
@@ -120,11 +132,14 @@ export const MatchLogSchema = z.object({
   draftScore: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional(),
   csAt10: z.number().finite().optional(),
   enemyCarry: z.string().optional(),
+  enemyCarryHeroId: z.number().int().positive().optional(),
   enemySupports: z.array(z.string()).optional(),
+  enemySupportHeroIds: z.array(z.number().int().positive()).optional(),
   enemyHeroes: z.array(z.string()).optional(),
+  enemyHeroIds: z.array(z.number().int().positive()).optional(),
   matchId: z.string().optional(),
   source: z.enum(['manual', 'opendota']).optional(),
-  heroId: z.number().finite().optional(),
+  heroId: z.number().int().positive().optional(),
   kills: z.number().finite().optional(),
   deaths: z.number().finite().optional(),
   assists: z.number().finite().optional(),
@@ -158,6 +173,7 @@ export const MatchLogPatchSchema = MatchLogSchema.partial().strict()
 
 const HeroMatchupNoteSchema = z.object({
   opponentHero: z.string().min(1),
+  opponentHeroId: z.number().int().positive().optional(),
   note: z.string(),
   stance: z.enum(['counters', 'counteredBy', 'general']).optional(),
   updatedAt: z.number().finite(),
@@ -167,6 +183,7 @@ const HeroMatchupNoteSchema = z.object({
 
 export const HeroNoteSchema = z.object({
   hero: z.string().min(1),
+  heroId: z.number().int().positive().optional(),
   position: z.string(),
   strongPeriod: z.string(),
   weakPeriod: z.string(),

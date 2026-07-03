@@ -13,6 +13,7 @@ import {
 } from '../utils/draftScoring.ts'
 import positionMetaJson from '../data/positionMetaHeroes.json'
 import { isHeroPlayableAtPosition } from '../utils/heroPool.ts'
+import { compactHeroIdMap, compactHeroIds, getHeroIdByName } from '../utils/heroIdentity.ts'
 import type { DotaPosition, EnemyByPosition, HeroConfig, HeroMatchupCache, PositionMetaSnapshot, PreGameSetup, RankedDraftHero } from '../types'
 import Button from '../components/ui/Button.tsx'
 import Card from '../components/ui/Card.tsx'
@@ -328,10 +329,14 @@ export default function DraftAssistant() {
       id: nanoid(),
       timestamp: Date.now(),
       hero,
+      ...(getHeroIdByName(hero) !== undefined && { heroId: getHeroIdByName(hero) }),
       targetPosition,
       enemyByPosition: resolvedEnemyByPosition,
+      ...(compactHeroIdMap(resolvedEnemyByPosition) && { enemyHeroIdsByPosition: compactHeroIdMap(resolvedEnemyByPosition) }),
       ...(enemyCarry && { enemyCarry }),
+      ...(enemyCarry && getHeroIdByName(enemyCarry) !== undefined && { enemyCarryHeroId: getHeroIdByName(enemyCarry) }),
       ...(enemySupports.length && { enemySupports }),
+      ...(compactHeroIds(enemySupports)?.length && { enemySupportHeroIds: compactHeroIds(enemySupports) }),
       cycleId: appState.activeCycleId,
     }
 

@@ -2,7 +2,8 @@ import { dialog, ipcMain } from 'electron'
 import { copyFileSync, existsSync } from 'fs'
 import { dirname, extname, join, basename } from 'path'
 import { writeFile } from 'fs/promises'
-import type { AppState, DailyCheckin, HeroNote, MatchLog, MMRLog, PreGameSetup, TrainingCycle } from '../../src/types'
+import type { AppState, DailyCheckin, DotaPosition, HeroMatchupNote, HeroNote, MatchLog, MMRLog, PreGameSetup, TrainingCycle } from '../../src/types'
+import { compactHeroIdMap, compactHeroIds, getHeroIdByName, sameHeroReference } from '../../src/utils/heroIdentity.ts'
 import {
   CURRENT_SCHEMA_VERSION,
   normalizeSchemaVersion,
@@ -132,6 +133,56 @@ function warnRecovery(message: string) {
   console.warn(message)
 }
 
+function withOwnHeroId<T extends { hero: string; heroId?: number }>(value: T): T {
+  if (value.heroId !== undefined) return value
+  const heroId = getHeroIdByName(value.hero)
+  return heroId === undefined ? value : { ...value, heroId }
+}
+
+function enrichHeroPool(appState: AppState): AppState {
+  return {
+    ...appState,
+    heroPool: appState.heroPool.map(config => {
+      if (config.heroId !== undefined) return config
+      const heroId = getHeroIdByName(config.name)
+      return heroId === undefined ? config : { ...config, heroId }
+    }),
+  }
+}
+
+function enrichPreGameSetup(setup: PreGameSetup): PreGameSetup {
+  const enemyHeroIdsByPosition = setup.enemyHeroIdsByPosition ?? compactHeroIdMap(setup.enemyByPosition ?? {}) as Partial<Record<DotaPosition, number>> | undefined
+  return {
+    ...withOwnHeroId(setup),
+    ...(enemyHeroIdsByPosition && { enemyHeroIdsByPosition }),
+    ...(setup.enemyCarryHeroId === undefined && setup.enemyCarry && getHeroIdByName(setup.enemyCarry) !== undefined && { enemyCarryHeroId: getHeroIdByName(setup.enemyCarry) }),
+    ...(setup.enemySupportHeroIds === undefined && setup.enemySupports?.length && compactHeroIds(setup.enemySupports) && { enemySupportHeroIds: compactHeroIds(setup.enemySupports) }),
+  }
+}
+
+function enrichMatchLog(log: MatchLog): MatchLog {
+  return {
+    ...withOwnHeroId(log),
+    ...(log.enemyCarryHeroId === undefined && log.enemyCarry && getHeroIdByName(log.enemyCarry) !== undefined && { enemyCarryHeroId: getHeroIdByName(log.enemyCarry) }),
+    ...(log.enemySupportHeroIds === undefined && log.enemySupports?.length && compactHeroIds(log.enemySupports) && { enemySupportHeroIds: compactHeroIds(log.enemySupports) }),
+    ...(log.enemyHeroIds === undefined && log.enemyHeroes?.length && compactHeroIds(log.enemyHeroes) && { enemyHeroIds: compactHeroIds(log.enemyHeroes) }),
+  }
+}
+
+function enrichHeroNote(note: HeroNote): HeroNote {
+  const matchupNotes = note.matchupNotes
+    ? Object.fromEntries(Object.entries(note.matchupNotes).map(([key, matchupNote]) => {
+      const opponentHeroId = matchupNote.opponentHeroId ?? getHeroIdByName(matchupNote.opponentHero)
+      const enriched: HeroMatchupNote = opponentHeroId === undefined ? matchupNote : { ...matchupNote, opponentHeroId }
+      return [key, enriched]
+    }))
+    : note.matchupNotes
+  return {
+    ...withOwnHeroId(note),
+    ...(matchupNotes && { matchupNotes }),
+  }
+}
+
 function migrateV1AppState(raw: unknown): unknown {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw
   return {
@@ -144,11 +195,18 @@ function migrateV1AppState(raw: unknown): unknown {
 function salvageAppState(raw: unknown): AppState {
   const migrated = migrateV1AppState(raw)
   try {
-    return parseBackupData({ appState: migrated }).appState as AppState
+    return enrichHeroPool(parseBackupData({ appState: migrated }).appState as AppState)
   } catch (error) {
     warnRecovery(`[store:migrate] appState 无效，已重建默认应用状态：${error instanceof Error ? error.message : error}`)
-    return DEFAULT_APP_STATE
+    return enrichHeroPool(DEFAULT_APP_STATE)
   }
+}
+
+function enrichPersistedArrayItem<T>(key: ArrayKey, item: T): T {
+  if (key === 'matchLogs') return enrichMatchLog(item as MatchLog) as T
+  if (key === 'preGameSetups') return enrichPreGameSetup(item as PreGameSetup) as T
+  if (key === 'heroNotes') return enrichHeroNote(item as HeroNote) as T
+  return item
 }
 
 function salvageArray<T>(key: ArrayKey, raw: unknown): T[] {
@@ -163,7 +221,7 @@ function salvageArray<T>(key: ArrayKey, raw: unknown): T[] {
   let dropped = 0
   for (const item of raw) {
     try {
-      safe.push(parser(item) as T)
+      safe.push(enrichPersistedArrayItem(key, parser(item) as T))
     } catch {
       dropped += 1
     }
@@ -336,31 +394,31 @@ export function registerStoreIpcHandlers(store: ElectronStoreLike, todayKey: () 
   ipcMain.handle('store:setAppState', (_, partial: unknown) => {
     const current = getValidatedAppState(store)
     const parsed = parseAppStatePatch(partial) as Partial<AppState>
-    store.set('appState', { ...current, ...parsed })
+    store.set('appState', enrichHeroPool({ ...current, ...parsed }))
   })
 
   ipcMain.handle('store:addMatchLog', (_, log: unknown) => {
     const logs = getValidatedMatchLogs(store)
-    const parsed = parseMatchLog(log) as MatchLog
+    const parsed = enrichMatchLog(parseMatchLog(log) as MatchLog)
     store.set('matchLogs', [...logs, parsed])
   })
   ipcMain.handle('store:getMatchLogs', () => getValidatedMatchLogs(store))
   ipcMain.handle('store:updateMatchLog', (_, id: string, patch: unknown) => {
     const logs = getValidatedMatchLogs(store)
     const parsed = parseMatchLogPatch(patch) as Partial<MatchLog>
-    store.set('matchLogs', logs.map(l => l.id === id ? { ...l, ...parsed } : l))
+    store.set('matchLogs', logs.map(l => l.id === id ? enrichMatchLog({ ...l, ...parsed }) : l))
   })
 
   ipcMain.handle('store:addPreGameSetup', (_, s: unknown) => {
     const setups = getValidatedPreGameSetups(store)
-    const parsed = parsePreGameSetup(s) as PreGameSetup
+    const parsed = enrichPreGameSetup(parsePreGameSetup(s) as PreGameSetup)
     store.set('preGameSetups', [...setups, parsed])
   })
   ipcMain.handle('store:getPreGameSetups', () => getValidatedPreGameSetups(store))
   ipcMain.handle('store:updatePreGameSetup', (_, id: string, patch: unknown) => {
     const setups = getValidatedPreGameSetups(store)
     const parsed = parsePreGameSetupPatch(patch) as Partial<PreGameSetup>
-    store.set('preGameSetups', setups.map(s => s.id === id ? { ...s, ...parsed } : s))
+    store.set('preGameSetups', setups.map(s => s.id === id ? enrichPreGameSetup({ ...s, ...parsed }) : s))
   })
 
   function upsertDailyCheckin(c: unknown): DailyCheckin[] {
@@ -392,7 +450,7 @@ export function registerStoreIpcHandlers(store: ElectronStoreLike, todayKey: () 
   ipcMain.handle('store:getHeroNotes', () => getValidatedHeroNotes(store))
   ipcMain.handle('store:upsertHeroNote', (_, note: unknown) => {
     const notes = getValidatedHeroNotes(store)
-    const parsed = parseHeroNote(note) as HeroNote
+    const parsed = enrichHeroNote(parseHeroNote(note) as HeroNote)
     const normalizedHero = parsed.hero.trim()
     if (!normalizedHero) {
       throw new Error('英雄档案缺少英雄名。')
@@ -403,7 +461,7 @@ export function registerStoreIpcHandlers(store: ElectronStoreLike, todayKey: () 
       updatedAt: Date.now(),
     }
     store.set('heroNotes', [
-      ...notes.filter(item => item.hero !== normalizedHero),
+      ...notes.filter(item => !sameHeroReference(item, nextNote)),
       nextNote,
     ].sort((a, b) => a.hero.localeCompare(b.hero, 'zh-CN')))
   })

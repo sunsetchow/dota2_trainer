@@ -382,6 +382,17 @@ function getEnemyHeroNames(match: OpenDotaMatchResponse, player: OpenDotaPlayer)
     .filter((name, index, array) => array.indexOf(name) === index)
 }
 
+function getEnemyHeroIds(match: OpenDotaMatchResponse, player: OpenDotaPlayer): number[] {
+  const isRadiant = getIsRadiant(player)
+  if (isRadiant === undefined) return []
+
+  return (match.players ?? [])
+    .filter(row => getIsRadiant(row) === !isRadiant)
+    .map(row => row.hero_id)
+    .filter((id): id is number => Number.isFinite(id) && id > 0)
+    .filter((id, index, array) => array.indexOf(id) === index)
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
@@ -438,6 +449,7 @@ function buildImportedMatch(matchId: string, match: OpenDotaMatchResponse, playe
     playerSlot: player.player_slot,
     isRadiant: getIsRadiant(player),
     enemyHeroes: getEnemyHeroNames(match, player),
+    enemyHeroIds: getEnemyHeroIds(match, player),
     ...phaseGpm,
   }
 }

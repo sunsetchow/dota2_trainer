@@ -12,6 +12,7 @@ import SrsReviewPrompt from '../features/postgame/SrsReviewPrompt.tsx'
 import OpenDotaImportPanel from '../features/postgame/OpenDotaImportPanel.tsx'
 import { getCurrentWeek, todayStr } from '../utils/cycle.ts'
 import { getOpenDotaHeroName } from '../utils/opendotaHeroes.ts'
+import { getHeroIdByName, sameHeroReference } from '../utils/heroIdentity.ts'
 import { isDueForReview } from '../utils/srs.ts'
 import { formatOpenDotaErrorMessage, isOpenDotaParseRequestCandidate, normalizeOpenDotaError, createOpenDotaError } from '../utils/openDotaErrors.ts'
 
@@ -114,13 +115,13 @@ export default function PostGame() {
   const selectedHero = hero.trim()
   const lastSameHeroMatch = selectedHero
     ? [...matchLogs]
-      .filter(log => log.hero === selectedHero && Boolean(log.nextGameFocus?.trim()))
+      .filter(log => sameHeroReference(log, { hero: selectedHero }) && Boolean(log.nextGameFocus?.trim()))
       .sort((a, b) => b.timestamp - a.timestamp)[0]
     : undefined
 
   const heroPool = appState?.heroPool.filter(h => h.active).map(h => h.name) ?? []
   const selectedReviewDimension = REVIEW_DIMENSIONS.find(item => item.id === reviewDimension)
-  const selectedHeroNote = selectedHero ? heroNotes.find(note => note.hero === selectedHero) : undefined
+  const selectedHeroNote = selectedHero ? heroNotes.find(note => sameHeroReference(note, { hero: selectedHero })) : undefined
   const matchupTargets = buildMatchupTargets(selectedHero, pendingSetup, importedMatch)
   const previousHeroFocus = compactPreviousFocus(lastSameHeroMatch?.nextGameFocus)
   const quickFocusOptions = uniqueOptions([
@@ -167,10 +168,11 @@ export default function PostGame() {
       .filter(item => item.note)
     if (entries.length === 0) return
 
-    const existing = heroNotes.find(note => note.hero === cleanHero)
+    const existing = heroNotes.find(note => sameHeroReference(note, { hero: cleanHero }))
     const now = Date.now()
     const nextNote: HeroNote = {
       hero: cleanHero,
+      ...(getHeroIdByName(cleanHero) !== undefined && { heroId: getHeroIdByName(cleanHero) }),
       position: existing?.position ?? '',
       strongPeriod: existing?.strongPeriod ?? '',
       weakPeriod: existing?.weakPeriod ?? '',
@@ -193,6 +195,7 @@ export default function PostGame() {
     for (const entry of entries) {
       nextNote.matchupNotes![entry.opponentHero] = {
         opponentHero: entry.opponentHero,
+        ...(getHeroIdByName(entry.opponentHero) !== undefined && { opponentHeroId: getHeroIdByName(entry.opponentHero) }),
         note: entry.note,
         stance: entry.stance,
         updatedAt: now,
@@ -259,8 +262,9 @@ export default function PostGame() {
 
       await window.electronStore.addMatchLog(log)
       await saveMatchupNotesToHeroProfile(logId)
-      const relatedHeroes = new Set([log.hero, ...(log.enemyHeroes ?? []), ...(log.enemySupports ?? []), log.enemyCarry].filter((value): value is string => Boolean(value)))
-      const dueNotes = heroNotes.filter(note => relatedHeroes.has(note.hero) && isDueForReview(note, todayStr()))
+      const relatedHeroNames = new Set([log.hero, ...(log.enemyHeroes ?? []), ...(log.enemySupports ?? []), log.enemyCarry].filter((value): value is string => Boolean(value)))
+      const relatedHeroIds = new Set([log.heroId, ...(log.enemyHeroIds ?? []), ...(log.enemySupportHeroIds ?? []), log.enemyCarryHeroId].filter((value): value is number => value !== undefined))
+      const dueNotes = heroNotes.filter(note => (relatedHeroIds.has(note.heroId ?? -1) || relatedHeroNames.has(note.hero)) && isDueForReview(note, todayStr()))
       if (dueNotes.length > 0) {
         setSrsPromptNotes(dueNotes)
         setSaveStatus('对局已保存。可以顺手给相关英雄笔记打个复习分，或直接跳过。')

@@ -46,6 +46,7 @@ export interface OpenDotaSettings {
 export type StratzRankBracket = 'ALL' | 'HERALD_GUARDIAN' | 'CRUSADER_ARCHON' | 'LEGEND_ANCIENT' | 'DIVINE_IMMORTAL';
 export type DotaPosition = '1' | '2' | '3' | '4' | '5';
 export type EnemyByPosition = Partial<Record<DotaPosition, string>>;
+export type EnemyHeroIdByPosition = Partial<Record<DotaPosition, number>>;
 
 export interface StratzSettings {
   apiKey?: string;
@@ -98,12 +99,16 @@ export interface PreGameSetup {
   id: string;
   timestamp: number;
   hero: string;
+  heroId?: number;
   trainingGoal?: string;
   preGameFocus?: string;
   targetPosition?: DotaPosition;
   enemyByPosition?: EnemyByPosition;
+  enemyHeroIdsByPosition?: EnemyHeroIdByPosition;
   enemyCarry?: string;
+  enemyCarryHeroId?: number;
   enemySupports?: string[];
+  enemySupportHeroIds?: number[];
   cycleId?: string;
   linkedMatchId?: string;
 }
@@ -134,8 +139,11 @@ export interface MatchLog {
   draftScore?: 1 | 2 | 3 | 4 | 5;
   csAt10?: number;
   enemyCarry?: string;
+  enemyCarryHeroId?: number;
   enemySupports?: string[];
+  enemySupportHeroIds?: number[];
   enemyHeroes?: string[];
+  enemyHeroIds?: number[];
   matchId?: string;
   source?: 'manual' | 'opendota';
   heroId?: number;
@@ -192,6 +200,7 @@ export interface DailyCheckin {
 // ── 英雄配置
 export interface HeroConfig {
   name: string;
+  heroId?: number;
   active: boolean;
   tier?: 'main' | 'practice' | 'backup';
   positions?: DotaPosition[];
@@ -237,6 +246,7 @@ export interface OpenDotaImportedMatch {
   playerSlot?: number;
   isRadiant?: boolean;
   enemyHeroes?: string[];
+  enemyHeroIds?: number[];
   gpmPercentile?: number;
   xpmPercentile?: number;
   lastHitsPercentile?: number;
@@ -312,6 +322,7 @@ export interface HeroBenchmarkCache {
 
 export interface HeroMatchupNote {
   opponentHero: string;
+  opponentHeroId?: number;
   note: string;
   stance?: 'counters' | 'counteredBy' | 'general';
   updatedAt: number;
@@ -322,6 +333,7 @@ export interface HeroMatchupNote {
 // ── 英雄档案（P1）
 export interface HeroNote {
   hero: string;
+  heroId?: number;
   position: string;
   strongPeriod: string;
   weakPeriod: string;

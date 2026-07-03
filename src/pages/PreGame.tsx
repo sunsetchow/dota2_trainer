@@ -7,6 +7,7 @@ import Button from '../components/ui/Button.tsx'
 import Banner from '../components/ui/Banner.tsx'
 import { getCounters, getCountered } from '../utils/heroes.ts'
 import { getCurrentWeek } from '../utils/cycle.ts'
+import { sameHeroReference } from '../utils/heroIdentity.ts'
 import type { DotaPosition, EnemyByPosition, HeroMatchupCache, HeroNote, PreGameSetup } from '../types'
 
 const POSITION_LABELS: Record<DotaPosition, string> = {
@@ -135,7 +136,7 @@ export default function PreGame() {
   const weekTheme = activeCycle?.weekThemes.find(item => item.week === currentWeek)
 
   const hero = setup?.hero ?? ''
-  const heroNote = heroNotes.find(note => note.hero === hero)
+  const heroNote = setup ? heroNotes.find(note => sameHeroReference(note, setup)) : undefined
   const enemyByPosition: EnemyByPosition = setup?.enemyByPosition ?? {
     ...(setup?.enemyCarry && { '1': setup.enemyCarry }),
     ...(setup?.enemySupports?.[0] && { '4': setup.enemySupports[0] }),

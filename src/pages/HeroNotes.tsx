@@ -7,6 +7,7 @@ import Card from '../components/ui/Card.tsx'
 import HeroNoteReviewCard from '../features/heroNotes/HeroNoteReviewCard.tsx'
 import { useAppState, useHeroNotes } from '../store/useStore.ts'
 import { getPool, getSugg, resolve } from '../utils/heroes.ts'
+import { getHeroIdByName, sameHeroReference } from '../utils/heroIdentity.ts'
 import { todayStr } from '../utils/cycle.ts'
 import { applySrsRating, isDueForReview, type SrsRating } from '../utils/srs.ts'
 import {
@@ -25,6 +26,7 @@ type PoolFilter = 'all' | 'active' | 'main' | 'practice' | 'backup' | 'inactive'
 
 const emptyNote = (hero: string): HeroNote => ({
   hero,
+  ...(getHeroIdByName(hero) !== undefined && { heroId: getHeroIdByName(hero) }),
   position: '',
   strongPeriod: '',
   weakPeriod: '',
@@ -105,7 +107,7 @@ export default function HeroNotes() {
 
   const selectedConfig = selectedHero ? configByHero.get(selectedHero) : undefined
   const selectedPositions = selectedHero ? getConfiguredHeroPositions(selectedHero, selectedConfig) : []
-  const selectedNote = selectedHero ? noteByHero.get(selectedHero) : undefined
+  const selectedNote = selectedHero ? noteByHero.get(selectedHero) ?? heroNotes.find(note => sameHeroReference(note, { hero: selectedHero })) : undefined
 
   useEffect(() => {
     const hero = selectedHero.trim()
@@ -163,6 +165,7 @@ export default function HeroNotes() {
     const existing = heroPool.find(config => config.name === hero)
     const nextConfig: HeroConfig = {
       name: hero,
+      ...(getHeroIdByName(hero) !== undefined && { heroId: getHeroIdByName(hero) }),
       active: patch.active ?? existing?.active ?? true,
       tier: patch.tier ?? existing?.tier ?? 'practice',
       positions: patch.positions ?? existing?.positions ?? getDefaultHeroPositions(hero),
@@ -198,6 +201,7 @@ export default function HeroNotes() {
     await upsert({
       ...form,
       hero,
+      ...(getHeroIdByName(hero) !== undefined && { heroId: getHeroIdByName(hero) }),
       reviewRules: parseRules(reviewRulesText),
       matchupNotes: form.matchupNotes,
       srsEase: form.srsEase,

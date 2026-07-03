@@ -13,7 +13,9 @@ describe('buildPostGameMatchLog', () => {
       hero: '斧王',
       trainingGoal: '控线',
       enemyCarry: '敌法师',
+      enemyCarryHeroId: 1,
       enemySupports: ['巫医'],
+      enemySupportHeroIds: [30],
     }
 
     const log = buildPostGameMatchLog({
@@ -43,6 +45,7 @@ describe('buildPostGameMatchLog', () => {
       id: 'log-1',
       timestamp: now,
       hero: '斧王',
+      heroId: 2,
       result: 'win',
       durationMin: 42,
       cycleId: 'cycle-1',
@@ -57,7 +60,9 @@ describe('buildPostGameMatchLog', () => {
       draftScore: 4,
       csAt10: 61,
       enemyCarry: '敌法师',
+      enemyCarryHeroId: 1,
       enemySupports: ['巫医'],
+      enemySupportHeroIds: [30],
       matchId: '123',
       notes: 'note',
       reviewClipDeath: '18:40',
@@ -80,6 +85,7 @@ describe('buildPostGameMatchLog', () => {
       firstKeyItemMin: 16,
       gpmPercentile: 55,
       enemyHeroes: ['帕克', '敌法师'],
+      enemyHeroIds: [13, 1],
     }
 
     const log = buildPostGameMatchLog({
@@ -108,6 +114,7 @@ describe('buildPostGameMatchLog', () => {
       firstKeyItemName: '闪烁匕首',
       gpmPercentile: 55,
       enemyHeroes: ['帕克', '敌法师'],
+      enemyHeroIds: [13, 1],
     })
   })
 })

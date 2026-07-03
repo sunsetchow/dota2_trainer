@@ -1,4 +1,5 @@
 import type { MatchLog, OpenDotaImportedMatch, PreGameSetup, TrainingDimension } from '../../types'
+import { compactHeroIds, getHeroIdByName } from '../../utils/heroIdentity.ts'
 
 export interface PostGameMatchLogInput {
   id: string
@@ -39,11 +40,16 @@ export function buildPostGameMatchLog(input: PostGameMatchLogInput): MatchLog {
   const firstKeyItemMin = parseOptionalInt(input.firstKeyItemMin)
   const goodInitiations = parseOptionalInt(input.goodInitiations)
   const csAt10 = parseOptionalInt(input.csAt10)
+  const cleanHero = input.hero.trim()
+  const heroId = imported?.heroId ?? getHeroIdByName(cleanHero)
+  const enemySupportHeroIds = input.pendingSetup?.enemySupportHeroIds ?? compactHeroIds(input.pendingSetup?.enemySupports ?? [])
+  const enemyHeroIds = imported?.enemyHeroIds?.length ? imported.enemyHeroIds : imported?.enemyHeroes?.length ? compactHeroIds(imported.enemyHeroes) : undefined
 
   return {
     id: input.id,
     timestamp: imported?.timestamp ?? Date.now(),
-    hero: input.hero.trim(),
+    hero: cleanHero,
+    ...(heroId !== undefined && { heroId }),
     result: input.result,
     durationMin: parseInt(input.durationMin, 10),
     trainingGoalMet: input.trainingGoalMet,
@@ -60,8 +66,11 @@ export function buildPostGameMatchLog(input: PostGameMatchLogInput): MatchLog {
     ...(input.draftScore && input.draftScore > 0 && { draftScore: input.draftScore as 1 | 2 | 3 | 4 | 5 }),
     ...(csAt10 !== undefined && { csAt10 }),
     ...(input.pendingSetup?.enemyCarry && { enemyCarry: input.pendingSetup.enemyCarry }),
+    ...(input.pendingSetup?.enemyCarryHeroId !== undefined && { enemyCarryHeroId: input.pendingSetup.enemyCarryHeroId }),
     ...(input.pendingSetup?.enemySupports?.length && { enemySupports: input.pendingSetup.enemySupports }),
+    ...(enemySupportHeroIds?.length && { enemySupportHeroIds }),
     ...(imported?.enemyHeroes?.length && { enemyHeroes: imported.enemyHeroes }),
+    ...(enemyHeroIds?.length && { enemyHeroIds }),
     ...(cleanMatchId && { matchId: cleanMatchId }),
     ...(imported && {
       source: 'opendota' as const,

@@ -16,6 +16,8 @@
     "electron/**/*",
     "src/types/**/*",
     "src/schema/**/*",
+    "src/utils/**/*",
+    "src/data/**/*",
     "electron.vite.config.ts",
     "vite.config.ts"
   ]
