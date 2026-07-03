@@ -42,7 +42,7 @@ export interface OpenDotaSettings {
   matchupMinGames?: number;
 }
 
-// ── Stratz 设置（英雄克制矩阵可选数据源，天梯分段数据，比 OpenDota /matchups 只有职业赛数据样本大得多）
+// ── Stratz 设置（英雄克制矩阵数据源；OpenDota 不再用于 hero matchup）
 export type StratzRankBracket = 'ALL' | 'HERALD_GUARDIAN' | 'CRUSADER_ARCHON' | 'LEGEND_ANCIENT' | 'DIVINE_IMMORTAL';
 export type DotaPosition = '1' | '2' | '3' | '4' | '5';
 export type EnemyByPosition = Partial<Record<DotaPosition, string>>;
@@ -302,6 +302,44 @@ export interface HeroMatchupSyncResult {
   cache: HeroMatchupCache;
 }
 
+export type HeroTimingLabel = 'early' | 'mid' | 'late' | 'very_late' | 'balanced' | 'insufficient_data';
+export type HeroTimingConfidence = 'low' | 'medium' | 'high';
+
+export interface HeroTimingSegment {
+  winRate: number | null;
+  games: number;
+}
+
+export interface HeroTimingProfile {
+  heroId: number;
+  displayName: string;
+  localizedName?: string;
+  early: HeroTimingSegment;
+  mid: HeroTimingSegment;
+  late: HeroTimingSegment;
+  veryLate: HeroTimingSegment;
+  timingLabel: HeroTimingLabel;
+  peakMinute?: number;
+  totalGames: number;
+  confidence: HeroTimingConfidence;
+}
+
+export interface HeroTimingCache {
+  source: 'opendota';
+  syncedAt: number;
+  date: string;
+  version: 1;
+  heroCount: number;
+  profiles: Record<string, HeroTimingProfile>;
+  errors?: string[];
+}
+
+export interface HeroTimingSyncResult {
+  cached: boolean;
+  heroCount: number;
+  errors: string[];
+}
+
 export interface HeroBenchmarkPercentile {
   percentile: number;
   value: number;
@@ -383,6 +421,8 @@ declare global {
       requestOpenDotaParse(matchId: string): Promise<OpenDotaParseRequestResult>;
       getHeroMatchupCache(): Promise<HeroMatchupCache | null>;
       syncOpenDotaHeroMatchups(force?: boolean): Promise<HeroMatchupSyncResult>;
+      getHeroTimingCache(): Promise<HeroTimingCache | null>;
+      syncHeroTimings(force?: boolean): Promise<HeroTimingSyncResult>;
       exportAll(): Promise<{ success: boolean }>;
       importAll(json: string): Promise<void>;
     };

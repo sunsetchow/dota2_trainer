@@ -2,7 +2,7 @@ import { dialog, ipcMain } from 'electron'
 import { copyFileSync, existsSync } from 'fs'
 import { dirname, extname, join, basename } from 'path'
 import { writeFile } from 'fs/promises'
-import type { AppState, DailyCheckin, DotaPosition, HeroMatchupCache, HeroMatchupNote, HeroNote, MatchLog, MMRLog, PreGameSetup, TrainingCycle } from '../../src/types'
+import type { AppState, DailyCheckin, DotaPosition, HeroMatchupCache, HeroMatchupNote, HeroNote, HeroTimingCache, MatchLog, MMRLog, PreGameSetup, TrainingCycle } from '../../src/types'
 import { compactHeroIdMap, compactHeroIds, getCanonicalHeroName, getCanonicalHeroNameByReference, getHeroIdByName, sameHeroReference } from '../../src/utils/heroIdentity.ts'
 import {
   CURRENT_SCHEMA_VERSION,
@@ -12,6 +12,7 @@ import {
   parseDailyCheckin,
   parseHeroBenchmarkCacheMap,
   parseHeroMatchupCache,
+  parseHeroTimingCache,
   parseHeroNote,
   parseImportedBackupJson,
   parseMatchLog,
@@ -33,6 +34,7 @@ type PersistedStoreKey =
   | 'heroNotes'
   | 'heroMatchupCache'
   | 'heroBenchmarkCache'
+  | 'heroTimingCache'
 
 type ElectronStoreLike = {
   get: (key: string, defaultValue?: unknown) => unknown
@@ -52,6 +54,7 @@ const PERSISTED_STORE_KEYS: PersistedStoreKey[] = [
   'heroNotes',
   'heroMatchupCache',
   'heroBenchmarkCache',
+  'heroTimingCache',
 ]
 
 const DEFAULT_APP_STATE: AppState = {
@@ -252,6 +255,22 @@ function canonicalizeHeroMatchupCache(cache: HeroMatchupCache): HeroMatchupCache
   }
 }
 
+function canonicalizeHeroTimingCache(cache: HeroTimingCache): HeroTimingCache {
+  const profiles: HeroTimingCache['profiles'] = {}
+  for (const [key, profile] of Object.entries(cache.profiles)) {
+    const displayName = getCanonicalHeroNameByReference({ hero: profile.displayName, heroId: profile.heroId }) ?? profile.displayName
+    profiles[String(profile.heroId || key)] = {
+      ...profile,
+      displayName,
+    }
+  }
+  return {
+    ...cache,
+    heroCount: Object.keys(profiles).length,
+    profiles,
+  }
+}
+
 function migrateV1AppState(raw: unknown): unknown {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw
   return {
@@ -321,6 +340,16 @@ function recoverHeroBenchmarkCacheValue(raw: unknown) {
   }
 }
 
+function recoverHeroTimingCacheValue(raw: unknown) {
+  if (raw === null || raw === undefined) return null
+  try {
+    return canonicalizeHeroTimingCache(parseHeroTimingCache(raw) as HeroTimingCache)
+  } catch (error) {
+    warnRecovery(`[store:migrate] 清理无效 heroTimingCache：${error instanceof Error ? error.message : error}`)
+    return null
+  }
+}
+
 function collectRawPersistedData(store: ElectronStoreLike): Record<string, unknown> {
   return {
     schemaVersion: store.get('schemaVersion', 0),
@@ -333,6 +362,7 @@ function collectRawPersistedData(store: ElectronStoreLike): Record<string, unkno
     heroNotes: store.get('heroNotes', []),
     heroMatchupCache: store.get('heroMatchupCache', null),
     heroBenchmarkCache: store.get('heroBenchmarkCache', {}),
+    heroTimingCache: store.get('heroTimingCache', null),
   }
 }
 
@@ -361,6 +391,7 @@ export function migratePersistedData(raw: Record<string, unknown>): ParsedBackup
     heroNotes: salvageArray<HeroNote>('heroNotes', raw.heroNotes),
     heroMatchupCache: recoverHeroMatchupCacheValue(raw.heroMatchupCache),
     heroBenchmarkCache: recoverHeroBenchmarkCacheValue(raw.heroBenchmarkCache),
+    heroTimingCache: recoverHeroTimingCacheValue(raw.heroTimingCache),
   }
   return parseBackupData(candidate)
 }
@@ -406,6 +437,10 @@ export function getValidatedCycles(store: ElectronStoreLike): TrainingCycle[] {
   return salvageArray<TrainingCycle>('cycles', store.get('cycles', []))
 }
 
+export function getValidatedHeroTimingCache(store: ElectronStoreLike): HeroTimingCache | null {
+  return recoverHeroTimingCacheValue(store.get('heroTimingCache', null))
+}
+
 function recoverHeroMatchupCache(store: ElectronStoreLike) {
   const recovered = recoverHeroMatchupCacheValue(store.get('heroMatchupCache', null))
   if (recovered === null && store.get('heroMatchupCache', null) !== null) store.set('heroMatchupCache', null)
@@ -422,6 +457,7 @@ export function getValidatedStoreSnapshot(store: ElectronStoreLike) {
   const migrated = migratePersistedData(collectRawPersistedData(store))
   store.set('heroMatchupCache', migrated.heroMatchupCache)
   store.set('heroBenchmarkCache', migrated.heroBenchmarkCache)
+  store.set('heroTimingCache', migrated.heroTimingCache)
   return migrated
 }
 
@@ -454,6 +490,7 @@ export function recoverPersistedStoreForStartup(store: ElectronStoreLike, backup
     store.set('heroNotes', [])
     store.set('heroMatchupCache', null)
     store.set('heroBenchmarkCache', {})
+    store.set('heroTimingCache', null)
     return validateAndMigratePersistedStore(store, backupStoreFile)
   }
 }

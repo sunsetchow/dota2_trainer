@@ -1,12 +1,14 @@
 import store from '../store.ts'
 import opendotaHeroes from '../../src/data/opendotaHeroes.json'
-import type { AppState, MatchLog, OpenDotaImportedMatch, OpenDotaParseRequestResult, OpenDotaRecentMatch, HeroBenchmarkCache, HeroMatchupCache, HeroMatchupStats, HeroMatchupSyncResult, StratzRankBracket } from '../../src/types'
+import type { AppState, MatchLog, OpenDotaImportedMatch, OpenDotaParseRequestResult, OpenDotaRecentMatch, HeroBenchmarkCache, HeroMatchupCache, HeroMatchupStats, HeroMatchupSyncResult, HeroTimingCache, HeroTimingSyncResult, StratzRankBracket } from '../../src/types'
 import {
   parseHeroBenchmarkCache,
   parseHeroBenchmarkCacheMap,
   parseHeroMatchupCache,
+  parseHeroTimingCache,
 } from '../../src/schema/persistence.ts'
 import { createOpenDotaError } from '../../src/utils/openDotaErrors.ts'
+import { deriveHeroTimingProfile, sanitizeDurationBins } from '../../src/utils/heroTiming.ts'
 
 interface OpenDotaPlayer {
   account_id?: number;
@@ -96,10 +98,14 @@ const openDotaHeroNameById = new Map<number, string>(
   OPEN_DOTA_HEROES.map(hero => [hero.id, hero.displayName || hero.localizedName])
 )
 
-function getOpenDotaUrl(path: string): URL {
+function getOpenDotaApiKey(): string | undefined {
   const appState = store.get('appState') as AppState
+  return appState.openDota?.apiKey?.trim() || undefined
+}
+
+function getOpenDotaUrl(path: string): URL {
   const url = new URL(`https://api.opendota.com/api${path}`)
-  const apiKey = appState.openDota?.apiKey?.trim()
+  const apiKey = getOpenDotaApiKey()
   if (apiKey) url.searchParams.set('api_key', apiKey)
   return url
 }
@@ -657,6 +663,12 @@ function dateKeyFromDate(date: Date): string {
 }
 
 const HERO_MATCHUP_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
+const HERO_TIMING_CACHE_TTL_MS = HERO_MATCHUP_CACHE_TTL_MS
+const HERO_TIMING_PUBLIC_CONCURRENCY = 1
+const HERO_TIMING_PUBLIC_DELAY_MS = 1100
+const HERO_TIMING_API_KEY_CONCURRENCY = 3
+const HERO_TIMING_API_KEY_DELAY_MS = 350
+let syncHeroTimingsInFlight: Promise<HeroTimingSyncResult> | undefined
 
 function getIsoWeekKey(date = new Date()): string {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
@@ -672,17 +684,86 @@ function formatDateTime(ts?: number): string {
   return new Date(ts).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-async function runLimited<T>(items: T[], limit: number, task: (item: T) => Promise<void>): Promise<void> {
+async function runLimited<T>(
+  items: T[],
+  limit: number,
+  delayOrTask: number | ((item: T) => Promise<void>),
+  maybeTask?: (item: T) => Promise<void>,
+): Promise<void> {
+  const delayMs = typeof delayOrTask === 'number' ? delayOrTask : 1100
+  const task = typeof delayOrTask === 'number' ? maybeTask : delayOrTask
+  if (!task) throw new Error('runLimited task is required')
   let index = 0
   const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
     while (index < items.length) {
       const item = items[index]
       index += 1
       await task(item)
-      await sleep(1100)
+      if (index < items.length) await sleep(delayMs)
     }
   })
   await Promise.all(workers)
+}
+
+async function syncHeroTimings(force = false): Promise<HeroTimingSyncResult> {
+  if (syncHeroTimingsInFlight) return syncHeroTimingsInFlight
+  syncHeroTimingsInFlight = syncHeroTimingsInner(force).finally(() => {
+    syncHeroTimingsInFlight = undefined
+  })
+  return syncHeroTimingsInFlight
+}
+
+async function syncHeroTimingsInner(force: boolean): Promise<HeroTimingSyncResult> {
+  const currentRaw = store.get('heroTimingCache', null)
+  const current = currentRaw ? parseHeroTimingCache(currentRaw) as HeroTimingCache : null
+  const now = Date.now()
+  if (!force && current?.heroCount && now - current.syncedAt < HERO_TIMING_CACHE_TTL_MS) {
+    return { cached: true, heroCount: current.heroCount, errors: [] }
+  }
+
+  const profiles: HeroTimingCache['profiles'] = {}
+  const errors: string[] = []
+  const hasApiKey = Boolean(getOpenDotaApiKey())
+  const concurrency = hasApiKey ? HERO_TIMING_API_KEY_CONCURRENCY : HERO_TIMING_PUBLIC_CONCURRENCY
+  const delayMs = hasApiKey ? HERO_TIMING_API_KEY_DELAY_MS : HERO_TIMING_PUBLIC_DELAY_MS
+
+  await runLimited(OPEN_DOTA_HEROES, concurrency, delayMs, async hero => {
+    try {
+      const rawBins = await fetchOpenDotaJson<unknown>(`/heroes/${hero.id}/durations`, 20_000)
+      const bins = sanitizeDurationBins(rawBins)
+      if (bins.length === 0) {
+        errors.push(`${hero.displayName || hero.localizedName}: durations 返回空数据`)
+        return
+      }
+      const profile = deriveHeroTimingProfile({
+        id: hero.id,
+        displayName: hero.displayName || hero.localizedName,
+        localizedName: hero.localizedName,
+      }, bins)
+      profiles[String(hero.id)] = profile
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      errors.push(`${hero.displayName || hero.localizedName}: ${message}`)
+    }
+  })
+
+  if (Object.keys(profiles).length === 0) {
+    if (current) return { cached: false, heroCount: current.heroCount, errors }
+    throw new Error('OpenDota hero timing 数据同步失败，且本地没有可用缓存。')
+  }
+
+  const syncedAt = Date.now()
+  const cache = parseHeroTimingCache({
+    source: 'opendota',
+    syncedAt,
+    date: todayKey(),
+    version: 1,
+    heroCount: Object.keys(profiles).length,
+    profiles,
+    ...(errors.length > 0 && { errors: errors.slice(0, 12) }),
+  }) as HeroTimingCache
+  store.set('heroTimingCache', cache)
+  return { cached: false, heroCount: cache.heroCount, errors }
 }
 
 async function syncOpenDotaHeroMatchups(force = false): Promise<HeroMatchupSyncResult> {
@@ -967,6 +1048,7 @@ export function createDotaDataServices() {
     autoImportLatestOpenDotaMatch,
     listRecentOpenDotaMatches,
     requestOpenDotaParse,
+    syncHeroTimings,
     syncOpenDotaHeroMatchups,
     syncStratzHeroMatchups,
     sleep,

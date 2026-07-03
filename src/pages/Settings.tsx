@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppState, useCycles } from '../store/useStore.ts'
 import positionMetaJson from '../data/positionMetaHeroes.json'
-import type { HeroMatchupCache, PositionMetaSnapshot, StratzRankBracket, TrainingCycle } from '../types'
+import type { HeroMatchupCache, HeroTimingCache, PositionMetaSnapshot, StratzRankBracket, TrainingCycle } from '../types'
 
 const STRATZ_RANK_BRACKETS: Array<{ value: StratzRankBracket; label: string }> = [
   { value: 'ALL', label: '全部分段' },
@@ -31,7 +31,9 @@ export default function Settings() {
   const [stratzRankBracket, setStratzRankBracket] = useState<StratzRankBracket>('ALL')
   const [statusMsg, setStatusMsg] = useState('')
   const [syncingMatchups, setSyncingMatchups] = useState(false)
+  const [syncingTimings, setSyncingTimings] = useState(false)
   const [matchupCache, setMatchupCache] = useState<HeroMatchupCache | null>(null)
+  const [timingCache, setTimingCache] = useState<HeroTimingCache | null>(null)
 
   useEffect(() => {
     setOpenDotaAccountId(appState?.openDota?.accountId ?? '')
@@ -47,6 +49,9 @@ export default function Settings() {
   useEffect(() => {
     window.electronStore.getHeroMatchupCache()
       .then(setMatchupCache)
+      .catch(() => undefined)
+    window.electronStore.getHeroTimingCache()
+      .then(setTimingCache)
       .catch(() => undefined)
   }, [])
 
@@ -130,8 +135,9 @@ export default function Settings() {
     const trimmedStratzApiKey = stratzApiKey.trim()
     setStatusMsg(trimmedStratzApiKey
       ? '正在通过 Stratz 同步本周 matchup 矩阵…'
-      : '正在同步本周 matchup 矩阵，限速 1 req/sec，完整同步约 2 分钟。')
+      : '请先填写 Stratz API Key；matchup 数据源已固定为 Stratz。')
     try {
+      if (!trimmedStratzApiKey) throw new Error('matchup 数据源已固定为 Stratz，请先填写 Stratz API Key。')
       if (trimmedStratzApiKey !== (appState?.stratz?.apiKey ?? '') || stratzRankBracket !== (appState?.stratz?.rankBracket ?? 'ALL')) {
         await updateAppState({ stratz: { apiKey: trimmedStratzApiKey, rankBracket: stratzRankBracket } })
       }
@@ -142,6 +148,22 @@ export default function Settings() {
       setStatusMsg(error instanceof Error ? error.message : String(error))
     } finally {
       setSyncingMatchups(false)
+      setTimeout(() => setStatusMsg(''), 6000)
+    }
+  }
+
+  const handleSyncTimings = async () => {
+    setSyncingTimings(true)
+    setStatusMsg('正在通过 OpenDota durations 同步英雄 Timing 数据…')
+    try {
+      const result = await window.electronStore.syncHeroTimings(true)
+      const cache = await window.electronStore.getHeroTimingCache()
+      setTimingCache(cache)
+      setStatusMsg(`已同步 Timing 数据：${result.heroCount} 个英雄${result.errors.length ? `，${result.errors.length} 个失败` : ''}。`)
+    } catch (error) {
+      setStatusMsg(error instanceof Error ? error.message : String(error))
+    } finally {
+      setSyncingTimings(false)
       setTimeout(() => setStatusMsg(''), 6000)
     }
   }
@@ -274,7 +296,7 @@ export default function Settings() {
       <div className="space-y-3">
         <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Stratz（可选，英雄克制矩阵数据源）</h2>
         <p className="text-xs text-[var(--text-muted)]">
-          OpenDota 的克制矩阵接口只统计职业联赛比赛，样本量常年不到 50 局；Stratz 按天梯分段统计，单个对位常有几百到几千局。填了 Key 之后「同步本周 matchup 矩阵」会自动改用 Stratz，不填就继续用 OpenDota。Key 在 stratz.com 登录后自己的账号页里生成。
+          Stratz 按天梯分段统计，单个对位常有几百到几千局。matchup 数据源固定为 Stratz；OpenDota 仅用于 Match ID 导入、benchmarks 和 durations/timing。Key 在 stratz.com 登录后自己的账号页里生成。
         </p>
         <div className="space-y-2">
           <label className="block text-xs text-[var(--text-muted)]">API Key</label>
@@ -282,7 +304,7 @@ export default function Settings() {
             type="password"
             value={stratzApiKey}
             onChange={e => setStratzApiKey(e.target.value)}
-            placeholder="留空则继续使用 OpenDota 数据"
+            placeholder="用于同步 Stratz matchup 矩阵"
             className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-border)]"
           />
         </div>
@@ -313,7 +335,7 @@ export default function Settings() {
         <div className="pt-1 space-y-2">
           <p className="text-xs text-[var(--text-muted)]">
             本周 matchup 矩阵：{matchupCache
-              ? `${matchupCache.weekKey ?? matchupCache.date} · ${matchupCache.heroCount} 个英雄 · ${matchupCache.matchupCount} 条对位 · 数据源 ${matchupCache.source === 'stratz' ? 'Stratz' : 'OpenDota'} · 有效期至 ${formatCacheTime(matchupCache.expiresAt)}`
+              ? `${matchupCache.weekKey ?? matchupCache.date} · ${matchupCache.heroCount} 个英雄 · ${matchupCache.matchupCount} 条对位 · 数据源 Stratz · 有效期至 ${formatCacheTime(matchupCache.expiresAt)}`
               : '尚未同步'}
           </p>
           <button
@@ -323,6 +345,27 @@ export default function Settings() {
             className="w-full py-2.5 rounded-lg border border-[var(--border)] text-sm font-medium text-[var(--text-secondary)] hover:border-[var(--accent-border)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {syncingMatchups ? '同步中…' : '同步本周 matchup 矩阵'}
+          </button>
+        </div>
+      </div>
+
+      {/* 英雄 Timing 同步（OpenDota durations） */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">英雄 Timing 数据</h2>
+        <div className="pt-1 space-y-2">
+          <p className="text-xs text-[var(--text-muted)]">
+            OpenDota durations：{timingCache
+              ? `${timingCache.date} · ${timingCache.heroCount} 个英雄 · ${timingCache.errors?.length ? `${timingCache.errors.length} 个失败` : '完整缓存'}`
+              : '尚未同步'}
+          </p>
+          <p className="text-xs leading-5 text-[var(--text-muted)]">Timing 只用于 Draft 的强势期标签和“我的英雄 vs 敌方阵容时间线”，不会参与 Stratz matchup 分数。</p>
+          <button
+            type="button"
+            onClick={handleSyncTimings}
+            disabled={syncingTimings}
+            className="w-full py-2.5 rounded-lg border border-[var(--border)] text-sm font-medium text-[var(--text-secondary)] hover:border-[var(--accent-border)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {syncingTimings ? '同步中…' : '同步英雄 Timing 数据'}
           </button>
         </div>
       </div>

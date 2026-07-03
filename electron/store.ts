@@ -32,6 +32,7 @@ const store = new Store({
     heroNotes: [],
     heroMatchupCache: null,
     heroBenchmarkCache: {},
+    heroTimingCache: null,
   }
 })
 

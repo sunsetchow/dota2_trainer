@@ -14,11 +14,13 @@ import {
 import positionMetaJson from '../data/positionMetaHeroes.json'
 import { isHeroPlayableAtPosition } from '../utils/heroPool.ts'
 import { compactHeroIdMap, compactHeroIds, getHeroIdByName } from '../utils/heroIdentity.ts'
-import type { DotaPosition, EnemyByPosition, HeroConfig, HeroMatchupCache, PositionMetaSnapshot, PreGameSetup, RankedDraftHero } from '../types'
+import type { DotaPosition, EnemyByPosition, HeroConfig, HeroMatchupCache, HeroTimingCache, PositionMetaSnapshot, PreGameSetup, RankedDraftHero } from '../types'
+import { TIMING_LABEL_ZH } from '../utils/heroTiming.ts'
 import Button from '../components/ui/Button.tsx'
 import Card from '../components/ui/Card.tsx'
 import Badge from '../components/ui/Badge.tsx'
 import Banner from '../components/ui/Banner.tsx'
+import CompositionTimeline from '../components/CompositionTimeline.tsx'
 
 const POOL = getPool()
 const SUP_MAP = getSupMap()
@@ -109,12 +111,22 @@ function EnemyInput({
   )
 }
 
+function timingBadgeTone(label?: string): 'neutral' | 'accent' | 'success' | 'danger' | 'warning' | 'info' {
+  if (label === 'early') return 'info'
+  if (label === 'mid') return 'accent'
+  if (label === 'late') return 'warning'
+  if (label === 'very_late') return 'danger'
+  if (label === 'balanced') return 'neutral'
+  return 'warning'
+}
+
 function DraftHeroCard({
   item,
   index,
   selected,
   isInPool,
   tier,
+  timingProfile,
   onClick,
 }: {
   item: RankedDraftHero
@@ -122,6 +134,7 @@ function DraftHeroCard({
   selected: boolean
   isInPool: boolean
   tier?: HeroConfig['tier']
+  timingProfile?: HeroTimingCache['profiles'][string]
   onClick: () => void
 }) {
   const tone = recommendationTone(item, index)
@@ -144,7 +157,13 @@ function DraftHeroCard({
               {item.hero.slice(0, 1)}
             </span>
             <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-[var(--text-primary)]">{item.hero}</div>
+              <div className="flex flex-wrap items-center gap-1">
+                <div className="truncate text-sm font-semibold text-[var(--text-primary)]">{item.hero}</div>
+                {timingProfile && timingProfile.timingLabel !== 'insufficient_data' && (
+                  <Badge tone={timingBadgeTone(timingProfile.timingLabel)}>{TIMING_LABEL_ZH[timingProfile.timingLabel]}</Badge>
+                )}
+                {timingProfile?.timingLabel === 'insufficient_data' && <Badge tone="warning">数据少</Badge>}
+              </div>
               <div className="number mt-0.5 text-xs text-[var(--text-muted)]">{scoreFormula(item)}</div>
             </div>
           </div>
@@ -202,7 +221,9 @@ export default function DraftAssistant() {
   const [enemyByPosition, setEnemyByPosition] = useState<EnemyByPosition>({})
   const [focusedPosition, setFocusedPosition] = useState<DotaPosition | null>(null)
   const [matchupCache, setMatchupCache] = useState<HeroMatchupCache | null>(null)
+  const [timingCache, setTimingCache] = useState<HeroTimingCache | null>(null)
   const [syncStatus, setSyncStatus] = useState('')
+  const [timingSyncStatus, setTimingSyncStatus] = useState('')
   const [selectedHero, setSelectedHero] = useState<string>('')
   const lastEnemyKeyRef = useRef('')
 
@@ -254,6 +275,28 @@ export default function DraftAssistant() {
         if (cancelled) return
         setSyncStatus(error instanceof Error ? error.message : String(error))
       })
+      .finally(() => {
+        if (cancelled) return
+        window.electronStore.getHeroTimingCache()
+          .then(cache => {
+            if (!cancelled && cache) setTimingCache(cache)
+          })
+          .catch(() => undefined)
+        setTimingSyncStatus('正在检查英雄 timing 缓存')
+        window.electronStore.syncHeroTimings(false)
+          .then(result => {
+            if (cancelled) return
+            setTimingSyncStatus(result.cached ? `Timing 缓存仍有效（${result.heroCount} 个英雄）` : `已同步 Timing 数据（${result.heroCount} 个英雄${result.errors.length ? `，${result.errors.length} 个失败` : ''}）`)
+            return window.electronStore.getHeroTimingCache()
+          })
+          .then(cache => {
+            if (!cancelled && cache) setTimingCache(cache)
+          })
+          .catch(error => {
+            if (cancelled) return
+            setTimingSyncStatus(error instanceof Error ? error.message : String(error))
+          })
+      })
 
     return () => { cancelled = true }
   }, [])
@@ -282,6 +325,9 @@ export default function DraftAssistant() {
   }, [enemyKey, ranked, selectedHero])
 
   const selected = ranked.find(item => item.hero === selectedHero) ?? ranked[0]
+  const selectedHeroId = selected ? getHeroIdByName(selected.hero) : undefined
+  const selectedTimingProfile = selectedHeroId !== undefined ? timingCache?.profiles[String(selectedHeroId)] : undefined
+  const enemyHeroIds = compactHeroIds(enemyHeroes) ?? []
 
   const getDynamicDetailData = (hero: string, direction: 'counters' | 'countered'): Record<string, number> => {
     const matchups = matchupCache?.matchups[hero]
@@ -421,6 +467,7 @@ export default function DraftAssistant() {
           <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{syncStatus || '等待同步状态'}</p>
           <div className="mt-3 space-y-1 text-xs text-[var(--text-muted)]">
             <div>Matchup：{matchupCache ? `${matchupSourceLabel} ${matchupCache.rankBracket ?? ''} ${matchupCache.weekKey ?? matchupCache.date}` : '本地表'}</div>
+            <div>Timing：{timingCache ? `OpenDota durations ${timingCache.date} · ${timingCache.heroCount} 英雄` : (timingSyncStatus || '未同步')}</div>
             <div>位置热门：{positionMetaSource}</div>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2">
@@ -459,6 +506,7 @@ export default function DraftAssistant() {
                 selected={selected?.hero === item.hero}
                 isInPool={activePool.includes(item.hero)}
                 tier={item.poolTier}
+                timingProfile={timingCache?.profiles[String(getHeroIdByName(item.hero))]}
                 onClick={() => setSelectedHero(item.hero)}
               />
             ))}
@@ -477,6 +525,7 @@ export default function DraftAssistant() {
                     <Badge tone={selected.knownScore >= 0 ? 'success' : 'danger'}>已知 {signed(selected.knownScore)}</Badge>
                     <Badge tone={selected.unknownScore >= 0 ? 'accent' : 'warning'}>未知 {signed(selected.unknownScore)}</Badge>
                     <Badge tone={selected.proficiencyScore >= 0 ? 'accent' : 'warning'}>熟练度 {signed(selected.proficiencyScore)}</Badge>
+                    {selectedTimingProfile && <Badge tone={timingBadgeTone(selectedTimingProfile.timingLabel)}>Timing {TIMING_LABEL_ZH[selectedTimingProfile.timingLabel]}</Badge>}
                   </div>
                 </div>
                 <Badge tone={activePool.includes(selected.hero) ? 'neutral' : 'warning'}>{tierLabel(selected.poolTier, activePool.includes(selected.hero))}</Badge>
@@ -516,6 +565,8 @@ export default function DraftAssistant() {
                   <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">需要注意</div>
                   <p className="text-sm leading-6 text-[var(--text-secondary)]">{buildRisk(selected)}</p>
                 </div>
+
+                <CompositionTimeline selectedHeroId={selectedHeroId} enemyHeroIds={enemyHeroIds} timingCache={timingCache} />
 
                 <Button variant="primary" size="lg" fullWidth onClick={() => handleSelectHero(selected.hero)}>锁定并进入赛前</Button>
               </div>

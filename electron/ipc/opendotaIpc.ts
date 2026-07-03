@@ -3,12 +3,14 @@ import type {
   AppState,
   HeroMatchupCache,
   HeroMatchupSyncResult,
+  HeroTimingCache,
+  HeroTimingSyncResult,
   OpenDotaImportedMatch,
   OpenDotaParseRequestResult,
   OpenDotaRecentMatch,
   StratzRankBracket,
 } from '../../src/types'
-import { parseHeroMatchupCache } from '../../src/schema/persistence.ts'
+import { parseHeroMatchupCache, parseHeroTimingCache } from '../../src/schema/persistence.ts'
 
 type ElectronStoreLike = {
   get: (key: string, defaultValue?: unknown) => unknown
@@ -23,6 +25,7 @@ export interface OpenDotaIpcServices {
   requestOpenDotaParse: (matchId: string, timeoutMs?: number) => Promise<OpenDotaParseRequestResult>
   syncOpenDotaHeroMatchups: (force?: boolean) => Promise<HeroMatchupSyncResult>
   syncStratzHeroMatchups: (apiKey: string, rankBracket: StratzRankBracket, force?: boolean) => Promise<HeroMatchupSyncResult>
+  syncHeroTimings: (force?: boolean) => Promise<HeroTimingSyncResult>
 }
 
 export function registerOpenDotaIpcHandlers(store: ElectronStoreLike, services: OpenDotaIpcServices) {
@@ -55,6 +58,24 @@ export function registerOpenDotaIpcHandlers(store: ElectronStoreLike, services: 
     if (stratzApiKey) {
       return services.syncStratzHeroMatchups(stratzApiKey, appState.stratz?.rankBracket ?? 'ALL', Boolean(force))
     }
-    return services.syncOpenDotaHeroMatchups(Boolean(force))
+    const raw = store.get('heroMatchupCache', null)
+    const cache = raw ? parseHeroMatchupCache(raw) as HeroMatchupCache : null
+    if (cache?.source === 'stratz' && cache.matchupCount > 0) {
+      return {
+        status: 'stale',
+        message: 'matchup 数据源已固定为 Stratz；未配置 Stratz API Key，继续使用本地 Stratz 缓存。',
+        cache,
+      }
+    }
+    throw new Error('matchup 数据源已固定为 Stratz。请在设置页填写 Stratz API Key 后同步矩阵。')
+  })
+
+  ipcMain.handle('opendota:getHeroTimingCache', (): HeroTimingCache | null => {
+    const raw = store.get('heroTimingCache', null)
+    return raw ? parseHeroTimingCache(raw) as HeroTimingCache : null
+  })
+
+  ipcMain.handle('opendota:syncHeroTimings', async (_, force?: boolean): Promise<HeroTimingSyncResult> => {
+    return services.syncHeroTimings(Boolean(force))
   })
 }

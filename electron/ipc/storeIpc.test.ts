@@ -49,6 +49,30 @@ const invalidMatchLog = {
   nextGameFocus: 'bad',
 }
 
+
+const validHeroTimingCache = {
+  source: 'opendota',
+  syncedAt: 1,
+  date: '2026-07-03',
+  version: 1,
+  heroCount: 1,
+  profiles: {
+    '155': {
+      heroId: 155,
+      displayName: 'Largo',
+      localizedName: 'Largo',
+      early: { winRate: 0.52, games: 448 },
+      mid: { winRate: 0.55, games: 618 },
+      late: { winRate: null, games: 169 },
+      veryLate: { winRate: null, games: 47 },
+      timingLabel: 'mid',
+      peakMinute: 40,
+      totalGames: 1282,
+      confidence: 'medium',
+    },
+  },
+}
+
 function createStore(initial: Record<string, unknown>) {
   const data = new Map(Object.entries(initial))
   return {
@@ -132,6 +156,55 @@ describe('store IPC validation helpers', () => {
     expect(store.data.get('schemaVersion')).toBe(3)
     expect(store.data.get('matchLogs')).toEqual([{ ...validMatchLog, heroId: 2 }])
     expect(store.data.get('heroBenchmarkCache')).toEqual({})
+  })
+
+  it('clears a corrupt timing cache without breaking startup migration', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const store = createStore({
+      schemaVersion: 3,
+      appState: validAppState,
+      cycles: [],
+      matchLogs: [validMatchLog],
+      preGameSetups: [],
+      dailyCheckins: [],
+      mmrLogs: [],
+      heroNotes: [],
+      heroMatchupCache: null,
+      heroBenchmarkCache: {},
+      heroTimingCache: {
+        ...validHeroTimingCache,
+        profiles: {
+          '155': {
+            ...validHeroTimingCache.profiles['155'],
+            early: { winRate: 52, games: 448 },
+          },
+        },
+      },
+    })
+
+    expect(() => validateAndMigratePersistedStore(store)).not.toThrow()
+    expect(store.data.get('matchLogs')).toEqual([{ ...validMatchLog, heroId: 2 }])
+    expect(store.data.get('heroTimingCache')).toBeNull()
+  })
+
+  it('preserves and canonicalizes a valid timing cache during backup import', () => {
+    const migrated = migrateImportedBackupJson(JSON.stringify({
+      schemaVersion: 3,
+      appState: validAppState,
+      matchLogs: [],
+      preGameSetups: [],
+      heroNotes: [],
+      heroMatchupCache: null,
+      heroBenchmarkCache: {},
+      heroTimingCache: validHeroTimingCache,
+    }))
+
+    expect(migrated.heroTimingCache?.profiles['155']).toMatchObject({
+      heroId: 155,
+      displayName: '朗戈',
+      localizedName: 'Largo',
+      timingLabel: 'mid',
+    })
   })
 
   it('salvages valid core array rows and drops only corrupt rows during startup migration', () => {

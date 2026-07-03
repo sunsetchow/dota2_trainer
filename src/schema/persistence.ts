@@ -251,6 +251,35 @@ export const HeroBenchmarkCacheSchema = z.object({
 
 export const HeroBenchmarkCacheMapSchema = z.record(z.string(), HeroBenchmarkCacheSchema)
 
+const HeroTimingSegmentSchema = z.object({
+  winRate: z.number().min(0).max(1).nullable(),
+  games: z.number().int().nonnegative(),
+}).strict()
+
+export const HeroTimingProfileSchema = z.object({
+  heroId: z.number().int().positive(),
+  displayName: z.string().trim().min(1),
+  localizedName: z.string().trim().min(1).optional(),
+  early: HeroTimingSegmentSchema,
+  mid: HeroTimingSegmentSchema,
+  late: HeroTimingSegmentSchema,
+  veryLate: HeroTimingSegmentSchema,
+  timingLabel: z.enum(['early', 'mid', 'late', 'very_late', 'balanced', 'insufficient_data']),
+  peakMinute: z.number().int().positive().optional(),
+  totalGames: z.number().int().nonnegative(),
+  confidence: z.enum(['low', 'medium', 'high']),
+}).strict()
+
+export const HeroTimingCacheSchema = z.object({
+  source: z.literal('opendota'),
+  syncedAt: z.number().finite(),
+  date: z.string(),
+  version: z.literal(1),
+  heroCount: z.number().int().nonnegative(),
+  profiles: z.record(z.string(), HeroTimingProfileSchema),
+  errors: z.array(z.string()).optional(),
+}).strict()
+
 export const BackupSchema = z.object({
   schemaVersion: z.number().int().nonnegative().default(CURRENT_SCHEMA_VERSION),
   appState: AppStateSchema.optional(),
@@ -262,6 +291,7 @@ export const BackupSchema = z.object({
   heroNotes: z.array(HeroNoteSchema).optional(),
   heroMatchupCache: HeroMatchupCacheSchema.nullable().optional(),
   heroBenchmarkCache: z.record(z.string(), HeroBenchmarkCacheSchema).optional(),
+  heroTimingCache: HeroTimingCacheSchema.nullable().optional(),
 }).strict()
 
 export type ParsedBackupData = z.infer<typeof BackupSchema>
@@ -323,6 +353,10 @@ export function parseHeroBenchmarkCache(value: unknown) {
 
 export function parseHeroBenchmarkCacheMap(value: unknown) {
   return parseWithMessage(HeroBenchmarkCacheMapSchema, value, '英雄 benchmark 缓存集合数据无效')
+}
+
+export function parseHeroTimingCache(value: unknown) {
+  return parseWithMessage(HeroTimingCacheSchema, value, '英雄 timing 缓存数据无效')
 }
 
 export function parseTrainingCycle(value: unknown) {

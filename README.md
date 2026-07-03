@@ -2,7 +2,7 @@
 
 Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 2 个人训练、英雄池管理、Draft 辅助、赛前计划、赛后复盘、数据导入和英雄笔记间隔复习。
 
-当前版本：`0.2.11`
+当前版本：`0.3.0`
 
 ## 核心功能
 
@@ -22,6 +22,8 @@ Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 
 - 每个英雄可配置可用位置；显式空位置数组会被视为用户意图，不回退默认池。
 - 支持中文名、英文名和别名搜索。
 - 点击推荐英雄会直接创建待关联的赛前记录，并进入赛前提醒页。
+- 英雄 Timing Cache 使用 OpenDota `/durations` 计算前 / 中 / 后 / 大后期强势标签；低样本阶段显示“数据少”或静默降级，不伪造 50% 胜率。
+- Draft 右侧会在有缓存时展示“我的英雄 vs 敌方已知阵容时间线”，用于判断主要行动窗口。
 
 ### 赛前提醒
 
@@ -73,7 +75,8 @@ Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 
 - OpenDota 导入会解析敌方 5 个英雄；即使没有从 Draft / 赛前链路进入赛后页，也会显示对位英雄笔记卡片。
 - 稳定 `heroId` migration / 读写校验会把历史英文名（例如 `Largo`）规范化为当前中文显示名（例如 `朗戈`），避免赛后、历史、英雄池和 matchup cache 继续使用旧英文 key。
 - 英雄 benchmark percentile enrichment。
-- OpenDota / Stratz matchup cache 同步。
+- Stratz-only matchup cache 同步；OpenDota 不再作为 hero matchup 数据源。
+- OpenDota durations / hero Timing Cache 同步，用于 Draft 强势期标签和时间线；不参与 matchup 分数。
 - bundled matchup snapshot 冷启动兜底。
 
 ### 数据安全和备份
@@ -83,7 +86,7 @@ Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 
 - 备份导入前校验完整 JSON shape，拒绝未知 top-level key 和坏数据。
 - 备份导出会移除 API key 等敏感字段。
 - 启动时会执行 v3 migration / recovery：核心数组逐条 salvage，坏条目丢弃且健康数据保留，并为旧的中文名 keyed 英雄数据补齐稳定 `heroId`。
-- 坏 matchup / benchmark cache 会自动清空为可重建状态，不会拖垮核心训练数据。
+- 坏 matchup / benchmark / timing cache 会自动清空为可重建状态，不会拖垮核心训练数据。
 - 发生 destructive recovery 时会优先备份当前 store 为 `*.corrupt-YYYYMMDD-HHmmss.json`。
 - 备份导入会先 migration / salvage 到当前 `schemaVersion`，再写入本地 store。
 
@@ -115,7 +118,7 @@ electron/
 src/
   app/
     AppShell.tsx                  应用壳和导航
-  components/                     通用 UI 和训练组件
+  components/                     通用 UI、训练组件和 CompositionTimeline
   data/                           英雄、位置池、matchup snapshot、review dimensions
   features/
     heroNotes/
@@ -131,7 +134,7 @@ src/
     persistence.test.ts           schema/parser tests
   store/
     useStore.ts                   renderer store hooks
-  utils/                          hero resolve / identity、SRS、cycle、OpenDota structured errors 等工具
+  utils/                          hero resolve / identity、Timing、SRS、cycle、OpenDota structured errors 等工具
 ```
 
 ## 本地开发
@@ -211,6 +214,8 @@ git diff --check
 
 ## 最近重要改动
 
+- Phase 29：英雄 Timing Cache 接入 OpenDota `/durations`；Draft 显示强势期标签和“我的英雄 vs 敌方已知阵容时间线”，低样本阶段不参与强势期判断。
+- 数据源策略：英雄 matchup 固定为 Stratz-only；OpenDota 仅用于 Match ID 导入、benchmarks 和 Timing durations。
 - Phase 1：Zod runtime schema、Vitest、backup/import validation、schemaVersion 地基。
 - Phase 2：拆分 Electron main，抽出 store/openDota IPC 和 Dota data services。
 - Phase 3：拆分 PostGame，抽出 postgame feature helpers/UI，并补测试。

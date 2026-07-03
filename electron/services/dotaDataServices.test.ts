@@ -91,3 +91,101 @@ describe('Dota data OpenDota recent match import', () => {
     ])
   })
 })
+
+
+describe('Dota data OpenDota hero timing sync', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    storeState.values.clear()
+    storeState.values.set('appState', { openDota: { accountId: '42', apiKey: '' } })
+  })
+
+  it('returns fresh hero timing cache without fetching', async () => {
+    const syncedAt = Date.now()
+    storeState.values.set('heroTimingCache', {
+      source: 'opendota',
+      syncedAt,
+      date: '2026-07-03',
+      version: 1,
+      heroCount: 1,
+      profiles: {
+        '155': {
+          heroId: 155,
+          displayName: '朗戈',
+          localizedName: 'Largo',
+          early: { winRate: 0.52, games: 448 },
+          mid: { winRate: 0.55, games: 618 },
+          late: { winRate: null, games: 169 },
+          veryLate: { winRate: null, games: 47 },
+          timingLabel: 'mid',
+          totalGames: 1282,
+          confidence: 'medium',
+        },
+      },
+    })
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(createDotaDataServices().syncHeroTimings(false)).resolves.toEqual({ cached: true, heroCount: 1, errors: [] })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('syncs durations into canonical display-name timing profiles', async () => {
+    vi.useFakeTimers()
+    const fetchMock = vi.fn(async (url: string | URL) => {
+      const path = new URL(String(url)).pathname
+      if (!path.endsWith('/durations')) throw new Error(`unexpected fetch ${path}`)
+      return jsonResponse([
+        { duration_bin: 900, games_played: 250, wins: 125 },
+        { duration_bin: 1800, games_played: 220, wins: 120 },
+        { duration_bin: 2400, games_played: 400, wins: 230 },
+        { duration_bin: 3300, games_played: 80, wins: 45 },
+      ])
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const promise = createDotaDataServices().syncHeroTimings(true)
+    await vi.runAllTimersAsync()
+    const result = await promise
+
+    expect(result.cached).toBe(false)
+    expect(result.heroCount).toBeGreaterThan(100)
+    const cache = storeState.values.get('heroTimingCache') as any
+    expect(cache.profiles['155']).toMatchObject({
+      heroId: 155,
+      displayName: '朗戈',
+      localizedName: 'Largo',
+      timingLabel: 'mid',
+    })
+    expect(cache.profiles['155'].late.winRate).toBeNull()
+    vi.useRealTimers()
+  })
+
+  it('records a malformed hero duration response as an error without dropping other profiles', async () => {
+    vi.useFakeTimers()
+    let calls = 0
+    const fetchMock = vi.fn(async () => {
+      calls += 1
+      if (calls === 1) {
+        return jsonResponse([{ duration_bin: 900, games_played: 10, wins: 11 }])
+      }
+      return jsonResponse([
+        { duration_bin: 900, games_played: 250, wins: 125 },
+        { duration_bin: 1800, games_played: 220, wins: 120 },
+        { duration_bin: 2400, games_played: 400, wins: 230 },
+      ])
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const promise = createDotaDataServices().syncHeroTimings(true)
+    await vi.runAllTimersAsync()
+    const result = await promise
+
+    expect(result.cached).toBe(false)
+    expect(result.heroCount).toBeGreaterThan(100)
+    expect(result.errors.some(error => error.includes('wins 大于 games_played'))).toBe(true)
+    const cache = storeState.values.get('heroTimingCache') as any
+    expect(cache.heroCount).toBe(result.heroCount)
+    vi.useRealTimers()
+  })
+})
