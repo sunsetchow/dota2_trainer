@@ -1,7 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import store from './store.ts'
-import { registerStoreIpcHandlers, validateAndMigratePersistedStore } from './ipc/storeIpc.ts'
+import { registerStoreIpcHandlers, recoverPersistedStoreForStartup } from './ipc/storeIpc.ts'
 import { registerOpenDotaIpcHandlers } from './ipc/opendotaIpc.ts'
 import { createDotaDataServices, todayKey } from './services/dotaDataServices.ts'
 import heroMatchupSnapshot from '../src/data/heroMatchupSnapshot.json'
@@ -86,7 +86,7 @@ registerStoreIpcHandlers(store, todayKey)
 registerOpenDotaIpcHandlers(store, createDotaDataServices())
 
 app.whenReady().then(() => {
-  validateAndMigratePersistedStore(store)
+  recoverPersistedStoreForStartup(store)
 
   // 冷启动：确保 activeCycleId 始终存在
   const appState = store.get('appState') as AppState

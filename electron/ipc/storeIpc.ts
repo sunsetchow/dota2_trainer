@@ -1,4 +1,6 @@
 import { dialog, ipcMain } from 'electron'
+import { copyFileSync, existsSync } from 'fs'
+import { dirname, extname, join, basename } from 'path'
 import { writeFile } from 'fs/promises'
 import type { AppState, DailyCheckin, HeroNote, MatchLog, MMRLog, PreGameSetup, TrainingCycle } from '../../src/types'
 import {
@@ -17,6 +19,7 @@ import {
   parsePreGameSetup,
   parsePreGameSetupPatch,
   parseTrainingCycle,
+  type ParsedBackupData,
 } from '../../src/schema/persistence.ts'
 
 type PersistedStoreKey =
@@ -33,6 +36,7 @@ type PersistedStoreKey =
 type ElectronStoreLike = {
   get: (key: string, defaultValue?: unknown) => unknown
   set: (key: string, value: unknown) => void
+  path?: string
 }
 
 const PERSISTED_STORE_KEYS: PersistedStoreKey[] = [
@@ -47,121 +51,301 @@ const PERSISTED_STORE_KEYS: PersistedStoreKey[] = [
   'heroBenchmarkCache',
 ]
 
-export function getValidatedAppState(store: ElectronStoreLike): AppState {
-  return parseBackupData({ appState: store.get('appState') }).appState as AppState
+const DEFAULT_APP_STATE: AppState = {
+  activeCycleId: '',
+  heroPool: [],
+  currentStreak: 0,
+  longestStreak: 0,
+  pendingPreGameSetupId: undefined,
+  checklistFreezeTokens: 0,
+  freezeUsedDates: [],
+  openDota: {
+    accountId: '',
+    apiKey: undefined,
+    matchupMinGames: undefined,
+  },
+  stratz: {
+    apiKey: undefined,
+    rankBracket: 'ALL',
+  },
 }
 
-export function getValidatedMatchLogs(store: ElectronStoreLike): MatchLog[] {
-  return parseBackupData({ matchLogs: store.get('matchLogs', []) }).matchLogs ?? []
+const ARRAY_KEYS = ['cycles', 'matchLogs', 'preGameSetups', 'dailyCheckins', 'mmrLogs', 'heroNotes'] as const
+
+type ArrayKey = typeof ARRAY_KEYS[number]
+
+const ARRAY_PARSERS = {
+  cycles: parseTrainingCycle,
+  matchLogs: parseMatchLog,
+  preGameSetups: parsePreGameSetup,
+  dailyCheckins: parseDailyCheckin,
+  mmrLogs: parseMMRLog,
+  heroNotes: parseHeroNote,
+} satisfies Record<ArrayKey, (value: unknown) => unknown>
+
+let recoveryChangedCurrentPass = false
+
+function compactUtcTimestamp(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return [
+    date.getUTCFullYear(),
+    pad(date.getUTCMonth() + 1),
+    pad(date.getUTCDate()),
+    '-',
+    pad(date.getUTCHours()),
+    pad(date.getUTCMinutes()),
+    pad(date.getUTCSeconds()),
+  ].join('')
 }
 
-export function getValidatedPreGameSetups(store: ElectronStoreLike): PreGameSetup[] {
-  return parseBackupData({ preGameSetups: store.get('preGameSetups', []) }).preGameSetups ?? []
+export function backupCorruptStoreFile(storePath: string | undefined, now = new Date()): string | null {
+  if (!storePath || !existsSync(storePath)) return null
+  const ext = extname(storePath) || '.json'
+  const base = basename(storePath, ext)
+  const backupPath = join(dirname(storePath), `${base}.corrupt-${compactUtcTimestamp(now)}${ext}`)
+  copyFileSync(storePath, backupPath)
+  return backupPath
 }
 
-export function getValidatedDailyCheckins(store: ElectronStoreLike): DailyCheckin[] {
-  return parseBackupData({ dailyCheckins: store.get('dailyCheckins', []) }).dailyCheckins ?? []
+function warnRecovery(message: string) {
+  recoveryChangedCurrentPass = true
+  console.warn(message)
 }
 
-export function getValidatedMMRLogs(store: ElectronStoreLike): MMRLog[] {
-  return parseBackupData({ mmrLogs: store.get('mmrLogs', []) }).mmrLogs ?? []
+function migrateV1AppState(raw: unknown): unknown {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw
+  return {
+    currentStreak: 0,
+    longestStreak: 0,
+    ...raw,
+  }
 }
 
-export function getValidatedHeroNotes(store: ElectronStoreLike): HeroNote[] {
-  return parseBackupData({ heroNotes: store.get('heroNotes', []) }).heroNotes ?? []
+function salvageAppState(raw: unknown): AppState {
+  const migrated = migrateV1AppState(raw)
+  try {
+    return parseBackupData({ appState: migrated }).appState as AppState
+  } catch (error) {
+    warnRecovery(`[store:migrate] appState 无效，已重建默认应用状态：${error instanceof Error ? error.message : error}`)
+    return DEFAULT_APP_STATE
+  }
 }
 
-export function getValidatedCycles(store: ElectronStoreLike): TrainingCycle[] {
-  return parseBackupData({ cycles: store.get('cycles', []) }).cycles ?? []
+function salvageArray<T>(key: ArrayKey, raw: unknown): T[] {
+  if (raw === undefined || raw === null) return []
+  if (!Array.isArray(raw)) {
+    warnRecovery(`[store:migrate] ${key} 不是数组，已重置为空数组。`)
+    return []
+  }
+
+  const parser = ARRAY_PARSERS[key]
+  const safe: T[] = []
+  let dropped = 0
+  for (const item of raw) {
+    try {
+      safe.push(parser(item) as T)
+    } catch {
+      dropped += 1
+    }
+  }
+  if (dropped > 0) {
+    warnRecovery(`[store:migrate] 丢弃 ${dropped} 条无效 ${key}，保留 ${safe.length} 条。`)
+  }
+  return safe
 }
 
-function recoverHeroMatchupCache(store: ElectronStoreLike) {
-  const raw = store.get('heroMatchupCache', null)
+function recoverHeroMatchupCacheValue(raw: unknown) {
   if (raw === null || raw === undefined) return null
   try {
     return parseHeroMatchupCache(raw)
   } catch (error) {
-    console.warn('[store:migrate] 清理无效 heroMatchupCache：', error instanceof Error ? error.message : error)
-    store.set('heroMatchupCache', null)
+    warnRecovery(`[store:migrate] 清理无效 heroMatchupCache：${error instanceof Error ? error.message : error}`)
     return null
   }
 }
 
-function recoverHeroBenchmarkCache(store: ElectronStoreLike) {
-  const raw = store.get('heroBenchmarkCache', {})
+function recoverHeroBenchmarkCacheValue(raw: unknown) {
+  if (raw === null || raw === undefined) return {}
   try {
     return parseHeroBenchmarkCacheMap(raw)
   } catch (error) {
-    console.warn('[store:migrate] 清理无效 heroBenchmarkCache：', error instanceof Error ? error.message : error)
-    store.set('heroBenchmarkCache', {})
+    warnRecovery(`[store:migrate] 清理无效 heroBenchmarkCache：${error instanceof Error ? error.message : error}`)
     return {}
   }
 }
 
+function collectRawPersistedData(store: ElectronStoreLike): Record<string, unknown> {
+  return {
+    schemaVersion: store.get('schemaVersion', 0),
+    appState: store.get('appState'),
+    cycles: store.get('cycles', []),
+    matchLogs: store.get('matchLogs', []),
+    preGameSetups: store.get('preGameSetups', []),
+    dailyCheckins: store.get('dailyCheckins', []),
+    mmrLogs: store.get('mmrLogs', []),
+    heroNotes: store.get('heroNotes', []),
+    heroMatchupCache: store.get('heroMatchupCache', null),
+    heroBenchmarkCache: store.get('heroBenchmarkCache', {}),
+  }
+}
+
+
+function redactApiKeys(appState: AppState): AppState {
+  const { apiKey: _openDotaApiKey, ...openDotaWithoutApiKey } = appState.openDota ?? {}
+  const { apiKey: _stratzApiKey, ...stratzWithoutApiKey } = appState.stratz ?? {}
+  return {
+    ...appState,
+    openDota: appState.openDota ? openDotaWithoutApiKey : undefined,
+    stratz: appState.stratz ? stratzWithoutApiKey : undefined,
+  }
+}
+
+export function migratePersistedData(raw: Record<string, unknown>): ParsedBackupData {
+  const fromVersion = normalizeSchemaVersion(raw.schemaVersion)
+  const migratedAppState = fromVersion < 2 ? migrateV1AppState(raw.appState) : raw.appState
+  const candidate = {
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+    appState: salvageAppState(migratedAppState),
+    cycles: salvageArray<TrainingCycle>('cycles', raw.cycles),
+    matchLogs: salvageArray<MatchLog>('matchLogs', raw.matchLogs),
+    preGameSetups: salvageArray<PreGameSetup>('preGameSetups', raw.preGameSetups),
+    dailyCheckins: salvageArray<DailyCheckin>('dailyCheckins', raw.dailyCheckins),
+    mmrLogs: salvageArray<MMRLog>('mmrLogs', raw.mmrLogs),
+    heroNotes: salvageArray<HeroNote>('heroNotes', raw.heroNotes),
+    heroMatchupCache: recoverHeroMatchupCacheValue(raw.heroMatchupCache),
+    heroBenchmarkCache: recoverHeroBenchmarkCacheValue(raw.heroBenchmarkCache),
+  }
+  return parseBackupData(candidate)
+}
+
+export function migrateImportedBackupJson(json: string): ParsedBackupData {
+  let raw: unknown
+  try {
+    raw = JSON.parse(json)
+  } catch {
+    throw new Error('备份文件不是有效 JSON。')
+  }
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return parseImportedBackupJson(json)
+  }
+  return migratePersistedData(raw as Record<string, unknown>)
+}
+
+export function getValidatedAppState(store: ElectronStoreLike): AppState {
+  return salvageAppState(store.get('appState'))
+}
+
+export function getValidatedMatchLogs(store: ElectronStoreLike): MatchLog[] {
+  return salvageArray<MatchLog>('matchLogs', store.get('matchLogs', []))
+}
+
+export function getValidatedPreGameSetups(store: ElectronStoreLike): PreGameSetup[] {
+  return salvageArray<PreGameSetup>('preGameSetups', store.get('preGameSetups', []))
+}
+
+export function getValidatedDailyCheckins(store: ElectronStoreLike): DailyCheckin[] {
+  return salvageArray<DailyCheckin>('dailyCheckins', store.get('dailyCheckins', []))
+}
+
+export function getValidatedMMRLogs(store: ElectronStoreLike): MMRLog[] {
+  return salvageArray<MMRLog>('mmrLogs', store.get('mmrLogs', []))
+}
+
+export function getValidatedHeroNotes(store: ElectronStoreLike): HeroNote[] {
+  return salvageArray<HeroNote>('heroNotes', store.get('heroNotes', []))
+}
+
+export function getValidatedCycles(store: ElectronStoreLike): TrainingCycle[] {
+  return salvageArray<TrainingCycle>('cycles', store.get('cycles', []))
+}
+
+function recoverHeroMatchupCache(store: ElectronStoreLike) {
+  const recovered = recoverHeroMatchupCacheValue(store.get('heroMatchupCache', null))
+  if (recovered === null && store.get('heroMatchupCache', null) !== null) store.set('heroMatchupCache', null)
+  return recovered
+}
+
+function recoverHeroBenchmarkCache(store: ElectronStoreLike) {
+  const recovered = recoverHeroBenchmarkCacheValue(store.get('heroBenchmarkCache', {}))
+  if (recovered && recovered !== store.get('heroBenchmarkCache', {})) store.set('heroBenchmarkCache', recovered)
+  return recovered
+}
+
 export function getValidatedStoreSnapshot(store: ElectronStoreLike) {
-  const safeAppState = getValidatedAppState(store)
-  return parseBackupData({
-    schemaVersion: normalizeSchemaVersion(store.get('schemaVersion', 0)),
-    appState: safeAppState,
-    cycles: getValidatedCycles(store),
-    matchLogs: getValidatedMatchLogs(store),
-    preGameSetups: getValidatedPreGameSetups(store),
-    dailyCheckins: getValidatedDailyCheckins(store),
-    mmrLogs: getValidatedMMRLogs(store),
-    heroNotes: getValidatedHeroNotes(store),
-    heroMatchupCache: recoverHeroMatchupCache(store),
-    heroBenchmarkCache: recoverHeroBenchmarkCache(store),
-  })
+  const migrated = migratePersistedData(collectRawPersistedData(store))
+  store.set('heroMatchupCache', migrated.heroMatchupCache)
+  store.set('heroBenchmarkCache', migrated.heroBenchmarkCache)
+  return migrated
 }
 
 export function validateAndMigratePersistedStore(store: ElectronStoreLike) {
+  recoveryChangedCurrentPass = false
+  const migrated = migratePersistedData(collectRawPersistedData(store))
+  if (recoveryChangedCurrentPass) {
+    backupCorruptStoreFile(store.path)
+  }
   store.set('schemaVersion', CURRENT_SCHEMA_VERSION)
-  store.set('appState', getValidatedAppState(store))
-  store.set('cycles', getValidatedCycles(store))
-  store.set('matchLogs', getValidatedMatchLogs(store))
-  store.set('preGameSetups', getValidatedPreGameSetups(store))
-  store.set('dailyCheckins', getValidatedDailyCheckins(store))
-  store.set('mmrLogs', getValidatedMMRLogs(store))
-  store.set('heroNotes', getValidatedHeroNotes(store))
-  store.set('heroMatchupCache', recoverHeroMatchupCache(store))
-  store.set('heroBenchmarkCache', recoverHeroBenchmarkCache(store))
+  for (const key of PERSISTED_STORE_KEYS) {
+    store.set(key, migrated[key])
+  }
+  return migrated
+}
+
+export function recoverPersistedStoreForStartup(store: ElectronStoreLike) {
+  try {
+    return validateAndMigratePersistedStore(store)
+  } catch (error) {
+    const backupPath = backupCorruptStoreFile(store.path)
+    console.error('[store:migrate] 持久化数据恢复失败，已备份并重建默认 store：', backupPath, error)
+    store.set('schemaVersion', CURRENT_SCHEMA_VERSION)
+    store.set('appState', DEFAULT_APP_STATE)
+    store.set('cycles', [])
+    store.set('matchLogs', [])
+    store.set('preGameSetups', [])
+    store.set('dailyCheckins', [])
+    store.set('mmrLogs', [])
+    store.set('heroNotes', [])
+    store.set('heroMatchupCache', null)
+    store.set('heroBenchmarkCache', {})
+    return validateAndMigratePersistedStore(store)
+  }
 }
 
 export function registerStoreIpcHandlers(store: ElectronStoreLike, todayKey: () => string) {
   ipcMain.handle('store:getAppState', () => getValidatedAppState(store))
   ipcMain.handle('store:setAppState', (_, partial: unknown) => {
-    const current = store.get('appState') as AppState
+    const current = getValidatedAppState(store)
     const parsed = parseAppStatePatch(partial) as Partial<AppState>
     store.set('appState', { ...current, ...parsed })
   })
 
   ipcMain.handle('store:addMatchLog', (_, log: unknown) => {
-    const logs = store.get('matchLogs', []) as MatchLog[]
+    const logs = getValidatedMatchLogs(store)
     const parsed = parseMatchLog(log) as MatchLog
     store.set('matchLogs', [...logs, parsed])
   })
   ipcMain.handle('store:getMatchLogs', () => getValidatedMatchLogs(store))
   ipcMain.handle('store:updateMatchLog', (_, id: string, patch: unknown) => {
-    const logs = store.get('matchLogs', []) as MatchLog[]
+    const logs = getValidatedMatchLogs(store)
     const parsed = parseMatchLogPatch(patch) as Partial<MatchLog>
     store.set('matchLogs', logs.map(l => l.id === id ? { ...l, ...parsed } : l))
   })
 
   ipcMain.handle('store:addPreGameSetup', (_, s: unknown) => {
-    const setups = store.get('preGameSetups', []) as PreGameSetup[]
+    const setups = getValidatedPreGameSetups(store)
     const parsed = parsePreGameSetup(s) as PreGameSetup
     store.set('preGameSetups', [...setups, parsed])
   })
   ipcMain.handle('store:getPreGameSetups', () => getValidatedPreGameSetups(store))
   ipcMain.handle('store:updatePreGameSetup', (_, id: string, patch: unknown) => {
-    const setups = store.get('preGameSetups', []) as PreGameSetup[]
+    const setups = getValidatedPreGameSetups(store)
     const parsed = parsePreGameSetupPatch(patch) as Partial<PreGameSetup>
     store.set('preGameSetups', setups.map(s => s.id === id ? { ...s, ...parsed } : s))
   })
 
   function upsertDailyCheckin(c: unknown): DailyCheckin[] {
     const parsed = parseDailyCheckin(c) as DailyCheckin
-    const cs = store.get('dailyCheckins', []) as DailyCheckin[]
+    const cs = getValidatedDailyCheckins(store)
     const next = [
       ...cs.filter(item => item.date !== parsed.date),
       parsed,
@@ -179,7 +363,7 @@ export function registerStoreIpcHandlers(store: ElectronStoreLike, todayKey: () 
   ipcMain.handle('store:getDailyCheckins', () => getValidatedDailyCheckins(store))
 
   ipcMain.handle('store:addMMRLog', (_, l: unknown) => {
-    const logs = store.get('mmrLogs', []) as MMRLog[]
+    const logs = getValidatedMMRLogs(store)
     const parsed = parseMMRLog(l) as MMRLog
     store.set('mmrLogs', [...logs, parsed])
   })
@@ -187,7 +371,7 @@ export function registerStoreIpcHandlers(store: ElectronStoreLike, todayKey: () 
 
   ipcMain.handle('store:getHeroNotes', () => getValidatedHeroNotes(store))
   ipcMain.handle('store:upsertHeroNote', (_, note: unknown) => {
-    const notes = store.get('heroNotes', []) as HeroNote[]
+    const notes = getValidatedHeroNotes(store)
     const parsed = parseHeroNote(note) as HeroNote
     const normalizedHero = parsed.hero.trim()
     if (!normalizedHero) {
@@ -205,7 +389,7 @@ export function registerStoreIpcHandlers(store: ElectronStoreLike, todayKey: () 
   })
 
   ipcMain.handle('store:addCycle', (_, c: unknown) => {
-    const cs = store.get('cycles', []) as TrainingCycle[]
+    const cs = getValidatedCycles(store)
     const parsed = parseTrainingCycle(c) as TrainingCycle
     store.set('cycles', [...cs, parsed])
   })
@@ -214,11 +398,7 @@ export function registerStoreIpcHandlers(store: ElectronStoreLike, todayKey: () 
   // 导出（触发系统“另存为”对话框 + 写文件）
   ipcMain.handle('store:exportAll', async () => {
     const snapshot = getValidatedStoreSnapshot(store)
-    const safeAppState: AppState = {
-      ...snapshot.appState,
-      openDota: snapshot.appState?.openDota ? { ...snapshot.appState.openDota, apiKey: undefined } : undefined,
-      stratz: snapshot.appState?.stratz ? { ...snapshot.appState.stratz, apiKey: undefined } : undefined,
-    }
+    const safeAppState = redactApiKeys(snapshot.appState as AppState)
     const data = parseBackupData({
       ...snapshot,
       appState: safeAppState,
@@ -234,8 +414,8 @@ export function registerStoreIpcHandlers(store: ElectronStoreLike, todayKey: () 
 
   // 导入
   ipcMain.handle('store:importAll', (_, json: string) => {
-    const data = parseImportedBackupJson(json)
-    store.set('schemaVersion', data.schemaVersion ?? CURRENT_SCHEMA_VERSION)
+    const data = migrateImportedBackupJson(json)
+    store.set('schemaVersion', CURRENT_SCHEMA_VERSION)
     for (const key of PERSISTED_STORE_KEYS) {
       if (data[key] !== undefined) store.set(key, data[key])
     }

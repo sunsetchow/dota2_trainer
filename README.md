@@ -2,7 +2,7 @@
 
 Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 2 个人训练、英雄池管理、Draft 辅助、赛前计划、赛后复盘、数据导入和英雄笔记间隔复习。
 
-当前版本：`0.2.5`
+当前版本：`0.2.6`
 
 ## 核心功能
 
@@ -79,8 +79,10 @@ Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 
 - Electron IPC 写入前做 payload validation。
 - 备份导入前校验完整 JSON shape，拒绝未知 top-level key 和坏数据。
 - 备份导出会移除 API key 等敏感字段。
-- 启动时会校验 / 恢复可选 cache：坏 matchup / benchmark cache 不会拖垮核心训练数据。
-- `schemaVersion` 已接入启动校验和迁移入口。
+- 启动时会执行 v2 migration / recovery：核心数组逐条 salvage，坏条目丢弃且健康数据保留。
+- 坏 matchup / benchmark cache 会自动清空为可重建状态，不会拖垮核心训练数据。
+- 发生 destructive recovery 时会优先备份当前 store 为 `*.corrupt-YYYYMMDD-HHmmss.json`。
+- 备份导入会先 migration / salvage 到当前 `schemaVersion`，再写入本地 store。
 
 ## 技术栈
 
@@ -209,6 +211,7 @@ git diff --check
 - Phase 1：Zod runtime schema、Vitest、backup/import validation、schemaVersion 地基。
 - Phase 2：拆分 Electron main，抽出 store/openDota IPC 和 Dota data services。
 - Phase 3：拆分 PostGame，抽出 postgame feature helpers/UI，并补测试。
+- Phase 23：持久化韧性和 migration 地基，schemaVersion 升级到 v2，启动/备份导入支持 salvage 和坏 store 备份。
 - 英雄名修正：`Muerta` 显示为 `琼英碧灵`，别名包含 `穆尔塔` / `奶绿`；`Largo` 显示为 `朗戈`。
 - 英雄笔记复习：采用方案 A，未排程笔记进入首次复习；英雄中心支持直接评分并自动跳到下一条待复习。
 - Draft / 赛前职责拆分：Draft 负责锁英雄和阵容；赛前页只展示英雄笔记、用户维护对位提醒和数据 matchup 提示。

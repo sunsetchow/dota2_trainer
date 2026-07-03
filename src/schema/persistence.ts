@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const CURRENT_SCHEMA_VERSION = 1
+export const CURRENT_SCHEMA_VERSION = 2
 
 const DotaPositionSchema = z.enum(['1', '2', '3', '4', '5'])
 const EnemyByPositionSchema = z.object({
@@ -35,8 +35,8 @@ export const HeroConfigSchema = z.object({
 export const AppStateSchema = z.object({
   activeCycleId: z.string(),
   heroPool: z.array(HeroConfigSchema),
-  currentStreak: z.number().int().nonnegative(),
-  longestStreak: z.number().int().nonnegative(),
+  currentStreak: z.number().int().nonnegative().default(0),
+  longestStreak: z.number().int().nonnegative().default(0),
   pendingPreGameSetupId: z.string().optional(),
   openDota: OpenDotaSettingsSchema.optional(),
   stratz: StratzSettingsSchema.optional(),
@@ -44,7 +44,17 @@ export const AppStateSchema = z.object({
   freezeUsedDates: z.array(z.string()).optional(),
 }).strict()
 
-export const AppStatePatchSchema = AppStateSchema.partial().strict()
+export const AppStatePatchSchema = z.object({
+  activeCycleId: z.string().optional(),
+  heroPool: z.array(HeroConfigSchema).optional(),
+  currentStreak: z.number().int().nonnegative().optional(),
+  longestStreak: z.number().int().nonnegative().optional(),
+  pendingPreGameSetupId: z.string().optional(),
+  openDota: OpenDotaSettingsSchema.optional(),
+  stratz: StratzSettingsSchema.optional(),
+  checklistFreezeTokens: z.number().int().nonnegative().optional(),
+  freezeUsedDates: z.array(z.string()).optional(),
+}).strict()
 
 const WeekThemeSchema = z.object({
   week: z.number().int().nonnegative(),
