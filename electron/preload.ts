@@ -21,7 +21,6 @@ contextBridge.exposeInMainWorld('electronStore', {
   importOpenDotaMatch:  (matchId: string)  => ipcRenderer.invoke('opendota:importMatch', matchId),
   autoImportLatestOpenDotaMatch: (existingMatchIds?: string[]) => ipcRenderer.invoke('opendota:autoImportLatestMatch', existingMatchIds),
   getRecentOpenDotaMatches: (existingMatchIds?: string[]) => ipcRenderer.invoke('opendota:getRecentMatches', existingMatchIds),
-  analyzeAndImportOpenDotaMatch: (matchId: string) => ipcRenderer.invoke('opendota:analyzeAndImportMatch', matchId),
   requestOpenDotaParse: (matchId: string)  => ipcRenderer.invoke('opendota:requestParse', matchId),
   getHeroMatchupCache: () => ipcRenderer.invoke('opendota:getHeroMatchupCache'),
   syncOpenDotaHeroMatchups: (force?: boolean) => ipcRenderer.invoke('opendota:syncHeroMatchups', force),

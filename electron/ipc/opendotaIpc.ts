@@ -23,7 +23,6 @@ export interface OpenDotaIpcServices {
   requestOpenDotaParse: (matchId: string, timeoutMs?: number) => Promise<OpenDotaParseRequestResult>
   syncOpenDotaHeroMatchups: (force?: boolean) => Promise<HeroMatchupSyncResult>
   syncStratzHeroMatchups: (apiKey: string, rankBracket: StratzRankBracket, force?: boolean) => Promise<HeroMatchupSyncResult>
-  sleep: (ms: number) => Promise<void>
 }
 
 export function registerOpenDotaIpcHandlers(store: ElectronStoreLike, services: OpenDotaIpcServices) {
@@ -43,28 +42,6 @@ export function registerOpenDotaIpcHandlers(store: ElectronStoreLike, services: 
   ipcMain.handle('opendota:requestParse', async (_, matchIdInput: string): Promise<OpenDotaParseRequestResult> => {
     const matchId = services.normalizeMatchId(matchIdInput)
     return services.requestOpenDotaParse(matchId)
-  })
-
-  ipcMain.handle('opendota:analyzeAndImportMatch', async (_, matchIdInput: string): Promise<OpenDotaImportedMatch> => {
-    const matchId = services.normalizeMatchId(matchIdInput)
-    const accountId = services.getOpenDotaAccountId()
-
-    await services.requestOpenDotaParse(matchId)
-
-    let lastError: Error | null = null
-    for (let attempt = 0; attempt < 9; attempt++) {
-      if (attempt > 0) await services.sleep(10_000)
-      try {
-        return await services.fetchOpenDotaImportedMatch(matchId, accountId, 20_000)
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error))
-        const message = lastError.message
-        const probablyStillParsing = message.includes('解析') || message.includes('HTTP 500') || message.includes('HTTP 404') || message.includes('没有返回玩家明细')
-        if (!probablyStillParsing) throw lastError
-      }
-    }
-
-    throw new Error(lastError?.message ?? 'OpenDota 已收到解析请求，但 90 秒内还没有返回详细数据。请稍后再点“导入”。')
   })
 
   ipcMain.handle('opendota:getHeroMatchupCache', (): HeroMatchupCache | null => {

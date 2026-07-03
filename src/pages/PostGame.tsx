@@ -13,6 +13,7 @@ import OpenDotaImportPanel from '../features/postgame/OpenDotaImportPanel.tsx'
 import { getCurrentWeek, todayStr } from '../utils/cycle.ts'
 import { getOpenDotaHeroName } from '../utils/opendotaHeroes.ts'
 import { isDueForReview } from '../utils/srs.ts'
+import { formatOpenDotaErrorMessage, isOpenDotaParseRequestCandidate, normalizeOpenDotaError, createOpenDotaError } from '../utils/openDotaErrors.ts'
 
 const OPEN_DOTA_ANALYZE_INITIAL_WAIT_MS = 120_000
 const OPEN_DOTA_ANALYZE_POLL_INTERVAL_MS = 30_000
@@ -23,13 +24,8 @@ function wait(ms: number): Promise<void> {
   return new Promise(resolve => window.setTimeout(resolve, ms))
 }
 
-export function isOpenDotaParsePendingMessage(message: string): boolean {
-  return message.includes('解析')
-    || message.includes('HTTP 500')
-    || message.includes('HTTP 404')
-    || message.includes('没有返回玩家明细')
-    || message.includes('请求超时')
-    || message.includes('请求过于频繁')
+export function isOpenDotaParsePendingError(error: unknown): boolean {
+  return isOpenDotaParseRequestCandidate(error)
 }
 
 export function buildMatchupTargets(selectedHero: string, pendingSetup: PreGameSetup | null, importedMatch: OpenDotaImportedMatch | null): string[] {
@@ -148,7 +144,7 @@ export default function PostGame() {
     biggestMistake.trim() &&
     nextGameFocus.trim()
 
-  const shouldOfferParseRequest = (message: string): boolean => isOpenDotaParsePendingMessage(message)
+  const shouldOfferParseRequest = (error: unknown): boolean => isOpenDotaParsePendingError(error)
 
   const handleMatchIdChange = (value: string) => {
     setMatchId(value)
@@ -294,10 +290,9 @@ export default function PostGame() {
       const data = await window.electronStore.importOpenDotaMatch(cleanMatchId)
       applyImportedOpenDota(data)
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e)
       setImportedMatch(null)
-      setCanRequestParse(shouldOfferParseRequest(message))
-      setOpenDotaStatus(message)
+      setCanRequestParse(shouldOfferParseRequest(e))
+      setOpenDotaStatus(formatOpenDotaErrorMessage(e))
     } finally {
       setImportingOpenDota(false)
     }
@@ -318,9 +313,9 @@ export default function PostGame() {
       const data = await window.electronStore.autoImportLatestOpenDotaMatch(existingMatchIds)
       applyImportedOpenDota(data)
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e)
+      const normalized = normalizeOpenDotaError(e)
       setImportedMatch(null)
-      if (!silent || !message.includes('请先在设置页填写')) setOpenDotaStatus(message)
+      if (!silent || normalized.code !== 'ACCOUNT_REQUIRED') setOpenDotaStatus(normalized.message)
     } finally {
       setAutoImportingOpenDota(false)
     }
@@ -359,10 +354,9 @@ export default function PostGame() {
       const data = await window.electronStore.importOpenDotaMatch(row.matchId)
       applyImportedOpenDota(data)
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e)
       setImportedMatch(null)
-      setCanRequestParse(shouldOfferParseRequest(message))
-      setOpenDotaStatus(message)
+      setCanRequestParse(shouldOfferParseRequest(e))
+      setOpenDotaStatus(formatOpenDotaErrorMessage(e))
     } finally {
       setImportingOpenDota(false)
     }
@@ -434,18 +428,17 @@ export default function PostGame() {
           return
         } catch (error) {
           lastError = error instanceof Error ? error : new Error(String(error))
-          if (!isOpenDotaParsePendingMessage(lastError.message)) throw lastError
+          if (!isOpenDotaParsePendingError(error)) throw lastError
           if (attempt < OPEN_DOTA_ANALYZE_POLL_ATTEMPTS) await wait(OPEN_DOTA_ANALYZE_POLL_INTERVAL_MS)
         }
       }
 
-      throw new Error(lastError?.message ?? 'OpenDota 已收到解析请求，但几分钟内还没有返回详细数据。请稍后再点“导入”。')
+      throw lastError ?? createOpenDotaError('PARSE_PENDING', 'OpenDota 已收到解析请求，但几分钟内还没有返回详细数据。请稍后再点“导入”。')
     } catch (e) {
       if (!isCurrentRun()) return
-      const message = e instanceof Error ? e.message : String(e)
       setImportedMatch(null)
-      setCanRequestParse(shouldOfferParseRequest(message))
-      setOpenDotaStatus(message)
+      setCanRequestParse(shouldOfferParseRequest(e))
+      setOpenDotaStatus(formatOpenDotaErrorMessage(e))
     } finally {
       if (isCurrentRun()) setAnalyzingOpenDota(false)
     }

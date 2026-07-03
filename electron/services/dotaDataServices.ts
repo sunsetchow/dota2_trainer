@@ -6,6 +6,7 @@ import {
   parseHeroBenchmarkCacheMap,
   parseHeroMatchupCache,
 } from '../../src/schema/persistence.ts'
+import { createOpenDotaError } from '../../src/utils/openDotaErrors.ts'
 
 interface OpenDotaPlayer {
   account_id?: number;
@@ -103,18 +104,18 @@ function getOpenDotaUrl(path: string): URL {
   return url
 }
 
-function normalizeOpenDotaHttpError(status: number, body: string): string {
+function normalizeOpenDotaHttpError(status: number, body: string): Error {
   const suffix = body.trim() ? `（${body.trim().slice(0, 180)}）` : ''
   if (status === 404) {
-    return `OpenDota 没有找到这场比赛，或比赛还没有解析。可以先请求解析，几分钟后重试。${suffix}`
+    return createOpenDotaError('MATCH_NOT_FOUND', `OpenDota 没有找到这场比赛，或比赛还没有解析。可以先请求解析，几分钟后重试。${suffix}`)
   }
   if (status === 429) {
-    return `OpenDota 请求过于频繁。稍后重试，或在设置页填写 API Key。${suffix}`
+    return createOpenDotaError('RATE_LIMITED', `OpenDota 请求过于频繁。稍后重试，或在设置页填写 API Key。${suffix}`)
   }
   if (status >= 500) {
-    return `OpenDota 暂时无法返回这场比赛详情，常见原因是比赛未解析或 OpenDota 后端临时错误。可以先请求解析，几分钟后重试。${suffix}`
+    return createOpenDotaError('PARSE_PENDING', `OpenDota 暂时无法返回这场比赛详情，常见原因是比赛未解析或 OpenDota 后端临时错误。可以先请求解析，几分钟后重试。${suffix}`)
   }
-  return `OpenDota 请求失败：HTTP ${status}${suffix}`
+  return createOpenDotaError('UNKNOWN', `OpenDota 请求失败：HTTP ${status}${suffix}`)
 }
 
 async function readResponseBody(response: Response): Promise<string> {
@@ -389,7 +390,7 @@ function getOpenDotaAccountId(): string {
   const appState = store.get('appState') as AppState
   const accountId = appState.openDota?.accountId?.trim()
   if (!accountId || !/^\d+$/.test(accountId)) {
-    throw new Error('请先在设置页填写 OpenDota Account ID。')
+    throw createOpenDotaError('ACCOUNT_REQUIRED', '请先在设置页填写 OpenDota Account ID。')
   }
   return accountId
 }
@@ -397,14 +398,14 @@ function getOpenDotaAccountId(): string {
 function normalizeMatchId(matchIdInput: string): string {
   const matchId = String(matchIdInput ?? '').trim()
   if (!/^\d+$/.test(matchId)) {
-    throw new Error('请输入有效的 Match ID。')
+    throw createOpenDotaError('INVALID_MATCH_ID', '请输入有效的 Match ID。')
   }
   return matchId
 }
 
 function buildImportedMatch(matchId: string, match: OpenDotaMatchResponse, player: OpenDotaPlayer): OpenDotaImportedMatch {
   if (!player.hero_id) {
-    throw new Error('OpenDota 返回的数据缺少英雄信息。')
+    throw createOpenDotaError('PARSE_PENDING', 'OpenDota 返回的数据缺少英雄信息。')
   }
 
   const firstKeyItem = getFirstKeyItem(player.purchase_log)
@@ -477,23 +478,23 @@ async function fetchOpenDotaImportedMatch(matchId: string, accountId: string, ti
     const response = await fetch(url, { signal: controller.signal })
     if (!response.ok) {
       const body = await readResponseBody(response)
-      throw new Error(normalizeOpenDotaHttpError(response.status, body))
+      throw normalizeOpenDotaHttpError(response.status, body)
     }
 
     const match = await response.json() as OpenDotaMatchResponse
     if (!match.players?.length) {
-      throw new Error('OpenDota 没有返回玩家明细。这场比赛可能还没有解析，可以先请求解析，几分钟后重试。')
+      throw createOpenDotaError('PARSE_PENDING', 'OpenDota 没有返回玩家明细。这场比赛可能还没有解析，可以先请求解析，几分钟后重试。')
     }
     const player = match.players.find(p => String(p.account_id) === accountId)
     if (!player) {
-      throw new Error('这场比赛里没有找到设置中的 Account ID。')
+      throw createOpenDotaError('ACCOUNT_MISMATCH', '这场比赛里没有找到设置中的 Account ID。')
     }
 
     const imported = buildImportedMatch(matchId, match, player)
     return await enrichImportedMatchWithBenchmarks(imported, player)
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('OpenDota 请求超时，请稍后重试。')
+      throw createOpenDotaError('TIMEOUT', 'OpenDota 请求超时，请稍后重试。')
     }
     throw error
   } finally {
@@ -564,7 +565,7 @@ async function requestOpenDotaParse(matchId: string, timeoutMs = 15_000): Promis
     const response = await fetch(url, { method: 'POST', signal: controller.signal })
     const body = await readResponseBody(response)
     if (!response.ok) {
-      throw new Error(normalizeOpenDotaHttpError(response.status, body))
+      throw normalizeOpenDotaHttpError(response.status, body)
     }
 
     let jobId: string | undefined
@@ -584,7 +585,7 @@ async function requestOpenDotaParse(matchId: string, timeoutMs = 15_000): Promis
     }
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('OpenDota 解析请求超时，请稍后重试。')
+      throw createOpenDotaError('TIMEOUT', 'OpenDota 解析请求超时，请稍后重试。')
     }
     throw error
   } finally {
@@ -600,12 +601,12 @@ async function fetchOpenDotaJson<T>(path: string, timeoutMs = 15_000): Promise<T
     const response = await fetch(url, { signal: controller.signal })
     if (!response.ok) {
       const body = await readResponseBody(response)
-      throw new Error(normalizeOpenDotaHttpError(response.status, body))
+      throw normalizeOpenDotaHttpError(response.status, body)
     }
     return await response.json() as T
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('OpenDota 请求超时，请稍后重试。')
+      throw createOpenDotaError('TIMEOUT', 'OpenDota 请求超时，请稍后重试。')
     }
     throw error
   } finally {

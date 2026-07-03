@@ -246,10 +246,21 @@ export interface OpenDotaImportedMatch {
   lateGpm?: number;
 }
 
+export type OpenDotaErrorCode =
+  | 'PARSE_PENDING'
+  | 'MATCH_NOT_FOUND'
+  | 'RATE_LIMITED'
+  | 'TIMEOUT'
+  | 'ACCOUNT_MISMATCH'
+  | 'ACCOUNT_REQUIRED'
+  | 'INVALID_MATCH_ID'
+  | 'DUPLICATE_MATCH'
+  | 'UNKNOWN'
+
 export interface OpenDotaParseRequestResult {
   matchId: string;
-  message: string;
   jobId?: string;
+  message: string;
 }
 
 // ── 英雄克制缓存（OpenDota 每周矩阵）
@@ -357,7 +368,6 @@ declare global {
       importOpenDotaMatch(matchId: string): Promise<OpenDotaImportedMatch>;
       autoImportLatestOpenDotaMatch(existingMatchIds?: string[]): Promise<OpenDotaImportedMatch>;
       getRecentOpenDotaMatches(existingMatchIds?: string[]): Promise<OpenDotaRecentMatch[]>;
-      analyzeAndImportOpenDotaMatch(matchId: string): Promise<OpenDotaImportedMatch>;
       requestOpenDotaParse(matchId: string): Promise<OpenDotaParseRequestResult>;
       getHeroMatchupCache(): Promise<HeroMatchupCache | null>;
       syncOpenDotaHeroMatchups(force?: boolean): Promise<HeroMatchupSyncResult>;

@@ -2,7 +2,7 @@
 
 Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 2 个人训练、英雄池管理、Draft 辅助、赛前计划、赛后复盘、数据导入和英雄笔记间隔复习。
 
-当前版本：`0.2.7`
+当前版本：`0.2.8`
 
 ## 核心功能
 
@@ -65,6 +65,7 @@ Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 
 ### OpenDota / Stratz 数据
 
 - OpenDota Match ID 导入。
+- OpenDota IPC 错误使用结构化 code（如 `PARSE_PENDING`、`RATE_LIMITED`、`TIMEOUT`），renderer 不再依赖中文错误文案 substring 判断是否继续轮询或显示“请求解析”。
 - 自动同步最近一局未记录比赛。
 - 最近比赛列表。
 - 请求 OpenDota 解析并自动导入：点击后会先提交解析请求，等待 2 分钟后每 30 秒轮询一次 Match ID 导入，最多等到 5 分钟；拿到详细数据后会自动填入赛后表单，但仍需要手动保存复盘。
@@ -128,7 +129,7 @@ src/
     persistence.test.ts           schema/parser tests
   store/
     useStore.ts                   renderer store hooks
-  utils/                          hero resolve、SRS、cycle、heroPool 等工具
+  utils/                          hero resolve、SRS、cycle、OpenDota structured errors 等工具
 ```
 
 ## 本地开发
@@ -211,6 +212,7 @@ git diff --check
 - Phase 1：Zod runtime schema、Vitest、backup/import validation、schemaVersion 地基。
 - Phase 2：拆分 Electron main，抽出 store/openDota IPC 和 Dota data services。
 - Phase 3：拆分 PostGame，抽出 postgame feature helpers/UI，并补测试。
+- Phase 24：OpenDota IPC/service contract 收敛，导入错误改为结构化 code，renderer 不再依赖中文文案判断 parse pending / rate limit / timeout，并移除旧 `analyzeAndImportOpenDotaMatch` IPC 暴露。
 - Phase 23：持久化韧性和 migration 地基，schemaVersion 升级到 v2，启动/备份导入支持 salvage、坏 store 备份和备份失败兜底。
 - 英雄名修正：`Muerta` 显示为 `琼英碧灵`，别名包含 `穆尔塔` / `奶绿`；`Largo` 显示为 `朗戈`。
 - 英雄笔记复习：采用方案 A，未排程笔记进入首次复习；英雄中心支持直接评分并自动跳到下一条待复习。

@@ -1,18 +1,19 @@
 import { describe, expect, it } from 'vitest'
 
-import { isOpenDotaParsePendingMessage, buildMatchupTargets } from './PostGame'
+import { buildMatchupTargets, isOpenDotaParsePendingError } from './PostGame'
+import { createOpenDotaError } from '../utils/openDotaErrors'
 
 describe('PostGame OpenDota analysis helpers', () => {
-  it('keeps polling while OpenDota is still parsing detailed match data', () => {
-    expect(isOpenDotaParsePendingMessage('OpenDota 没有返回玩家明细。这场比赛可能还没有解析，可以先请求解析，几分钟后重试。')).toBe(true)
-    expect(isOpenDotaParsePendingMessage('HTTP 404: match not found')).toBe(true)
-    expect(isOpenDotaParsePendingMessage('HTTP 500: parse pending')).toBe(true)
-    expect(isOpenDotaParsePendingMessage('OpenDota 请求超时，请稍后重试。')).toBe(true)
-    expect(isOpenDotaParsePendingMessage('OpenDota 请求过于频繁。稍后重试，或在设置页填写 API Key。')).toBe(true)
+  it('keeps polling while OpenDota is still parsing detailed match data based on structured codes', () => {
+    expect(isOpenDotaParsePendingError(createOpenDotaError('PARSE_PENDING', 'wording can change'))).toBe(true)
+    expect(isOpenDotaParsePendingError(createOpenDotaError('MATCH_NOT_FOUND', 'wording can change'))).toBe(true)
+    expect(isOpenDotaParsePendingError(createOpenDotaError('TIMEOUT', 'wording can change'))).toBe(true)
+    expect(isOpenDotaParsePendingError(createOpenDotaError('RATE_LIMITED', 'wording can change'))).toBe(true)
   })
 
-  it('stops polling on non-parse errors', () => {
-    expect(isOpenDotaParsePendingMessage('这场比赛里没有找到设置中的 Account ID。')).toBe(false)
+  it('does not infer parse state from localized message substrings', () => {
+    expect(isOpenDotaParsePendingError(new Error('这条普通错误包含解析两个字，但没有结构化 code'))).toBe(false)
+    expect(isOpenDotaParsePendingError(createOpenDotaError('ACCOUNT_MISMATCH', '这场比赛里没有找到设置中的 Account ID。'))).toBe(false)
   })
 
   it('uses OpenDota enemy heroes as matchup note targets when there is no draft setup', () => {
