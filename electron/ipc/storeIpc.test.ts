@@ -4,9 +4,10 @@ import {
   getValidatedMatchLogs,
   getValidatedStoreSnapshot,
   migrateImportedBackupJson,
+  recoverPersistedStoreForStartup,
   validateAndMigratePersistedStore,
 } from './storeIpc.ts'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
@@ -59,6 +60,18 @@ function createStore(initial: Record<string, unknown>) {
       data.set(key, value)
     },
   }
+}
+
+function createStoreWithPath(initial: Record<string, unknown>, path: string) {
+  return {
+    ...createStore(initial),
+    path,
+  }
+}
+
+function findCorruptBackup(dir: string): string | undefined {
+  const name = readdirSync(dir).find(item => item.startsWith('config.corrupt-') && item.endsWith('.json'))
+  return name ? join(dir, name) : undefined
 }
 
 afterEach(() => {
@@ -160,7 +173,7 @@ describe('store IPC validation helpers', () => {
     expect(migrated.schemaVersion).toBe(2)
     expect(migrated.appState?.currentStreak).toBe(0)
     expect(migrated.appState?.longestStreak).toBe(0)
-    expect(migrated.matchLogs).toEqual([validMatchLog])
+    expect(migrated.matchLogs ?? []).toEqual([validMatchLog])
     expect(migrated.heroMatchupCache).toBeNull()
   })
 
@@ -173,7 +186,72 @@ describe('store IPC validation helpers', () => {
       const backupPath = backupCorruptStoreFile(storePath, new Date('2026-07-03T12:34:56Z'))
 
       expect(backupPath).toMatch(/config\.corrupt-20260703-123456\.json$/)
-      expect(readFileSync(backupPath, 'utf-8')).toBe('{"matchLogs":"corrupt"}')
+      expect(readFileSync(backupPath as string, 'utf-8')).toBe('{"matchLogs":"corrupt"}')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('backs up the raw store file on the real startup salvage path', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const dir = mkdtempSync(join(tmpdir(), 'dota2-store-'))
+    try {
+      const storePath = join(dir, 'config.json')
+      const rawStoreJson = JSON.stringify({ schemaVersion: 1, matchLogs: [validMatchLog, invalidMatchLog] })
+      writeFileSync(storePath, rawStoreJson, 'utf-8')
+      const store = createStoreWithPath({
+        schemaVersion: 1,
+        appState: validAppState,
+        cycles: [],
+        matchLogs: [validMatchLog, invalidMatchLog],
+        preGameSetups: [],
+        dailyCheckins: [],
+        mmrLogs: [],
+        heroNotes: [],
+        heroMatchupCache: null,
+        heroBenchmarkCache: {},
+      }, storePath)
+
+      recoverPersistedStoreForStartup(store)
+
+      const backupPath = findCorruptBackup(dir)
+      expect(backupPath).toBeTruthy()
+      expect(existsSync(storePath)).toBe(true)
+      expect(store.data.get('matchLogs')).toEqual([validMatchLog])
+      expect(readFileSync(backupPath as string, 'utf-8')).toBe(rawStoreJson)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('continues startup recovery when corrupt-store backup fails', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const dir = mkdtempSync(join(tmpdir(), 'dota2-store-'))
+    try {
+      const storePath = join(dir, 'config.json')
+      writeFileSync(storePath, '{"matchLogs":"corrupt"}', 'utf-8')
+
+      expect(() => backupCorruptStoreFile(storePath, new Date('2026-07-03T12:34:56Z'), () => {
+        throw new Error('disk full')
+      })).not.toThrow()
+
+      const store = createStoreWithPath({
+        schemaVersion: 1,
+        appState: validAppState,
+        cycles: [],
+        matchLogs: [validMatchLog, invalidMatchLog],
+        preGameSetups: [],
+        dailyCheckins: [],
+        mmrLogs: [],
+        heroNotes: [],
+        heroMatchupCache: null,
+        heroBenchmarkCache: {},
+      }, storePath)
+      expect(() => recoverPersistedStoreForStartup(store, () => {
+        throw new Error('disk full')
+      })).not.toThrow()
+      expect(store.data.get('matchLogs')).toEqual([validMatchLog])
+      expect(warn).toHaveBeenCalled()
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

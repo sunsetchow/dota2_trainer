@@ -1,11 +1,12 @@
 import { createRequire } from 'module'
+import { CURRENT_SCHEMA_VERSION } from '../src/schema/persistence.ts'
 const require = createRequire(import.meta.url)
 const Store = require('electron-store')
 
 // ⚠️ defaults 必须在构造函数里传，不能赋值给 store.defaults
 const store = new Store({
   defaults: {
-    schemaVersion: 2,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
     appState: {
       activeCycleId: '',
       heroPool: [],

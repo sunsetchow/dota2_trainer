@@ -39,6 +39,8 @@ type ElectronStoreLike = {
   path?: string
 }
 
+type BackupStoreFile = (storePath: string | undefined, now?: Date) => string | null
+
 const PERSISTED_STORE_KEYS: PersistedStoreKey[] = [
   'appState',
   'cycles',
@@ -98,13 +100,31 @@ function compactUtcTimestamp(date: Date): string {
   ].join('')
 }
 
-export function backupCorruptStoreFile(storePath: string | undefined, now = new Date()): string | null {
+export function backupCorruptStoreFile(
+  storePath: string | undefined,
+  now = new Date(),
+  copyFile: (source: string, destination: string) => void = copyFileSync,
+): string | null {
   if (!storePath || !existsSync(storePath)) return null
   const ext = extname(storePath) || '.json'
   const base = basename(storePath, ext)
   const backupPath = join(dirname(storePath), `${base}.corrupt-${compactUtcTimestamp(now)}${ext}`)
-  copyFileSync(storePath, backupPath)
-  return backupPath
+  try {
+    copyFile(storePath, backupPath)
+    return backupPath
+  } catch (error) {
+    console.warn('[store:migrate] 备份坏 store 失败，继续执行恢复：', error instanceof Error ? error.message : error)
+    return null
+  }
+}
+
+function safelyBackupCorruptStoreFile(storePath: string | undefined, backupStoreFile: BackupStoreFile = backupCorruptStoreFile): string | null {
+  try {
+    return backupStoreFile(storePath)
+  } catch (error) {
+    console.warn('[store:migrate] 备份坏 store 失败，继续执行恢复：', error instanceof Error ? error.message : error)
+    return null
+  }
 }
 
 function warnRecovery(message: string) {
@@ -278,11 +298,11 @@ export function getValidatedStoreSnapshot(store: ElectronStoreLike) {
   return migrated
 }
 
-export function validateAndMigratePersistedStore(store: ElectronStoreLike) {
+export function validateAndMigratePersistedStore(store: ElectronStoreLike, backupStoreFile: BackupStoreFile = backupCorruptStoreFile) {
   recoveryChangedCurrentPass = false
   const migrated = migratePersistedData(collectRawPersistedData(store))
   if (recoveryChangedCurrentPass) {
-    backupCorruptStoreFile(store.path)
+    safelyBackupCorruptStoreFile(store.path, backupStoreFile)
   }
   store.set('schemaVersion', CURRENT_SCHEMA_VERSION)
   for (const key of PERSISTED_STORE_KEYS) {
@@ -291,11 +311,11 @@ export function validateAndMigratePersistedStore(store: ElectronStoreLike) {
   return migrated
 }
 
-export function recoverPersistedStoreForStartup(store: ElectronStoreLike) {
+export function recoverPersistedStoreForStartup(store: ElectronStoreLike, backupStoreFile: BackupStoreFile = backupCorruptStoreFile) {
   try {
-    return validateAndMigratePersistedStore(store)
+    return validateAndMigratePersistedStore(store, backupStoreFile)
   } catch (error) {
-    const backupPath = backupCorruptStoreFile(store.path)
+    const backupPath = safelyBackupCorruptStoreFile(store.path, backupStoreFile)
     console.error('[store:migrate] 持久化数据恢复失败，已备份并重建默认 store：', backupPath, error)
     store.set('schemaVersion', CURRENT_SCHEMA_VERSION)
     store.set('appState', DEFAULT_APP_STATE)
@@ -307,7 +327,7 @@ export function recoverPersistedStoreForStartup(store: ElectronStoreLike) {
     store.set('heroNotes', [])
     store.set('heroMatchupCache', null)
     store.set('heroBenchmarkCache', {})
-    return validateAndMigratePersistedStore(store)
+    return validateAndMigratePersistedStore(store, backupStoreFile)
   }
 }
 
