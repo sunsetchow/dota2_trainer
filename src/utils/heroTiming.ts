@@ -111,3 +111,12 @@ export const TIMING_LABEL_ZH: Record<HeroTimingLabel, string> = {
   balanced: '均衡',
   insufficient_data: '数据少',
 }
+
+export function timingBadgeTone(label?: string): 'neutral' | 'accent' | 'success' | 'danger' | 'warning' | 'info' {
+  if (label === 'early') return 'info'
+  if (label === 'mid') return 'accent'
+  if (label === 'late') return 'warning'
+  if (label === 'very_late') return 'danger'
+  if (label === 'balanced') return 'neutral'
+  return 'warning'
+}

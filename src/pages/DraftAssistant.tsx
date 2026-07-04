@@ -15,7 +15,7 @@ import positionMetaJson from '../data/positionMetaHeroes.json'
 import { isHeroPlayableAtPosition } from '../utils/heroPool.ts'
 import { compactHeroIdMap, compactHeroIds, getHeroIdByName } from '../utils/heroIdentity.ts'
 import type { DotaPosition, EnemyByPosition, HeroConfig, HeroMatchupCache, HeroTimingCache, PositionMetaSnapshot, PreGameSetup, RankedDraftHero } from '../types'
-import { TIMING_LABEL_ZH } from '../utils/heroTiming.ts'
+import { TIMING_LABEL_ZH, timingBadgeTone } from '../utils/heroTiming.ts'
 import Button from '../components/ui/Button.tsx'
 import Card from '../components/ui/Card.tsx'
 import Badge from '../components/ui/Badge.tsx'
@@ -109,15 +109,6 @@ function EnemyInput({
       {focused && <SuggestionBox items={suggestions} onSelect={hero => { onChange(hero); setFocused(false) }} />}
     </div>
   )
-}
-
-function timingBadgeTone(label?: string): 'neutral' | 'accent' | 'success' | 'danger' | 'warning' | 'info' {
-  if (label === 'early') return 'info'
-  if (label === 'mid') return 'accent'
-  if (label === 'late') return 'warning'
-  if (label === 'very_late') return 'danger'
-  if (label === 'balanced') return 'neutral'
-  return 'warning'
 }
 
 function DraftHeroCard({

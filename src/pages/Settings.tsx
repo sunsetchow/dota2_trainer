@@ -155,6 +155,11 @@ export default function Settings() {
   const handleSyncTimings = async () => {
     setSyncingTimings(true)
     setStatusMsg('正在通过 OpenDota durations 同步英雄 Timing 数据…')
+    const progressTimer = setInterval(() => {
+      window.electronStore.getHeroTimingSyncProgress().then(progress => {
+        if (progress) setStatusMsg(`正在通过 OpenDota durations 同步英雄 Timing 数据…（${progress.completed}/${progress.total}，无 API Key 时每个英雄约需数秒，请耐心等待）`)
+      })
+    }, 1000)
     try {
       const result = await window.electronStore.syncHeroTimings(true)
       const cache = await window.electronStore.getHeroTimingCache()
@@ -163,6 +168,7 @@ export default function Settings() {
     } catch (error) {
       setStatusMsg(error instanceof Error ? error.message : String(error))
     } finally {
+      clearInterval(progressTimer)
       setSyncingTimings(false)
       setTimeout(() => setStatusMsg(''), 6000)
     }

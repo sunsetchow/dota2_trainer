@@ -2,7 +2,7 @@
 
 Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 2 个人训练、英雄池管理、Draft 辅助、赛前计划、赛后复盘、数据导入和英雄笔记间隔复习。
 
-当前版本：`0.3.0`
+当前版本：`0.3.1`
 
 ## 核心功能
 
@@ -214,6 +214,7 @@ git diff --check
 
 ## 最近重要改动
 
+- Phase 29.1：Timing 同步加进度上报（无 API Key 时单个英雄请求可能要数秒，127 个英雄全量同步实测约 13-15 分钟，之前界面无进度提示容易被误认为卡死）；英雄档案页新增 Timing 强势期展示。
 - Phase 29：英雄 Timing Cache 接入 OpenDota `/durations`；Draft 显示强势期标签和“我的英雄 vs 敌方已知阵容时间线”，低样本阶段不参与强势期判断。
 - 数据源策略：英雄 matchup 固定为 Stratz-only；OpenDota 仅用于 Match ID 导入、benchmarks 和 Timing durations。
 - Phase 1：Zod runtime schema、Vitest、backup/import validation、schemaVersion 地基。

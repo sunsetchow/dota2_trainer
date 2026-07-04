@@ -26,6 +26,7 @@ export interface OpenDotaIpcServices {
   syncOpenDotaHeroMatchups: (force?: boolean) => Promise<HeroMatchupSyncResult>
   syncStratzHeroMatchups: (apiKey: string, rankBracket: StratzRankBracket, force?: boolean) => Promise<HeroMatchupSyncResult>
   syncHeroTimings: (force?: boolean) => Promise<HeroTimingSyncResult>
+  getHeroTimingSyncProgress: () => { completed: number; total: number } | null
 }
 
 export function registerOpenDotaIpcHandlers(store: ElectronStoreLike, services: OpenDotaIpcServices) {
@@ -77,5 +78,9 @@ export function registerOpenDotaIpcHandlers(store: ElectronStoreLike, services: 
 
   ipcMain.handle('opendota:syncHeroTimings', async (_, force?: boolean): Promise<HeroTimingSyncResult> => {
     return services.syncHeroTimings(Boolean(force))
+  })
+
+  ipcMain.handle('opendota:getHeroTimingSyncProgress', (): { completed: number; total: number } | null => {
+    return services.getHeroTimingSyncProgress()
   })
 }

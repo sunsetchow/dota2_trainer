@@ -18,7 +18,8 @@ import {
   tierLabel,
   tierRank,
 } from '../utils/heroPool.ts'
-import type { DotaPosition, HeroConfig, HeroNote } from '../types'
+import type { DotaPosition, HeroConfig, HeroNote, HeroTimingCache } from '../types'
+import { TIMING_LABEL_ZH, timingBadgeTone } from '../utils/heroTiming.ts'
 
 const ALL_HEROES = getPool()
 
@@ -80,6 +81,15 @@ export default function HeroNotes() {
   const [form, setForm] = useState<HeroNote>(() => emptyNote(''))
   const [reviewRulesText, setReviewRulesText] = useState('')
   const [status, setStatus] = useState('')
+  const [timingCache, setTimingCache] = useState<HeroTimingCache | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    window.electronStore.getHeroTimingCache().then(cache => {
+      if (!cancelled) setTimingCache(cache)
+    })
+    return () => { cancelled = true }
+  }, [])
 
   const today = todayStr()
   const requestedHero = searchParams.get('hero')
@@ -108,6 +118,8 @@ export default function HeroNotes() {
   const selectedConfig = selectedHero ? configByHero.get(selectedHero) : undefined
   const selectedPositions = selectedHero ? getConfiguredHeroPositions(selectedHero, selectedConfig) : []
   const selectedNote = selectedHero ? noteByHero.get(selectedHero) ?? heroNotes.find(note => sameHeroReference(note, { hero: selectedHero })) : undefined
+  const selectedHeroId = selectedHero ? getHeroIdByName(selectedHero) : undefined
+  const selectedTimingProfile = selectedHeroId !== undefined ? timingCache?.profiles[String(selectedHeroId)] : undefined
 
   useEffect(() => {
     const hero = selectedHero.trim()
@@ -345,6 +357,10 @@ export default function HeroNotes() {
                   <Badge tone="accent">{tierLabel(tier, active)}</Badge>
                   {hasNoteContent(selectedNote) && <Badge tone="info">有档案</Badge>}
                   {selectedNote && isDueForReview(selectedNote, today) && <Badge tone="warning">待复习</Badge>}
+                  {selectedTimingProfile && selectedTimingProfile.timingLabel !== 'insufficient_data' && (
+                    <Badge tone={timingBadgeTone(selectedTimingProfile.timingLabel)}>Timing {TIMING_LABEL_ZH[selectedTimingProfile.timingLabel]}</Badge>
+                  )}
+                  {selectedTimingProfile?.timingLabel === 'insufficient_data' && <Badge tone="warning">Timing 数据少</Badge>}
                 </div>
               </div>
             </div>
@@ -408,6 +424,32 @@ export default function HeroNotes() {
               <h3 className="text-base font-semibold text-[var(--text-primary)]">英雄档案</h3>
               <p className="mt-1 text-xs text-[var(--text-muted)]">位置池由上方“可用位置”控制；这里的位置字段保留为自由文本笔记。</p>
             </div>
+
+            {selectedTimingProfile && selectedTimingProfile.timingLabel !== 'insufficient_data' && (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-4 text-xs text-[var(--text-secondary)]">
+                <div className="font-semibold text-[var(--text-primary)]">OpenDota Timing（{TIMING_LABEL_ZH[selectedTimingProfile.timingLabel]}）</div>
+                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {([
+                    ['early', '前期'],
+                    ['mid', '中期'],
+                    ['late', '后期'],
+                    ['veryLate', '大后期'],
+                  ] as const).map(([key, label]) => {
+                    const segment = selectedTimingProfile[key]
+                    return (
+                      <div key={key}>
+                        <div className="text-[var(--text-muted)]">{label}</div>
+                        <div className="number text-[var(--text-primary)]">{segment.winRate !== null ? `${(segment.winRate * 100).toFixed(1)}%` : '—'}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="mt-2 text-[var(--text-muted)]">
+                  样本 {selectedTimingProfile.totalGames} 局 · 置信度 {selectedTimingProfile.confidence}
+                  {selectedTimingProfile.peakMinute !== undefined ? ` · 巅峰约第 ${selectedTimingProfile.peakMinute} 分钟` : ''}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="space-y-1"><span className="block text-xs text-[var(--text-muted)]">位置笔记</span><input value={form.position} onChange={e => updateField('position', e.target.value)} className={inputCls} /></label>

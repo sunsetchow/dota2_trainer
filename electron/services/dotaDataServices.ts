@@ -669,6 +669,11 @@ const HERO_TIMING_PUBLIC_DELAY_MS = 1100
 const HERO_TIMING_API_KEY_CONCURRENCY = 3
 const HERO_TIMING_API_KEY_DELAY_MS = 350
 let syncHeroTimingsInFlight: Promise<HeroTimingSyncResult> | undefined
+let heroTimingSyncProgress: { completed: number; total: number } | null = null
+
+function getHeroTimingSyncProgress(): { completed: number; total: number } | null {
+  return heroTimingSyncProgress
+}
 
 function getIsoWeekKey(date = new Date()): string {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
@@ -727,25 +732,32 @@ async function syncHeroTimingsInner(force: boolean): Promise<HeroTimingSyncResul
   const concurrency = hasApiKey ? HERO_TIMING_API_KEY_CONCURRENCY : HERO_TIMING_PUBLIC_CONCURRENCY
   const delayMs = hasApiKey ? HERO_TIMING_API_KEY_DELAY_MS : HERO_TIMING_PUBLIC_DELAY_MS
 
-  await runLimited(OPEN_DOTA_HEROES, concurrency, delayMs, async hero => {
-    try {
-      const rawBins = await fetchOpenDotaJson<unknown>(`/heroes/${hero.id}/durations`, 20_000)
-      const bins = sanitizeDurationBins(rawBins)
-      if (bins.length === 0) {
-        errors.push(`${hero.displayName || hero.localizedName}: durations 返回空数据`)
-        return
+  heroTimingSyncProgress = { completed: 0, total: OPEN_DOTA_HEROES.length }
+  try {
+    await runLimited(OPEN_DOTA_HEROES, concurrency, delayMs, async hero => {
+      try {
+        const rawBins = await fetchOpenDotaJson<unknown>(`/heroes/${hero.id}/durations`, 20_000)
+        const bins = sanitizeDurationBins(rawBins)
+        if (bins.length === 0) {
+          errors.push(`${hero.displayName || hero.localizedName}: durations 返回空数据`)
+          return
+        }
+        const profile = deriveHeroTimingProfile({
+          id: hero.id,
+          displayName: hero.displayName || hero.localizedName,
+          localizedName: hero.localizedName,
+        }, bins)
+        profiles[String(hero.id)] = profile
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        errors.push(`${hero.displayName || hero.localizedName}: ${message}`)
+      } finally {
+        if (heroTimingSyncProgress) heroTimingSyncProgress = { ...heroTimingSyncProgress, completed: heroTimingSyncProgress.completed + 1 }
       }
-      const profile = deriveHeroTimingProfile({
-        id: hero.id,
-        displayName: hero.displayName || hero.localizedName,
-        localizedName: hero.localizedName,
-      }, bins)
-      profiles[String(hero.id)] = profile
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      errors.push(`${hero.displayName || hero.localizedName}: ${message}`)
-    }
-  })
+    })
+  } finally {
+    heroTimingSyncProgress = null
+  }
 
   if (Object.keys(profiles).length === 0) {
     if (current) return { cached: false, heroCount: current.heroCount, errors }
@@ -1049,6 +1061,7 @@ export function createDotaDataServices() {
     listRecentOpenDotaMatches,
     requestOpenDotaParse,
     syncHeroTimings,
+    getHeroTimingSyncProgress,
     syncOpenDotaHeroMatchups,
     syncStratzHeroMatchups,
     sleep,

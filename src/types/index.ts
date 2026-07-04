@@ -423,6 +423,7 @@ declare global {
       syncOpenDotaHeroMatchups(force?: boolean): Promise<HeroMatchupSyncResult>;
       getHeroTimingCache(): Promise<HeroTimingCache | null>;
       syncHeroTimings(force?: boolean): Promise<HeroTimingSyncResult>;
+      getHeroTimingSyncProgress(): Promise<{ completed: number; total: number } | null>;
       exportAll(): Promise<{ success: boolean }>;
       importAll(json: string): Promise<void>;
     };
