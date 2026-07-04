@@ -22,7 +22,7 @@ Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 
 - 每个英雄可配置可用位置；显式空位置数组会被视为用户意图，不回退默认池。
 - 支持中文名、英文名和别名搜索。
 - 点击推荐英雄会直接创建待关联的赛前记录，并进入赛前提醒页。
-- 英雄 Timing Cache 使用 OpenDota `/durations` 计算前 / 中 / 后 / 大后期强势标签；低样本阶段显示“数据少”或静默降级，不伪造 50% 胜率。
+- 英雄 Timing Cache 计算前 / 中 / 后 / 大后期强势标签；配置了 Stratz API Key 时优先用 Stratz（一次请求拿全部英雄，更快），否则回退 OpenDota `/durations`；低样本阶段显示“数据少”或静默降级，不伪造 50% 胜率。
 - Draft 右侧会在有缓存时展示“我的英雄 vs 敌方已知阵容时间线”，用于判断主要行动窗口。
 
 ### 赛前提醒
@@ -214,9 +214,10 @@ git diff --check
 
 ## 最近重要改动
 
-- Phase 29.1：Timing 同步加进度上报（无 API Key 时单个英雄请求可能要数秒，127 个英雄全量同步实测约 13-15 分钟，之前界面无进度提示容易被误认为卡死）；英雄档案页新增 Timing 强势期展示。
+- Phase 29.2：Timing 数据源改为优先 Stratz（配置了 Stratz API Key 时）——`heroStats.stats(groupByTime)` 一次请求拿全部 127 个英雄的分钟级数据（实测约 1.3 秒），相邻分钟做差分还原成和 OpenDota `/durations` 一致的离散分桶（Stratz 返回的是"对局时长 ≥ 该分钟"的累计生存计数，不能直接当离散分桶用）。未配置 Stratz Key 时回退到原有 OpenDota 逐英雄同步（已加限流重试）。
+- Phase 29.1：Timing 同步加进度上报（无 API Key 时单个英雄请求可能要数秒，127 个英雄全量同步实测约 13-15 分钟，之前界面无进度提示容易被误认为卡死）；OpenDota 逐英雄同步遇到限流会重试（5s/15s）而不是直接放弃该英雄；英雄档案页新增 Timing 强势期展示。
 - Phase 29：英雄 Timing Cache 接入 OpenDota `/durations`；Draft 显示强势期标签和“我的英雄 vs 敌方已知阵容时间线”，低样本阶段不参与强势期判断。
-- 数据源策略：英雄 matchup 固定为 Stratz-only；OpenDota 仅用于 Match ID 导入、benchmarks 和 Timing durations。
+- 数据源策略：英雄 matchup 固定为 Stratz-only；Timing 优先 Stratz、否则回退 OpenDota；OpenDota 仍用于 Match ID 导入和 benchmarks。
 - Phase 1：Zod runtime schema、Vitest、backup/import validation、schemaVersion 地基。
 - Phase 2：拆分 Electron main，抽出 store/openDota IPC 和 Dota data services。
 - Phase 3：拆分 PostGame，抽出 postgame feature helpers/UI，并补测试。

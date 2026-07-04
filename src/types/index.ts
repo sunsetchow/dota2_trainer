@@ -325,7 +325,7 @@ export interface HeroTimingProfile {
 }
 
 export interface HeroTimingCache {
-  source: 'opendota';
+  source: 'opendota' | 'stratz';
   syncedAt: number;
   date: string;
   version: 1;

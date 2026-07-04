@@ -271,7 +271,7 @@ export const HeroTimingProfileSchema = z.object({
 }).strict()
 
 export const HeroTimingCacheSchema = z.object({
-  source: z.literal('opendota'),
+  source: z.enum(['opendota', 'stratz']),
   syncedAt: z.number().finite(),
   date: z.string(),
   version: z.literal(1),

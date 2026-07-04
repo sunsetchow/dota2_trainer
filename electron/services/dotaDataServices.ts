@@ -7,8 +7,8 @@ import {
   parseHeroMatchupCache,
   parseHeroTimingCache,
 } from '../../src/schema/persistence.ts'
-import { createOpenDotaError } from '../../src/utils/openDotaErrors.ts'
-import { deriveHeroTimingProfile, sanitizeDurationBins } from '../../src/utils/heroTiming.ts'
+import { createOpenDotaError, getOpenDotaErrorCode } from '../../src/utils/openDotaErrors.ts'
+import { deriveHeroTimingProfile, sanitizeDurationBins, type DurationBin } from '../../src/utils/heroTiming.ts'
 
 interface OpenDotaPlayer {
   account_id?: number;
@@ -734,9 +734,23 @@ async function syncHeroTimingsInner(force: boolean): Promise<HeroTimingSyncResul
 
   heroTimingSyncProgress = { completed: 0, total: OPEN_DOTA_HEROES.length }
   try {
+    const RATE_LIMIT_RETRY_DELAYS_MS = [5_000, 15_000]
+
     await runLimited(OPEN_DOTA_HEROES, concurrency, delayMs, async hero => {
       try {
-        const rawBins = await fetchOpenDotaJson<unknown>(`/heroes/${hero.id}/durations`, 20_000)
+        let rawBins: unknown
+        let attempt = 0
+        while (true) {
+          try {
+            rawBins = await fetchOpenDotaJson<unknown>(`/heroes/${hero.id}/durations`, 20_000)
+            break
+          } catch (error) {
+            const isRateLimited = getOpenDotaErrorCode(error) === 'RATE_LIMITED'
+            if (!isRateLimited || attempt >= RATE_LIMIT_RETRY_DELAYS_MS.length) throw error
+            await sleep(RATE_LIMIT_RETRY_DELAYS_MS[attempt])
+            attempt += 1
+          }
+        }
         const bins = sanitizeDurationBins(rawBins)
         if (bins.length === 0) {
           errors.push(`${hero.displayName || hero.localizedName}: durations 返回空数据`)
@@ -1052,6 +1066,105 @@ async function syncStratzHeroMatchups(apiKey: string, rankBracket: StratzRankBra
   }
 }
 
+interface StratzHeroTimeStatRow {
+  heroId: number
+  time: number
+  matchCount: number
+  winCount: number
+}
+
+interface StratzHeroTimingStatsData {
+  heroStats?: {
+    stats?: StratzHeroTimeStatRow[]
+  }
+}
+
+// stats(groupByTime) 返回的是"对局时长 ≥ time 分钟"的累计生存计数（已用真实 API 核对：
+// 相邻分钟做差可以精确还原回总局数/总胜场，见项目调研记录），不是离散分桶计数，
+// 所以必须先对相邻分钟做差分，才能重用 OpenDota /durations 那套按秒分桶的 calcSegment 逻辑。
+const STRATZ_HERO_TIMING_MAX_MINUTE = 75
+
+const HERO_TIMING_STATS_QUERY = `
+  query HeroTimingStats($heroIds: [Short], $bracketBasicIds: [RankBracketBasicEnum]) {
+    heroStats {
+      stats(heroIds: $heroIds, bracketBasicIds: $bracketBasicIds, groupByTime: true, minTime: 0, maxTime: ${STRATZ_HERO_TIMING_MAX_MINUTE}) {
+        heroId
+        time
+        matchCount
+        winCount
+      }
+    }
+  }
+`
+
+function diffHeroTimingBinsFromStratzStats(rows: StratzHeroTimeStatRow[]): DurationBin[] {
+  const sorted = [...rows].sort((a, b) => a.time - b.time)
+  return sorted.map((row, index) => {
+    const next = sorted[index + 1]
+    const games = next ? Math.max(0, row.matchCount - next.matchCount) : row.matchCount
+    const wins = next ? Math.max(0, row.winCount - next.winCount) : row.winCount
+    return { duration_bin: row.time * 60, games_played: games, wins }
+  })
+}
+
+async function syncStratzHeroTimings(apiKey: string, rankBracket: StratzRankBracket, force = false): Promise<HeroTimingSyncResult> {
+  const currentRaw = store.get('heroTimingCache', null)
+  const current = currentRaw ? parseHeroTimingCache(currentRaw) as HeroTimingCache : null
+  const now = Date.now()
+  if (!force && current?.heroCount && current.source === 'stratz' && now - current.syncedAt < HERO_TIMING_CACHE_TTL_MS) {
+    return { cached: true, heroCount: current.heroCount, errors: [] }
+  }
+
+  const bracketArg = rankBracket === 'ALL' ? STRATZ_ALL_BRACKETS : [rankBracket]
+  const heroIds = OPEN_DOTA_HEROES.map(hero => hero.id)
+
+  const result = await fetchStratzGraphQL<StratzHeroTimingStatsData>(
+    apiKey,
+    HERO_TIMING_STATS_QUERY,
+    { heroIds, bracketBasicIds: bracketArg },
+  )
+  const rowsByHero = new Map<number, StratzHeroTimeStatRow[]>()
+  for (const row of result.heroStats?.stats ?? []) {
+    const existing = rowsByHero.get(row.heroId)
+    if (existing) existing.push(row)
+    else rowsByHero.set(row.heroId, [row])
+  }
+
+  const profiles: HeroTimingCache['profiles'] = {}
+  const errors: string[] = []
+  for (const hero of OPEN_DOTA_HEROES) {
+    const heroRows = rowsByHero.get(hero.id)
+    if (!heroRows || heroRows.length === 0) {
+      errors.push(`${hero.displayName || hero.localizedName}: Stratz 未返回该英雄的 timing 数据`)
+      continue
+    }
+    const bins = diffHeroTimingBinsFromStratzStats(heroRows)
+    profiles[String(hero.id)] = deriveHeroTimingProfile({
+      id: hero.id,
+      displayName: hero.displayName || hero.localizedName,
+      localizedName: hero.localizedName,
+    }, bins)
+  }
+
+  if (Object.keys(profiles).length === 0) {
+    if (current) return { cached: false, heroCount: current.heroCount, errors }
+    throw new Error('Stratz hero timing 数据同步失败，且本地没有可用缓存。')
+  }
+
+  const syncedAt = Date.now()
+  const cache = parseHeroTimingCache({
+    source: 'stratz',
+    syncedAt,
+    date: todayKey(),
+    version: 1,
+    heroCount: Object.keys(profiles).length,
+    profiles,
+    ...(errors.length > 0 && { errors: errors.slice(0, 12) }),
+  }) as HeroTimingCache
+  store.set('heroTimingCache', cache)
+  return { cached: false, heroCount: cache.heroCount, errors }
+}
+
 export function createDotaDataServices() {
   return {
     normalizeMatchId,
@@ -1061,6 +1174,7 @@ export function createDotaDataServices() {
     listRecentOpenDotaMatches,
     requestOpenDotaParse,
     syncHeroTimings,
+    syncStratzHeroTimings,
     getHeroTimingSyncProgress,
     syncOpenDotaHeroMatchups,
     syncStratzHeroMatchups,

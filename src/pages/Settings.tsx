@@ -154,7 +154,8 @@ export default function Settings() {
 
   const handleSyncTimings = async () => {
     setSyncingTimings(true)
-    setStatusMsg('正在通过 OpenDota durations 同步英雄 Timing 数据…')
+    const usingStratz = Boolean(stratzApiKey.trim())
+    setStatusMsg(usingStratz ? '正在通过 Stratz 同步英雄 Timing 数据…' : '正在通过 OpenDota durations 同步英雄 Timing 数据…')
     const progressTimer = setInterval(() => {
       window.electronStore.getHeroTimingSyncProgress().then(progress => {
         if (progress) setStatusMsg(`正在通过 OpenDota durations 同步英雄 Timing 数据…（${progress.completed}/${progress.total}，无 API Key 时每个英雄约需数秒，请耐心等待）`)
@@ -164,7 +165,7 @@ export default function Settings() {
       const result = await window.electronStore.syncHeroTimings(true)
       const cache = await window.electronStore.getHeroTimingCache()
       setTimingCache(cache)
-      setStatusMsg(`已同步 Timing 数据：${result.heroCount} 个英雄${result.errors.length ? `，${result.errors.length} 个失败` : ''}。`)
+      setStatusMsg(`已同步 Timing 数据：${result.heroCount} 个英雄${result.errors.length ? `，${result.errors.length} 个失败` : ''}（数据源 ${cache?.source === 'stratz' ? 'Stratz' : 'OpenDota'}）。`)
     } catch (error) {
       setStatusMsg(error instanceof Error ? error.message : String(error))
     } finally {
@@ -360,8 +361,8 @@ export default function Settings() {
         <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">英雄 Timing 数据</h2>
         <div className="pt-1 space-y-2">
           <p className="text-xs text-[var(--text-muted)]">
-            OpenDota durations：{timingCache
-              ? `${timingCache.date} · ${timingCache.heroCount} 个英雄 · ${timingCache.errors?.length ? `${timingCache.errors.length} 个失败` : '完整缓存'}`
+            {timingCache
+              ? `${timingCache.date} · ${timingCache.heroCount} 个英雄 · ${timingCache.errors?.length ? `${timingCache.errors.length} 个失败` : '完整缓存'} · 数据源 ${timingCache.source === 'stratz' ? 'Stratz' : 'OpenDota'}`
               : '尚未同步'}
           </p>
           <p className="text-xs leading-5 text-[var(--text-muted)]">Timing 只用于 Draft 的强势期标签和“我的英雄 vs 敌方阵容时间线”，不会参与 Stratz matchup 分数。</p>
