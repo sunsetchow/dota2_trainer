@@ -32,6 +32,14 @@ const StratzSettingsSchema = z.object({
   rankBracket: StratzRankBracketSchema.optional(),
 }).strict()
 
+// GSI（Game State Integration，实验性）：只持久化用户开关/目录/端口最小配置。
+// 连接状态、已识别英雄快照和 authToken 只存在 main 进程内存里，不进入这里。
+const GsiSettingsSchema = z.object({
+  enabled: z.boolean(),
+  cfgDir: z.string().optional(),
+  port: z.number().int().positive().optional(),
+}).strict()
+
 export const HeroConfigSchema = z.object({
   name: z.string().trim().min(1),
   heroId: z.number().int().positive().optional(),
@@ -50,6 +58,7 @@ export const AppStateSchema = z.object({
   stratz: StratzSettingsSchema.optional(),
   checklistFreezeTokens: z.number().int().nonnegative().optional(),
   freezeUsedDates: z.array(z.string()).optional(),
+  gsi: GsiSettingsSchema.optional(),
 }).strict()
 
 export const AppStatePatchSchema = z.object({
@@ -62,6 +71,7 @@ export const AppStatePatchSchema = z.object({
   stratz: StratzSettingsSchema.optional(),
   checklistFreezeTokens: z.number().int().nonnegative().optional(),
   freezeUsedDates: z.array(z.string()).optional(),
+  gsi: GsiSettingsSchema.optional(),
 }).strict()
 
 const WeekThemeSchema = z.object({

@@ -3,7 +3,9 @@ import { join } from 'path'
 import store from './store.ts'
 import { registerStoreIpcHandlers, recoverPersistedStoreForStartup } from './ipc/storeIpc.ts'
 import { registerOpenDotaIpcHandlers } from './ipc/opendotaIpc.ts'
+import { registerGsiIpcHandlers } from './ipc/gsiIpc.ts'
 import { createDotaDataServices, todayKey } from './services/dotaDataServices.ts'
+import { closeGsiOnQuit, restoreGsiOnStartup } from './services/gsiService.ts'
 import heroMatchupSnapshot from '../src/data/heroMatchupSnapshot.json'
 import type { AppState, TrainingCycle, HeroMatchupCache } from '../src/types'
 import { parseHeroMatchupCache } from '../src/schema/persistence.ts'
@@ -85,8 +87,9 @@ function createWindow() {
 
 registerStoreIpcHandlers(store, todayKey)
 registerOpenDotaIpcHandlers(store, createDotaDataServices())
+registerGsiIpcHandlers(store, () => BrowserWindow.getAllWindows().map(w => w.webContents))
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   recoverPersistedStoreForStartup(store)
 
   // 冷启动：确保 activeCycleId 始终存在
@@ -110,6 +113,8 @@ app.whenReady().then(() => {
     store.set('heroMatchupCache', bundledMatchupCache)
   }
 
+  await restoreGsiOnStartup(store)
+
   createWindow()
 
   app.on('activate', () => {
@@ -119,4 +124,8 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
+})
+
+app.on('before-quit', () => {
+  void closeGsiOnQuit()
 })

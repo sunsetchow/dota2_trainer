@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppState, useCycles } from '../store/useStore.ts'
 import positionMetaJson from '../data/positionMetaHeroes.json'
-import type { HeroMatchupCache, HeroTimingCache, PositionMetaSnapshot, StratzRankBracket, TrainingCycle } from '../types'
+import type { GsiStatus, HeroMatchupCache, HeroTimingCache, PositionMetaSnapshot, StratzRankBracket, TrainingCycle } from '../types'
 
 const STRATZ_RANK_BRACKETS: Array<{ value: StratzRankBracket; label: string }> = [
   { value: 'ALL', label: '全部分段' },
@@ -34,6 +34,8 @@ export default function Settings() {
   const [syncingTimings, setSyncingTimings] = useState(false)
   const [matchupCache, setMatchupCache] = useState<HeroMatchupCache | null>(null)
   const [timingCache, setTimingCache] = useState<HeroTimingCache | null>(null)
+  const [gsiStatus, setGsiStatus] = useState<GsiStatus | null>(null)
+  const [gsiBusy, setGsiBusy] = useState(false)
 
   useEffect(() => {
     setOpenDotaAccountId(appState?.openDota?.accountId ?? '')
@@ -53,6 +55,14 @@ export default function Settings() {
     window.electronStore.getHeroTimingCache()
       .then(setTimingCache)
       .catch(() => undefined)
+  }, [])
+
+  useEffect(() => {
+    window.electronStore.getGsiStatus().then(setGsiStatus).catch(() => undefined)
+    const unsubscribe = window.electronStore.onGsiSnapshotUpdated(snapshot => {
+      setGsiStatus(prev => prev ? { ...prev, snapshot } : prev)
+    })
+    return unsubscribe
   }, [])
 
   const formatCacheTime = (ts?: number) => ts
@@ -165,6 +175,48 @@ export default function Settings() {
     } finally {
       setSyncingTimings(false)
       setTimeout(() => setStatusMsg(''), 6000)
+    }
+  }
+
+  const refreshGsiStatus = async () => {
+    setGsiStatus(await window.electronStore.getGsiStatus())
+  }
+
+  const handleEnableGsi = async () => {
+    setGsiBusy(true)
+    try {
+      const result = await window.electronStore.enableGsi()
+      setStatusMsg(result.ok ? 'GSI 已开启（实验性）。' : 'GSI 开启失败：' + (result.error ?? '未知错误'))
+      await refreshGsiStatus()
+    } finally {
+      setGsiBusy(false)
+      setTimeout(() => setStatusMsg(''), 5000)
+    }
+  }
+
+  const handleDisableGsi = async () => {
+    setGsiBusy(true)
+    try {
+      await window.electronStore.disableGsi()
+      setStatusMsg('GSI 已关闭，配置文件已移除。')
+      await refreshGsiStatus()
+    } finally {
+      setGsiBusy(false)
+      setTimeout(() => setStatusMsg(''), 5000)
+    }
+  }
+
+  const handleChooseGsiCfgDir = async () => {
+    const dir = await window.electronStore.chooseGsiCfgDir()
+    if (!dir) return
+    setGsiBusy(true)
+    try {
+      const result = await window.electronStore.enableGsi({ cfgDir: dir })
+      setStatusMsg(result.ok ? '已使用所选目录开启 GSI。' : 'GSI 开启失败：' + (result.error ?? '未知错误'))
+      await refreshGsiStatus()
+    } finally {
+      setGsiBusy(false)
+      setTimeout(() => setStatusMsg(''), 5000)
     }
   }
 

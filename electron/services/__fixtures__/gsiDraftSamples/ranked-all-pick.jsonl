@@ -1,0 +1,3 @@
+{"provider":{"name":"Dota 2","appid":570},"map":{"game_state":"DOTA_GAMERULES_STATE_HERO_SELECTION"},"draft":{"activeteam":2,"pick":true,"team2":{"picks":[6]}}}
+{"provider":{"name":"Dota 2","appid":570},"map":{"game_state":"DOTA_GAMERULES_STATE_HERO_SELECTION"}}
+{"provider":{"name":"Dota 2","appid":570},"map":{"game_state":"DOTA_GAMERULES_STATE_GAME_IN_PROGRESS"},"hero":{"id":6,"name":"npc_dota_hero_drow_ranger"}}

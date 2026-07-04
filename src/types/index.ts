@@ -53,6 +53,47 @@ export interface StratzSettings {
   rankBracket?: StratzRankBracket;
 }
 
+// ── GSI（Game State Integration，实验性，默认关闭）
+// 只持久化用户开关/目录/端口；连接状态、已识别英雄快照、authToken 只存在 main 进程内存里。
+export interface GsiSettings {
+  enabled: boolean;
+  cfgDir?: string;
+  port?: number;
+}
+
+export type DraftGsiConnectionStatus = 'disconnected' | 'connected' | 'in_draft' | 'stale';
+
+export interface DraftGsiSnapshot {
+  status: DraftGsiConnectionStatus;
+  lastPayloadAt: number | null;
+  enemyHeroIds: number[];
+  gameMode: 'captains_mode' | 'all_pick' | 'ranked_all_pick' | 'unknown';
+}
+
+export interface GsiConfigStatus {
+  installed: boolean;
+  configPath: string | null;
+  dotaCfgDirFound: boolean;
+  detectedSteamPaths: string[];
+}
+
+export interface GsiServerStatus {
+  running: boolean;
+  port: number | null;
+}
+
+export interface GsiStatus {
+  enabled: boolean;
+  server: GsiServerStatus;
+  config: GsiConfigStatus;
+  snapshot: DraftGsiSnapshot | null;
+}
+
+export interface GsiEnableResult {
+  ok: boolean;
+  error?: string;
+}
+
 export interface PositionMetaHero {
   hero: string;
   weight: number;
@@ -217,6 +258,7 @@ export interface AppState {
   stratz?: StratzSettings;
   checklistFreezeTokens?: number;
   freezeUsedDates?: string[];
+  gsi?: GsiSettings;
 }
 
 // ── OpenDota 导入结果（主进程返回）
@@ -423,6 +465,12 @@ declare global {
       syncOpenDotaHeroMatchups(force?: boolean): Promise<HeroMatchupSyncResult>;
       getHeroTimingCache(): Promise<HeroTimingCache | null>;
       syncHeroTimings(force?: boolean): Promise<HeroTimingSyncResult>;
+      getGsiStatus(): Promise<GsiStatus>;
+      enableGsi(options?: { cfgDir?: string; port?: number }): Promise<GsiEnableResult>;
+      disableGsi(): Promise<void>;
+      detectGsiCfgDir(): Promise<string[]>;
+      chooseGsiCfgDir(): Promise<string | null>;
+      onGsiSnapshotUpdated(cb: (snapshot: DraftGsiSnapshot) => void): () => void;
       exportAll(): Promise<{ success: boolean }>;
       importAll(json: string): Promise<void>;
     };

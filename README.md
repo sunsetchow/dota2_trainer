@@ -2,7 +2,7 @@
 
 Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 2 个人训练、英雄池管理、Draft 辅助、赛前计划、赛后复盘、数据导入和英雄笔记间隔复习。
 
-当前版本：`0.3.0`
+当前版本：`0.3.1`
 
 ## 核心功能
 
@@ -24,6 +24,13 @@ Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 
 - 点击推荐英雄会直接创建待关联的赛前记录，并进入赛前提醒页。
 - 英雄 Timing Cache 使用 OpenDota `/durations` 计算前 / 中 / 后 / 大后期强势标签；低样本阶段显示“数据少”或静默降级，不伪造 50% 胜率。
 - Draft 右侧会在有缓存时展示“我的英雄 vs 敌方已知阵容时间线”，用于判断主要行动窗口。
+
+### Draft 实时识别（GSI，实验性）
+
+- Phase 30 Stage A 新增 Dota 2 Game State Integration 骨架，默认关闭。
+- 设置页可启用 / 卸载 `gamestate_integration_dota2trainer.cfg`，并启动只监听 `127.0.0.1` 的本地 HTTP server。
+- GSI server 只接受带随机 token 的 `POST /gsi`，有 payload 大小上限；app 退出或关闭 GSI 时会释放端口。
+- 真实 Dota 2 客户端选人阶段覆盖率尚未验证，因此当前版本只提供连接 / 安装 / 状态诊断，不做 Draft 自动填充。
 
 ### 赛前提醒
 
@@ -85,6 +92,7 @@ Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 
 - Electron IPC 写入前做 payload validation。
 - 备份导入前校验完整 JSON shape，拒绝未知 top-level key 和坏数据。
 - 备份导出会移除 API key 等敏感字段。
+- GSI 原始 payload、auth token、连接快照和已识别英雄只存在主进程内存；备份 / 持久化只保存 `appState.gsi.enabled/cfgDir/port`。
 - 启动时会执行 v3 migration / recovery：核心数组逐条 salvage，坏条目丢弃且健康数据保留，并为旧的中文名 keyed 英雄数据补齐稳定 `heroId`。
 - 坏 matchup / benchmark / timing cache 会自动清空为可重建状态，不会拖垮核心训练数据。
 - 发生 destructive recovery 时会优先备份当前 store 为 `*.corrupt-YYYYMMDD-HHmmss.json`。
@@ -112,8 +120,12 @@ electron/
     storeIpc.ts                   store / backup IPC handlers + persisted store validation
     storeIpc.test.ts              store IPC validation helper regression tests
     opendotaIpc.ts                OpenDota / Stratz IPC handlers
+    gsiIpc.ts                     Dota 2 GSI 设置 / 状态 IPC handlers
   services/
     dotaDataServices.ts           OpenDota / Stratz API/service logic
+    gsiConfig.ts                  GSI cfg 探测 / 安装 / 卸载
+    gsiServer.ts                  localhost-only GSI HTTP server
+    gsiService.ts                 GSI runtime 状态和启停编排
 
 src/
   app/
@@ -131,6 +143,7 @@ src/
   pages/                          页面级 flow orchestration
   schema/
     persistence.ts                持久化 runtime schemas/parsers
+    gsi.ts                        GSI payload best-effort schema
     persistence.test.ts           schema/parser tests
   store/
     useStore.ts                   renderer store hooks
@@ -195,6 +208,7 @@ git diff --check
 - 应用数据保存在本地 Electron store 中。
 - OpenDota / Stratz 配置保存在本地。
 - 备份导出会 redaction API key；不要把真实 token、API key 或私密配置提交到仓库。
+- GSI 只在本机内存处理 payload；不要提交真实 Dota 2 GSI 抓包。用于测试的样本必须脱敏并标明 synthetic / real。
 
 ## 维护约定
 
@@ -214,6 +228,7 @@ git diff --check
 
 ## 最近重要改动
 
+- Phase 30 Stage A：新增 Dota 2 GSI 实验性骨架（cfg 安装/卸载、localhost-only server、IPC/preload/设置页状态），默认关闭；真实客户端选人阶段数据覆盖率未验证前不启用 Draft 自动填充。
 - Phase 29：英雄 Timing Cache 接入 OpenDota `/durations`；Draft 显示强势期标签和“我的英雄 vs 敌方已知阵容时间线”，低样本阶段不参与强势期判断。
 - 数据源策略：英雄 matchup 固定为 Stratz-only；OpenDota 仅用于 Match ID 导入、benchmarks 和 Timing durations。
 - Phase 1：Zod runtime schema、Vitest、backup/import validation、schemaVersion 地基。

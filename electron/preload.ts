@@ -26,6 +26,16 @@ contextBridge.exposeInMainWorld('electronStore', {
   syncOpenDotaHeroMatchups: (force?: boolean) => ipcRenderer.invoke('opendota:syncHeroMatchups', force),
   getHeroTimingCache: () => ipcRenderer.invoke('opendota:getHeroTimingCache'),
   syncHeroTimings: (force?: boolean) => ipcRenderer.invoke('opendota:syncHeroTimings', force),
+  getGsiStatus:         ()         => ipcRenderer.invoke('gsi:getStatus'),
+  enableGsi:            (options?: { cfgDir?: string; port?: number }) => ipcRenderer.invoke('gsi:enable', options),
+  disableGsi:           ()         => ipcRenderer.invoke('gsi:disable'),
+  detectGsiCfgDir:      ()         => ipcRenderer.invoke('gsi:detectCfgDir'),
+  chooseGsiCfgDir:      ()         => ipcRenderer.invoke('gsi:chooseCfgDir'),
+  onGsiSnapshotUpdated: (cb: (snapshot: unknown) => void) => {
+    const listener = (_: unknown, snapshot: unknown) => cb(snapshot)
+    ipcRenderer.on('gsi:snapshotUpdated', listener)
+    return () => ipcRenderer.removeListener('gsi:snapshotUpdated', listener)
+  },
   exportAll:            ()         => ipcRenderer.invoke('store:exportAll'),
   importAll:            (json: string)     => ipcRenderer.invoke('store:importAll', json),
 })

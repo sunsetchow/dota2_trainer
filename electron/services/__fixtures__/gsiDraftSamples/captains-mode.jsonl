@@ -1,0 +1,4 @@
+{"provider":{"name":"Dota 2","appid":570},"map":{"game_state":"DOTA_GAMERULES_STATE_HERO_SELECTION"}}
+{"provider":{"name":"Dota 2","appid":570},"map":{"game_state":"DOTA_GAMERULES_STATE_HERO_SELECTION"},"draft":{"activeteam":2,"pick":true,"team2":{"picks":[14,26],"bans":[1,8]}}}
+{"provider":{"name":"Dota 2","appid":570},"map":{"game_state":"DOTA_GAMERULES_STATE_HERO_SELECTION"},"draft":{"activeteam":3,"pick":false,"team2":{"picks":[14,26,44,50],"bans":[1,8]}}}
+{"provider":{"name":"Dota 2","appid":570},"map":{"game_state":"DOTA_GAMERULES_STATE_GAME_IN_PROGRESS"},"draft":{"team2":{"picks":[14,26,44,50,75,88]}}}
