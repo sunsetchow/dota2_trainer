@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import HeroCard from '../components/HeroCard.tsx'
 import Button from '../components/ui/Button.tsx'
@@ -96,6 +96,12 @@ export default function HeroNotes() {
   const requestedFilter = searchParams.get('filter')
   const configByHero = useMemo(() => new Map(heroPool.map(config => [config.name, config])), [heroPool])
   const noteByHero = useMemo(() => new Map(heroNotes.map(note => [note.hero, note])), [heroNotes])
+  // 缓存每个英雄的位置数组：getConfiguredHeroPositions 对没有自定义位置的英雄每次都会算出新数组，
+  // 引用不稳定会让下面 HeroCard 的 React.memo 浅比较失效，导致切换英雄时整个列表跟着重渲染。
+  const positionsByHero = useMemo(
+    () => new Map(ALL_HEROES.map(hero => [hero, getConfiguredHeroPositions(hero, configByHero.get(hero))])),
+    [configByHero],
+  )
 
   useEffect(() => {
     if (requestedFilter === 'due') setPoolFilter('due')
@@ -120,6 +126,7 @@ export default function HeroNotes() {
   const selectedNote = selectedHero ? noteByHero.get(selectedHero) ?? heroNotes.find(note => sameHeroReference(note, { hero: selectedHero })) : undefined
   const selectedHeroId = selectedHero ? getHeroIdByName(selectedHero) : undefined
   const selectedTimingProfile = selectedHeroId !== undefined ? timingCache?.profiles[String(selectedHeroId)] : undefined
+  const handleSelectHero = useCallback((hero: string) => setSelectedHero(hero), [])
 
   useEffect(() => {
     const hero = selectedHero.trim()
@@ -149,7 +156,7 @@ export default function HeroNotes() {
         const config = configByHero.get(hero)
         const active = Boolean(config?.active)
         const note = noteByHero.get(hero)
-        const positions = getConfiguredHeroPositions(hero, config)
+        const positions = positionsByHero.get(hero) ?? []
         if (positionFilter !== 'all' && !positions.includes(positionFilter)) return false
         if (poolFilter === 'active') return active
         if (poolFilter === 'inactive') return !active
@@ -170,7 +177,7 @@ export default function HeroNotes() {
         if (dueDelta) return dueDelta
         return a.localeCompare(b, 'zh-CN')
       })
-  }, [configByHero, noteByHero, poolFilter, positionFilter, search, today])
+  }, [configByHero, noteByHero, positionsByHero, poolFilter, positionFilter, search, today])
 
   const saveHeroConfig = async (hero: string, patch: Partial<HeroConfig>) => {
     if (!appState || !hero) return
@@ -336,11 +343,11 @@ export default function HeroNotes() {
                   hero={hero}
                   active={Boolean(config?.active)}
                   tier={config?.tier}
-                  positions={getConfiguredHeroPositions(hero, config)}
+                  positions={positionsByHero.get(hero) ?? []}
                   selected={selectedHero === hero}
                   hasNote={hasNoteContent(note)}
                   due={Boolean(note && isDueForReview(note, today))}
-                  onClick={() => setSelectedHero(hero)}
+                  onSelect={handleSelectHero}
                 />
               )
             })}

@@ -10,14 +10,14 @@ interface HeroCardProps {
   selected?: boolean
   hasNote?: boolean
   due?: boolean
-  onClick: () => void
+  onSelect: (hero: string) => void
 }
 
-export default function HeroCard({ hero, active, tier, positions, selected = false, hasNote = false, due = false, onClick }: HeroCardProps) {
+function HeroCard({ hero, active, tier, positions, selected = false, hasNote = false, due = false, onSelect }: HeroCardProps) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => onSelect(hero)}
       className={`w-full rounded-xl border p-3 text-left transition-all active:translate-y-px ${
         selected
           ? 'border-[var(--accent-border)] bg-[var(--accent-muted)]'
@@ -51,3 +51,5 @@ export default function HeroCard({ hero, active, tier, positions, selected = fal
     </button>
   )
 }
+
+export default React.memo(HeroCard)
