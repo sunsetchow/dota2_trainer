@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dota2 Trainer Overwolf GSI Spike</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <p class="eyebrow">Dota2 Trainer · Overwolf feasibility spike</p>
+        <h1>Draft / bans / roster payload 捕获</h1>
+      </div>
+      <span id="runtime-badge" class="badge muted">waiting</span>
+    </header>
+
+    <section class="card grid">
+      <div>
+        <h2>目标</h2>
+        <p>验证 Overwolf GEP 在 Dota 2 Ranked All Pick / All Pick / Captain's Mode 选人阶段是否实时提供敌方英雄 <code>heroId</code>。</p>
+        <p class="warn">本 spike 只捕获和脱敏数据，不改 Dota2 Trainer 主 app，不做自动填充。</p>
+      </div>
+      <div>
+        <h2>启动项检查</h2>
+        <p>Dota 2 必须加 Steam Launch Option：</p>
+        <pre>-gamestateintegration</pre>
+        <button id="check-game">检查当前 Dota 2 进程</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Overwolf GEP</h2>
+      <div class="actions">
+        <button id="set-features">订阅 Dota 2 features</button>
+        <button id="get-info">读取当前 info</button>
+        <button id="clear-log">清空 log</button>
+        <button id="copy-jsonl">复制 JSONL</button>
+      </div>
+      <p class="small">订阅 features：<code id="features"></code></p>
+      <div id="feature-status" class="status"></div>
+    </section>
+
+    <section class="card">
+      <h2>可选：转发到本地 bridge</h2>
+      <p class="small">默认关闭。用于后续把 Overwolf companion 接到 Dota2 Trainer；当前 spike 只建议手动复制 JSONL。</p>
+      <label class="row"><input id="bridge-enabled" type="checkbox" /> 启用 localhost 转发</label>
+      <input id="bridge-url" value="http://127.0.0.1:53412/overwolf-gsi" />
+    </section>
+
+    <section class="card">
+      <h2>当前摘要</h2>
+      <pre id="summary">{}</pre>
+    </section>
+
+    <section class="card">
+      <h2>事件 / info log（已脱敏）</h2>
+      <pre id="log"></pre>
+    </section>
+  </main>
+  <script src="src/app.js"></script>
+</body>
+</html>

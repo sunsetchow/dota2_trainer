@@ -1,0 +1,45 @@
+{
+  "manifest_version": 1,
+  "type": "WebApp",
+  "meta": {
+    "name": "Dota2 Trainer GSI Spike",
+    "author": "Dota2 Trainer Local",
+    "version": "0.1.0",
+    "minimum-overwolf-version": "0.170.0",
+    "minimum-gep-version": "139.0",
+    "description": "Local feasibility spike for Dota 2 Overwolf draft events.",
+    "icon": "assets/icon.png"
+  },
+  "permissions": ["GameInfo"],
+  "data": {
+    "start_window": "main",
+    "windows": {
+      "main": {
+        "file": "index.html",
+        "desktop_only": true,
+        "native_window": true,
+        "resizable": true,
+        "transparent": false,
+        "size": { "width": 980, "height": 760 },
+        "min_size": { "width": 760, "height": 560 }
+      }
+    },
+    "game_targeting": {
+      "type": "dedicated",
+      "game_ids": [7314]
+    },
+    "game_events": [7314],
+    "launch_events": [
+      {
+        "event": "GameLaunch",
+        "event_data": { "game_ids": [7314] },
+        "start_minimized": false
+      }
+    ],
+    "developer": {
+      "enable_auto_refresh": true,
+      "reload_delay": 1000,
+      "filter": "*.*"
+    }
+  }
+}
