@@ -11,6 +11,7 @@ import {
 } from '../../src/schema/persistence.ts'
 import { createOpenDotaError, getOpenDotaErrorCode } from '../../src/utils/openDotaErrors.ts'
 import { deriveHeroTimingProfile, sanitizeDurationBins, type DurationBin } from '../../src/utils/heroTiming.ts'
+import { getHeroNameById } from '../../src/utils/heroIdentity.ts'
 
 interface OpenDotaPlayer {
   account_id?: number;
@@ -96,8 +97,11 @@ interface OpenDotaBenchmarkResponse {
 }
 
 const OPEN_DOTA_HEROES = opendotaHeroes as OpenDotaHeroMeta[]
+// 用 heroIdentity 里 canonical 化过的名字（兼容改过官方译名的英雄，比如 id 155 朗戈），
+// 不要直接用 hero.displayName，否则这里同步出来的 matchup / timing / 位置热门数据
+// 可能跟英雄池、Draft 用的名字对不上。
 const openDotaHeroNameById = new Map<number, string>(
-  OPEN_DOTA_HEROES.map(hero => [hero.id, hero.displayName || hero.localizedName])
+  OPEN_DOTA_HEROES.map(hero => [hero.id, getHeroNameById(hero.id) ?? (hero.displayName || hero.localizedName)])
 )
 
 function getOpenDotaApiKey(): string | undefined {
@@ -753,20 +757,22 @@ async function syncHeroTimingsInner(force: boolean): Promise<HeroTimingSyncResul
             attempt += 1
           }
         }
+        const heroName = openDotaHeroNameById.get(hero.id) ?? hero.displayName ?? hero.localizedName
         const bins = sanitizeDurationBins(rawBins)
         if (bins.length === 0) {
-          errors.push(`${hero.displayName || hero.localizedName}: durations 返回空数据`)
+          errors.push(`${heroName}: durations 返回空数据`)
           return
         }
         const profile = deriveHeroTimingProfile({
           id: hero.id,
-          displayName: hero.displayName || hero.localizedName,
+          displayName: heroName,
           localizedName: hero.localizedName,
         }, bins)
         profiles[String(hero.id)] = profile
       } catch (error) {
+        const heroName = openDotaHeroNameById.get(hero.id) ?? hero.displayName ?? hero.localizedName
         const message = error instanceof Error ? error.message : String(error)
-        errors.push(`${hero.displayName || hero.localizedName}: ${message}`)
+        errors.push(`${heroName}: ${message}`)
       } finally {
         if (heroTimingSyncProgress) heroTimingSyncProgress = { ...heroTimingSyncProgress, completed: heroTimingSyncProgress.completed + 1 }
       }
@@ -1135,15 +1141,16 @@ async function syncStratzHeroTimings(apiKey: string, rankBracket: StratzRankBrac
   const profiles: HeroTimingCache['profiles'] = {}
   const errors: string[] = []
   for (const hero of OPEN_DOTA_HEROES) {
+    const heroName = openDotaHeroNameById.get(hero.id) ?? hero.displayName ?? hero.localizedName
     const heroRows = rowsByHero.get(hero.id)
     if (!heroRows || heroRows.length === 0) {
-      errors.push(`${hero.displayName || hero.localizedName}: Stratz 未返回该英雄的 timing 数据`)
+      errors.push(`${heroName}: Stratz 未返回该英雄的 timing 数据`)
       continue
     }
     const bins = diffHeroTimingBinsFromStratzStats(heroRows)
     profiles[String(hero.id)] = deriveHeroTimingProfile({
       id: hero.id,
-      displayName: hero.displayName || hero.localizedName,
+      displayName: heroName,
       localizedName: hero.localizedName,
     }, bins)
   }
