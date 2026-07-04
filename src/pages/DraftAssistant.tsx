@@ -470,7 +470,7 @@ export default function DraftAssistant() {
           <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{syncStatus || '等待同步状态'}</p>
           <div className="mt-3 space-y-1 text-xs text-[var(--text-muted)]">
             <div>Matchup：{matchupCache ? `${matchupSourceLabel} ${matchupCache.rankBracket ?? ''} ${matchupCache.weekKey ?? matchupCache.date}` : '本地表'}</div>
-            <div>Timing：{timingCache ? `OpenDota durations ${timingCache.date} · ${timingCache.heroCount} 英雄` : (timingSyncStatus || '未同步')}</div>
+            <div>Timing：{timingCache ? `${timingCache.date} · ${timingCache.heroCount} 英雄` : (timingSyncStatus || '未同步')}</div>
             <div>位置热门：{positionMetaSource}</div>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2">

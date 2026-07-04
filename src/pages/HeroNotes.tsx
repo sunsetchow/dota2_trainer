@@ -427,7 +427,7 @@ export default function HeroNotes() {
 
             {selectedTimingProfile && selectedTimingProfile.timingLabel !== 'insufficient_data' && (
               <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-4 text-xs text-[var(--text-secondary)]">
-                <div className="font-semibold text-[var(--text-primary)]">OpenDota Timing（{TIMING_LABEL_ZH[selectedTimingProfile.timingLabel]}）</div>
+                <div className="font-semibold text-[var(--text-primary)]">Timing（{TIMING_LABEL_ZH[selectedTimingProfile.timingLabel]}）</div>
                 <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {([
                     ['early', '前期'],
