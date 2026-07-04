@@ -214,10 +214,11 @@ git diff --check
 
 ## 最近重要改动
 
+- Phase 29.3：位置热门英雄改为可实时同步（配置了 Stratz API Key 时）——`heroStats.stats(groupByPosition)` 一次请求拿全部 127 个英雄在 5 个位置的选取数据（实测约 0.75 秒），按位置内 pick 数排名取 Top 12，权重按 pick 数归一化到最热门英雄 = 1.0；沿用设置页里 matchup/timing 共用的单一 `rankBracket`。未配置 Stratz Key 时回退到仓库里手写的静态快照（`source: 'manual'`）。之前这块数据完全是每月手工维护的固定文件，从未接入过实时数据源。
 - Phase 29.2：Timing 数据源改为优先 Stratz（配置了 Stratz API Key 时）——`heroStats.stats(groupByTime)` 一次请求拿全部 127 个英雄的分钟级数据（实测约 1.3 秒），相邻分钟做差分还原成和 OpenDota `/durations` 一致的离散分桶（Stratz 返回的是"对局时长 ≥ 该分钟"的累计生存计数，不能直接当离散分桶用）。未配置 Stratz Key 时回退到原有 OpenDota 逐英雄同步（已加限流重试）。
 - Phase 29.1：Timing 同步加进度上报（无 API Key 时单个英雄请求可能要数秒，127 个英雄全量同步实测约 13-15 分钟，之前界面无进度提示容易被误认为卡死）；OpenDota 逐英雄同步遇到限流会重试（5s/15s）而不是直接放弃该英雄；英雄档案页新增 Timing 强势期展示。
 - Phase 29：英雄 Timing Cache 接入 OpenDota `/durations`；Draft 显示强势期标签和“我的英雄 vs 敌方已知阵容时间线”，低样本阶段不参与强势期判断。
-- 数据源策略：英雄 matchup 固定为 Stratz-only；Timing 优先 Stratz、否则回退 OpenDota；OpenDota 仍用于 Match ID 导入和 benchmarks。
+- 数据源策略：英雄 matchup 固定为 Stratz-only；Timing、位置热门英雄优先 Stratz、否则分别回退 OpenDota / 本地手写快照；OpenDota 仍用于 Match ID 导入和 benchmarks。
 - Phase 1：Zod runtime schema、Vitest、backup/import validation、schemaVersion 地基。
 - Phase 2：拆分 Electron main，抽出 store/openDota IPC 和 Dota data services。
 - Phase 3：拆分 PostGame，抽出 postgame feature helpers/UI，并补测试。

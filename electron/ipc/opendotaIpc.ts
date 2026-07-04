@@ -8,6 +8,8 @@ import type {
   OpenDotaImportedMatch,
   OpenDotaParseRequestResult,
   OpenDotaRecentMatch,
+  PositionMetaSnapshot,
+  PositionMetaSyncResult,
   StratzRankBracket,
 } from '../../src/types'
 import { parseHeroMatchupCache, parseHeroTimingCache } from '../../src/schema/persistence.ts'
@@ -28,6 +30,8 @@ export interface OpenDotaIpcServices {
   syncHeroTimings: (force?: boolean) => Promise<HeroTimingSyncResult>
   syncStratzHeroTimings: (apiKey: string, rankBracket: StratzRankBracket, force?: boolean) => Promise<HeroTimingSyncResult>
   getHeroTimingSyncProgress: () => { completed: number; total: number } | null
+  syncStratzPositionMeta: (apiKey: string, rankBracket: StratzRankBracket, force?: boolean) => Promise<PositionMetaSyncResult>
+  getPositionMetaCache: () => PositionMetaSnapshot
 }
 
 export function registerOpenDotaIpcHandlers(store: ElectronStoreLike, services: OpenDotaIpcServices) {
@@ -88,5 +92,23 @@ export function registerOpenDotaIpcHandlers(store: ElectronStoreLike, services: 
 
   ipcMain.handle('opendota:getHeroTimingSyncProgress', (): { completed: number; total: number } | null => {
     return services.getHeroTimingSyncProgress()
+  })
+
+  ipcMain.handle('opendota:getPositionMetaCache', (): PositionMetaSnapshot => {
+    return services.getPositionMetaCache()
+  })
+
+  ipcMain.handle('opendota:syncPositionMeta', async (_, force?: boolean): Promise<PositionMetaSyncResult> => {
+    const appState = store.get('appState') as AppState
+    const stratzApiKey = appState.stratz?.apiKey?.trim()
+    if (stratzApiKey) {
+      return services.syncStratzPositionMeta(stratzApiKey, appState.stratz?.rankBracket ?? 'ALL', Boolean(force))
+    }
+    const cache = services.getPositionMetaCache()
+    return {
+      status: 'stale',
+      message: '位置热门英雄数据源已固定为 Stratz；未配置 Stratz API Key，继续使用本地快照。',
+      cache,
+    }
   })
 }

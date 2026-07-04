@@ -1,11 +1,13 @@
 import store from '../store.ts'
 import opendotaHeroes from '../../src/data/opendotaHeroes.json'
-import type { AppState, MatchLog, OpenDotaImportedMatch, OpenDotaParseRequestResult, OpenDotaRecentMatch, HeroBenchmarkCache, HeroMatchupCache, HeroMatchupStats, HeroMatchupSyncResult, HeroTimingCache, HeroTimingSyncResult, StratzRankBracket } from '../../src/types'
+import positionMetaJson from '../../src/data/positionMetaHeroes.json'
+import type { AppState, DotaPosition, MatchLog, OpenDotaImportedMatch, OpenDotaParseRequestResult, OpenDotaRecentMatch, HeroBenchmarkCache, HeroMatchupCache, HeroMatchupStats, HeroMatchupSyncResult, HeroTimingCache, HeroTimingSyncResult, PositionMetaSnapshot, PositionMetaSyncResult, StratzRankBracket } from '../../src/types'
 import {
   parseHeroBenchmarkCache,
   parseHeroBenchmarkCacheMap,
   parseHeroMatchupCache,
   parseHeroTimingCache,
+  parsePositionMetaSnapshot,
 } from '../../src/schema/persistence.ts'
 import { createOpenDotaError, getOpenDotaErrorCode } from '../../src/utils/openDotaErrors.ts'
 import { deriveHeroTimingProfile, sanitizeDurationBins, type DurationBin } from '../../src/utils/heroTiming.ts'
@@ -1165,6 +1167,136 @@ async function syncStratzHeroTimings(apiKey: string, rankBracket: StratzRankBrac
   return { cached: false, heroCount: cache.heroCount, errors }
 }
 
+const POSITION_META_TOP_N = 12
+const POSITION_META_CACHE_TTL_MS = HERO_MATCHUP_CACHE_TTL_MS
+
+interface StratzHeroPositionStatRow {
+  heroId: number
+  position: string
+  matchCount: number
+  winCount: number
+}
+
+interface StratzHeroPositionStatsData {
+  heroStats?: {
+    stats?: StratzHeroPositionStatRow[]
+  }
+}
+
+const HERO_POSITION_STATS_QUERY = `
+  query HeroPositionStats($heroIds: [Short], $bracketBasicIds: [RankBracketBasicEnum]) {
+    heroStats {
+      stats(heroIds: $heroIds, bracketBasicIds: $bracketBasicIds, groupByPosition: true) {
+        heroId
+        position
+        matchCount
+        winCount
+      }
+    }
+  }
+`
+
+// Stratz 的 position 枚举是 POSITION_1..POSITION_5；DotaPosition 是 '1'..'5'。
+function dotaPositionFromStratzPosition(position: string): DotaPosition | undefined {
+  const match = position.match(/^POSITION_([1-5])$/)
+  return match ? (match[1] as DotaPosition) : undefined
+}
+
+async function syncStratzPositionMeta(apiKey: string, rankBracket: StratzRankBracket, force = false): Promise<PositionMetaSyncResult> {
+  const currentRaw = store.get('positionMetaCache', null)
+  const current = currentRaw ? parsePositionMetaSnapshot(currentRaw) as PositionMetaSnapshot : null
+  const weekKey = getIsoWeekKey()
+  const now = Date.now()
+  const currentMatchesSource = current?.source === 'stratz' && current.rankBracket === rankBracket
+  const isFresh = Boolean(currentMatchesSource && now - current.syncedAt < POSITION_META_CACHE_TTL_MS)
+
+  if (!force && currentMatchesSource && current) {
+    return {
+      status: isFresh ? 'fresh' : 'stale',
+      message: isFresh
+        ? `位置热门英雄缓存仍有效（${weekKey}，数据源 Stratz · ${rankBracket}）。`
+        : '位置热门英雄缓存已过期，继续使用上次缓存。建议在设置页手动同步。',
+      cache: current,
+    }
+  }
+
+  const bracketArg = rankBracket === 'ALL' ? STRATZ_ALL_BRACKETS : [rankBracket]
+  const heroIds = OPEN_DOTA_HEROES.map(hero => hero.id)
+
+  const result = await fetchStratzGraphQL<StratzHeroPositionStatsData>(
+    apiKey,
+    HERO_POSITION_STATS_QUERY,
+    { heroIds, bracketBasicIds: bracketArg },
+  )
+
+  const rowsByPosition = new Map<DotaPosition, Array<{ heroId: number; matchCount: number; winCount: number }>>()
+  for (const row of result.heroStats?.stats ?? []) {
+    const position = dotaPositionFromStratzPosition(row.position)
+    if (!position) continue
+    const list = rowsByPosition.get(position) ?? []
+    list.push({ heroId: row.heroId, matchCount: row.matchCount, winCount: row.winCount })
+    rowsByPosition.set(position, list)
+  }
+
+  const errors: string[] = []
+  const positions = (['1', '2', '3', '4', '5'] as const).reduce((acc, position) => {
+    const rows = (rowsByPosition.get(position) ?? []).filter(row => row.matchCount > 0)
+    if (rows.length === 0) {
+      errors.push(`${position}号位：Stratz 未返回数据`)
+      acc[position] = []
+      return acc
+    }
+    const totalMatchCount = rows.reduce((sum, row) => sum + row.matchCount, 0)
+    const sorted = [...rows].sort((a, b) => b.matchCount - a.matchCount).slice(0, POSITION_META_TOP_N)
+    const topMatchCount = sorted[0].matchCount
+    acc[position] = sorted.map(row => ({
+      hero: openDotaHeroNameById.get(row.heroId) ?? String(row.heroId),
+      weight: Number((row.matchCount / topMatchCount).toFixed(4)),
+      pickRate: Number((row.matchCount / totalMatchCount).toFixed(4)),
+      matchCount: row.matchCount,
+    }))
+    return acc
+  }, {} as PositionMetaSnapshot['positions'])
+
+  const totalHeroesReturned = Object.values(positions).reduce((sum, list) => sum + list.length, 0)
+  if (totalHeroesReturned === 0) {
+    if (current) {
+      return {
+        status: 'stale',
+        message: `Stratz 同步失败，继续使用上一次缓存（${current.weekKey}）。`,
+        cache: current,
+      }
+    }
+    throw new Error('Stratz 位置热门英雄同步失败，且本地没有可用缓存。')
+  }
+
+  const syncedAt = Date.now()
+  const cache = parsePositionMetaSnapshot({
+    source: 'stratz',
+    rankBracket,
+    weekKey,
+    syncedAt,
+    topN: POSITION_META_TOP_N,
+    positions,
+    ...(errors.length > 0 && { errors }),
+  }) as PositionMetaSnapshot
+  store.set('positionMetaCache', cache)
+
+  return {
+    status: errors.length > 0 ? 'partial' : 'synced',
+    message: errors.length > 0
+      ? `已部分同步位置热门英雄（${weekKey}，数据源 Stratz · ${rankBracket}）。`
+      : `已同步位置热门英雄（${weekKey}，数据源 Stratz · ${rankBracket}）。`,
+    cache,
+  }
+}
+
+function getPositionMetaCache(): PositionMetaSnapshot {
+  const raw = store.get('positionMetaCache', null)
+  if (raw) return parsePositionMetaSnapshot(raw) as PositionMetaSnapshot
+  return positionMetaJson as PositionMetaSnapshot
+}
+
 export function createDotaDataServices() {
   return {
     normalizeMatchId,
@@ -1178,6 +1310,8 @@ export function createDotaDataServices() {
     getHeroTimingSyncProgress,
     syncOpenDotaHeroMatchups,
     syncStratzHeroMatchups,
+    syncStratzPositionMeta,
+    getPositionMetaCache,
     sleep,
   }
 }

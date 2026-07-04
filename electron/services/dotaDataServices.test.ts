@@ -189,3 +189,59 @@ describe('Dota data OpenDota hero timing sync', () => {
     vi.useRealTimers()
   })
 })
+
+describe('Stratz position meta sync', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    storeState.values.clear()
+    storeState.values.set('appState', { openDota: { accountId: '42', apiKey: '' } })
+  })
+
+  it('ranks heroes within a position by match count and normalizes weight against the top hero', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({
+      data: {
+        heroStats: {
+          stats: [
+            { heroId: 1, position: 'POSITION_1', matchCount: 1000, winCount: 500 },
+            { heroId: 2, position: 'POSITION_1', matchCount: 500, winCount: 300 },
+            { heroId: 3, position: 'POSITION_1', matchCount: 250, winCount: 100 },
+          ],
+        },
+      },
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await createDotaDataServices().syncStratzPositionMeta('key', 'ALL', true)
+
+    expect(result.status).toBe('partial')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const position1 = result.cache.positions['1']
+    expect(position1.map(item => item.hero)).toEqual(['敌法师', '斧王', '祸乱之源'])
+    expect(position1[0].weight).toBe(1)
+    expect(position1[1].weight).toBeCloseTo(0.5)
+    expect(position1[2].weight).toBeCloseTo(0.25)
+    expect(position1[0].pickRate).toBeCloseTo(1000 / 1750)
+    // positions with no rows in the response report an error but do not crash the sync
+    expect(result.cache.positions['2']).toEqual([])
+    expect(result.cache.errors?.length).toBeGreaterThan(0)
+  })
+
+  it('returns the fresh cache without fetching when within TTL and the rank bracket matches', async () => {
+    const syncedAt = Date.now()
+    storeState.values.set('positionMetaCache', {
+      source: 'stratz',
+      rankBracket: 'ALL',
+      weekKey: '2026-W27',
+      syncedAt,
+      topN: 12,
+      positions: { '1': [], '2': [], '3': [], '4': [], '5': [] },
+    })
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await createDotaDataServices().syncStratzPositionMeta('key', 'ALL', false)
+
+    expect(result.status).toBe('fresh')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})

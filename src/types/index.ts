@@ -67,6 +67,13 @@ export interface PositionMetaSnapshot {
   syncedAt: number;
   topN: number;
   positions: Record<DotaPosition, PositionMetaHero[]>;
+  errors?: string[];
+}
+
+export interface PositionMetaSyncResult {
+  status: 'synced' | 'partial' | 'fresh' | 'stale';
+  message: string;
+  cache: PositionMetaSnapshot;
 }
 
 export interface DraftReason {
@@ -424,6 +431,8 @@ declare global {
       getHeroTimingCache(): Promise<HeroTimingCache | null>;
       syncHeroTimings(force?: boolean): Promise<HeroTimingSyncResult>;
       getHeroTimingSyncProgress(): Promise<{ completed: number; total: number } | null>;
+      getPositionMetaCache(): Promise<PositionMetaSnapshot>;
+      syncPositionMeta(force?: boolean): Promise<PositionMetaSyncResult>;
       exportAll(): Promise<{ success: boolean }>;
       importAll(json: string): Promise<void>;
     };

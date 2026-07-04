@@ -280,6 +280,29 @@ export const HeroTimingCacheSchema = z.object({
   errors: z.array(z.string()).optional(),
 }).strict()
 
+const PositionMetaHeroSchema = z.object({
+  hero: z.string().trim().min(1),
+  weight: z.number().finite(),
+  pickRate: z.number().finite().optional(),
+  matchCount: z.number().finite().nonnegative().optional(),
+}).strict()
+
+export const PositionMetaSnapshotSchema = z.object({
+  source: z.enum(['stratz', 'manual']),
+  rankBracket: StratzRankBracketSchema.optional(),
+  weekKey: z.string(),
+  syncedAt: z.number().finite(),
+  topN: z.number().int().positive(),
+  positions: z.object({
+    '1': z.array(PositionMetaHeroSchema),
+    '2': z.array(PositionMetaHeroSchema),
+    '3': z.array(PositionMetaHeroSchema),
+    '4': z.array(PositionMetaHeroSchema),
+    '5': z.array(PositionMetaHeroSchema),
+  }).strict(),
+  errors: z.array(z.string()).optional(),
+}).strict()
+
 export const BackupSchema = z.object({
   schemaVersion: z.number().int().nonnegative().default(CURRENT_SCHEMA_VERSION),
   appState: AppStateSchema.optional(),
@@ -292,6 +315,7 @@ export const BackupSchema = z.object({
   heroMatchupCache: HeroMatchupCacheSchema.nullable().optional(),
   heroBenchmarkCache: z.record(z.string(), HeroBenchmarkCacheSchema).optional(),
   heroTimingCache: HeroTimingCacheSchema.nullable().optional(),
+  positionMetaCache: PositionMetaSnapshotSchema.nullable().optional(),
 }).strict()
 
 export type ParsedBackupData = z.infer<typeof BackupSchema>
@@ -357,6 +381,10 @@ export function parseHeroBenchmarkCacheMap(value: unknown) {
 
 export function parseHeroTimingCache(value: unknown) {
   return parseWithMessage(HeroTimingCacheSchema, value, '英雄 timing 缓存数据无效')
+}
+
+export function parsePositionMetaSnapshot(value: unknown) {
+  return parseWithMessage(PositionMetaSnapshotSchema, value, '位置热门英雄缓存数据无效')
 }
 
 export function parseTrainingCycle(value: unknown) {

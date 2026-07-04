@@ -33,6 +33,7 @@ const store = new Store({
     heroMatchupCache: null,
     heroBenchmarkCache: {},
     heroTimingCache: null,
+    positionMetaCache: null,
   }
 })
 

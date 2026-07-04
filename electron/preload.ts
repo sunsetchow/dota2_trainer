@@ -27,6 +27,8 @@ contextBridge.exposeInMainWorld('electronStore', {
   getHeroTimingCache: () => ipcRenderer.invoke('opendota:getHeroTimingCache'),
   syncHeroTimings: (force?: boolean) => ipcRenderer.invoke('opendota:syncHeroTimings', force),
   getHeroTimingSyncProgress: () => ipcRenderer.invoke('opendota:getHeroTimingSyncProgress'),
+  getPositionMetaCache: () => ipcRenderer.invoke('opendota:getPositionMetaCache'),
+  syncPositionMeta: (force?: boolean) => ipcRenderer.invoke('opendota:syncPositionMeta', force),
   exportAll:            ()         => ipcRenderer.invoke('store:exportAll'),
   importAll:            (json: string)     => ipcRenderer.invoke('store:importAll', json),
 })

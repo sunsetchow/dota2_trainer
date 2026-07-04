@@ -213,6 +213,7 @@ export default function DraftAssistant() {
   const [focusedPosition, setFocusedPosition] = useState<DotaPosition | null>(null)
   const [matchupCache, setMatchupCache] = useState<HeroMatchupCache | null>(null)
   const [timingCache, setTimingCache] = useState<HeroTimingCache | null>(null)
+  const [positionMeta, setPositionMeta] = useState<PositionMetaSnapshot>(POSITION_META)
   const [syncStatus, setSyncStatus] = useState('')
   const [timingSyncStatus, setTimingSyncStatus] = useState('')
   const [selectedHero, setSelectedHero] = useState<string>('')
@@ -289,6 +290,17 @@ export default function DraftAssistant() {
           })
       })
 
+    window.electronStore.getPositionMetaCache()
+      .then(cache => {
+        if (!cancelled && cache) setPositionMeta(cache)
+      })
+      .catch(() => undefined)
+    window.electronStore.syncPositionMeta(false)
+      .then(result => {
+        if (!cancelled) setPositionMeta(result.cache)
+      })
+      .catch(() => undefined)
+
     return () => { cancelled = true }
   }, [])
 
@@ -297,12 +309,12 @@ export default function DraftAssistant() {
     enemyByPosition: resolvedEnemyByPosition,
     heroPool: configuredPool,
     matchupCache,
-    positionMeta: POSITION_META,
+    positionMeta,
     matchupMinGames: minGames,
     counters: COUNTERS,
     countered: COUNTERED,
     supportMap: SUP_MAP,
-  }), [candidatePool, resolvedEnemyByPosition, configuredPool, matchupCache, minGames])
+  }), [candidatePool, resolvedEnemyByPosition, configuredPool, matchupCache, positionMeta, minGames])
 
   useEffect(() => {
     const topHero = ranked[0]?.hero
@@ -349,7 +361,7 @@ export default function DraftAssistant() {
   const matchupSourceLabel = matchupCache?.source === 'stratz' ? 'Stratz' : 'OpenDota'
   const counterSource = hasDynamicCounters ? `${matchupSourceLabel} ≥${minGames} 局` : '本地表'
   const counteredSource = hasDynamicCountered ? `${matchupSourceLabel} ≥${minGames} 局` : '本地表'
-  const positionMetaSource = `${POSITION_META.source === 'stratz' ? 'Stratz' : '本地默认'} ${POSITION_META.rankBracket ?? 'ALL'} ${POSITION_META.weekKey}`
+  const positionMetaSource = `${positionMeta.source === 'stratz' ? 'Stratz' : '本地默认'} ${positionMeta.rankBracket ?? 'ALL'} ${positionMeta.weekKey}`
 
   const handleEnemyChange = (position: DotaPosition, value: string) => {
     setEnemyByPosition(current => ({ ...current, [position]: value }))
@@ -445,7 +457,7 @@ export default function DraftAssistant() {
                   setFocused={isFocused => {
                     setFocusedPosition(current => (isFocused ? position : current === position ? null : current))
                   }}
-                  placeholder={getPositionHotHeroPlaceholder(position)}
+                  placeholder={getPositionHotHeroPlaceholder(position, positionMeta)}
                   onChange={nextValue => handleEnemyChange(position, nextValue)}
                 />
               )

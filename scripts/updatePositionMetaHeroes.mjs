@@ -19,8 +19,8 @@ async function main() {
   const sourcePath = fromFileIndex >= 0 ? args[fromFileIndex + 1] : null
 
   if (!sourcePath) {
-    console.log('No Stratz position popularity endpoint is wired yet. Validating existing positionMetaHeroes.json snapshot instead.')
-    console.log('To replace the snapshot with exported Stratz data, run: node scripts/updatePositionMetaHeroes.mjs --from-file /path/to/positionMetaHeroes.json')
+    console.log('The app now syncs position popularity live from Stratz (see Settings > 位置热门英雄) into electron-store; this bundled JSON is only the offline/no-API-key fallback. Validating existing positionMetaHeroes.json snapshot instead.')
+    console.log('To replace the fallback snapshot manually, run: node scripts/updatePositionMetaHeroes.mjs --from-file /path/to/positionMetaHeroes.json')
   }
 
   const [candidate, openDotaHeroes, legacyHeroes] = await Promise.all([

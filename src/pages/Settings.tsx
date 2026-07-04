@@ -34,6 +34,8 @@ export default function Settings() {
   const [syncingTimings, setSyncingTimings] = useState(false)
   const [matchupCache, setMatchupCache] = useState<HeroMatchupCache | null>(null)
   const [timingCache, setTimingCache] = useState<HeroTimingCache | null>(null)
+  const [positionMeta, setPositionMeta] = useState<PositionMetaSnapshot>(POSITION_META)
+  const [syncingPositionMeta, setSyncingPositionMeta] = useState(false)
 
   useEffect(() => {
     setOpenDotaAccountId(appState?.openDota?.accountId ?? '')
@@ -52,6 +54,9 @@ export default function Settings() {
       .catch(() => undefined)
     window.electronStore.getHeroTimingCache()
       .then(setTimingCache)
+      .catch(() => undefined)
+    window.electronStore.getPositionMetaCache()
+      .then(setPositionMeta)
       .catch(() => undefined)
   }, [])
 
@@ -171,6 +176,21 @@ export default function Settings() {
     } finally {
       clearInterval(progressTimer)
       setSyncingTimings(false)
+      setTimeout(() => setStatusMsg(''), 6000)
+    }
+  }
+
+  const handleSyncPositionMeta = async () => {
+    setSyncingPositionMeta(true)
+    setStatusMsg('正在同步位置热门英雄…')
+    try {
+      const result = await window.electronStore.syncPositionMeta(true)
+      setPositionMeta(result.cache)
+      setStatusMsg(result.message)
+    } catch (error) {
+      setStatusMsg(error instanceof Error ? error.message : String(error))
+    } finally {
+      setSyncingPositionMeta(false)
       setTimeout(() => setStatusMsg(''), 6000)
     }
   }
@@ -381,12 +401,20 @@ export default function Settings() {
       <div className="space-y-3">
         <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">位置热门英雄</h2>
         <p className="text-xs leading-5 text-[var(--text-muted)]">
-          Draft 未知位置预期使用 {POSITION_META.source === 'stratz' ? 'Stratz' : '本地默认'} · {POSITION_META.rankBracket ?? 'ALL'} · {POSITION_META.weekKey}；
-          每位置数量：{(['1', '2', '3', '4', '5'] as const).map(position => `${position}号位 ${POSITION_META.positions[position]?.length ?? 0}`).join(' / ')}。
+          Draft 未知位置预期使用 {positionMeta.source === 'stratz' ? 'Stratz' : '本地默认'} · {positionMeta.rankBracket ?? 'ALL'} · {positionMeta.weekKey}；
+          每位置数量：{(['1', '2', '3', '4', '5'] as const).map(position => `${position}号位 ${positionMeta.positions[position]?.length ?? 0}`).join(' / ')}。
         </p>
         <p className="text-xs leading-5 text-[var(--text-muted)]">
           维护方式：Stratz 负责位置热门度，英雄池 matchup 关系负责判断这些热门英雄对你的候选三号位是机会还是风险。
         </p>
+        <button
+          type="button"
+          onClick={handleSyncPositionMeta}
+          disabled={syncingPositionMeta}
+          className="w-full py-2.5 rounded-lg border border-[var(--border)] text-sm font-medium text-[var(--text-secondary)] hover:border-[var(--accent-border)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          {syncingPositionMeta ? '同步中…' : '同步位置热门英雄'}
+        </button>
       </div>
 
       {/* 数据备份 */}
