@@ -218,6 +218,11 @@ export default function DraftAssistant() {
   const [timingSyncStatus, setTimingSyncStatus] = useState('')
   const [selectedHero, setSelectedHero] = useState<string>('')
   const lastEnemyKeyRef = useRef('')
+  // 敌方阵容没变之前，只要用户没手动点选过英雄，就持续跟着 ranked[0] 走——
+  // matchupCache/positionMeta/英雄池配置都是异步从 IPC 加载的，第一次渲染时
+  // 用的是不完整/兜底数据，真实数据到位后 ranked 会重新排序，这个 ref 保证
+  // 自动选中会跟着更新到真正的第一名，而不是永远停在加载过程中的临时结果。
+  const userSelectedRef = useRef(false)
 
   const configuredPool = appState?.heroPool ?? []
   const activePool = configuredPool.filter(h => h.active).map(h => h.name)
@@ -321,11 +326,14 @@ export default function DraftAssistant() {
     if (!topHero) return
 
     const enemyChanged = lastEnemyKeyRef.current !== enemyKey
-    if (!selectedHero || enemyChanged) {
-      setSelectedHero(topHero)
+    if (enemyChanged) {
+      userSelectedRef.current = false
       lastEnemyKeyRef.current = enemyKey
     }
-  }, [enemyKey, ranked, selectedHero])
+    if (!userSelectedRef.current) {
+      setSelectedHero(topHero)
+    }
+  }, [enemyKey, ranked])
 
   const selected = ranked.find(item => item.hero === selectedHero) ?? ranked[0]
   const selectedHeroId = selected ? getHeroIdByName(selected.hero) : undefined
@@ -492,7 +500,7 @@ export default function DraftAssistant() {
         </Banner>
       )}
 
-      <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+      <section className="grid items-start gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -510,7 +518,7 @@ export default function DraftAssistant() {
                 isInPool={activePool.includes(item.hero)}
                 tier={item.poolTier}
                 timingProfile={timingCache?.profiles[String(getHeroIdByName(item.hero))]}
-                onClick={() => setSelectedHero(item.hero)}
+                onClick={() => { userSelectedRef.current = true; setSelectedHero(item.hero) }}
               />
             ))}
           </div>
@@ -533,6 +541,8 @@ export default function DraftAssistant() {
                 </div>
                 <Badge tone={activePool.includes(selected.hero) ? 'neutral' : 'warning'}>{tierLabel(selected.poolTier, activePool.includes(selected.hero))}</Badge>
               </div>
+
+              <Button variant="primary" size="lg" fullWidth className="mt-4" onClick={() => handleSelectHero(selected.hero)}>锁定并进入赛前</Button>
 
               <div className="mt-5 space-y-4">
                 <div>
@@ -570,8 +580,6 @@ export default function DraftAssistant() {
                 </div>
 
                 <CompositionTimeline selectedHeroId={selectedHeroId} enemyHeroIds={enemyHeroIds} timingCache={timingCache} />
-
-                <Button variant="primary" size="lg" fullWidth onClick={() => handleSelectHero(selected.hero)}>锁定并进入赛前</Button>
               </div>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
