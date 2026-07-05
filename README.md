@@ -2,7 +2,7 @@
 
 Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 2 个人训练、英雄池管理、Draft 辅助、赛前计划、赛后复盘、数据导入和英雄笔记间隔复习。
 
-当前版本：`0.3.2`
+当前版本：`0.3.3`
 
 ## 核心功能
 
@@ -214,6 +214,7 @@ git diff --check
 
 ## 最近重要改动
 
+- 0.3.3：加了中/英文运行时切换（设置页语言开关，不用重启）——自制轻量 i18n（`src/i18n/`，两种语言场景没上 react-i18next），语言状态收在唯一一个 `LanguageProvider` 实例里，避免 `useAppState()` 各组件各自读导致切换不同步；英雄名字展示层跟着语言切换（`getDisplayHeroName`），内部存储/打分继续用中文 canonical 名不做迁移。本次只转换了导航栏/设置页/首页，其余页面待后续阶段。同时修了 Draft 页两个真实 bug：自动选中的英雄会在 matchup/位置热门/英雄池数据异步加载完之后卡在加载过程中的临时结果不再更新；详情面板"锁定并进入赛前"按钮排在对位明细、时间线图表后面，几乎要把整个推荐列表滚一遍才能看到，挪到了面板最上面。MMR 录入加了日期字段，支持补录漏打的日期（同一天重复录入会替换旧值，不会堆出重复记录）。
 - 0.3.2：修正 `heroes.json` alias 表里三个英雄名字对错方向的 bug——杰奇洛/亚巴顿被错误 canonical 到不存在的"双头龙"/"阿巴顿"，天怒法师被错误指向另一个英雄 Arc Warden 的真名"天穹守望者"（已用 Stratz `constants.heroes(language: S_CHINESE)` 核实正确官方名）；受影响的本地 `counters`/`supMap` 对位数据之前因为 key 名字不对，在 Draft 打分里一直没被用上。修了英雄档案页切换英雄卡顿（`HeroCard` 加 `React.memo`，配合按英雄缓存的位置数组避免 prop 引用每次变化）。修了页面内容变高时整个窗口跟着滚动、连带侧边导航栏一起挪动的问题——`AppShell` 最外层容器改成固定 `h-[100dvh]`（原来是 `min-h-[100dvh]`，内容一高就跟着长高，导致溢出滚动被甩到整个文档而不是 `<main>` 内部）。
 - Phase 29.3：位置热门英雄改为可实时同步（配置了 Stratz API Key 时）——`heroStats.stats(groupByPosition)` 一次请求拿全部 127 个英雄在 5 个位置的选取数据（实测约 0.75 秒），按位置内 pick 数排名取 Top 12，权重按 pick 数归一化到最热门英雄 = 1.0；沿用设置页里 matchup/timing 共用的单一 `rankBracket`。未配置 Stratz Key 时回退到仓库里手写的静态快照（`source: 'manual'`）。之前这块数据完全是每月手工维护的固定文件，从未接入过实时数据源。
 - Phase 29.2：Timing 数据源改为优先 Stratz（配置了 Stratz API Key 时）——`heroStats.stats(groupByTime)` 一次请求拿全部 127 个英雄的分钟级数据（实测约 1.3 秒），相邻分钟做差分还原成和 OpenDota `/durations` 一致的离散分桶（Stratz 返回的是"对局时长 ≥ 该分钟"的累计生存计数，不能直接当离散分桶用）。未配置 Stratz Key 时回退到原有 OpenDota 逐英雄同步（已加限流重试）。
