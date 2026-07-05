@@ -2,7 +2,7 @@
 
 Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 2 个人训练、英雄池管理、Draft 辅助、赛前计划、赛后复盘、数据导入和英雄笔记间隔复习。
 
-当前版本：`0.3.1`
+当前版本：`0.3.2`
 
 ## 核心功能
 
@@ -214,6 +214,7 @@ git diff --check
 
 ## 最近重要改动
 
+- 0.3.2：修正 `heroes.json` alias 表里三个英雄名字对错方向的 bug——杰奇洛/亚巴顿被错误 canonical 到不存在的"双头龙"/"阿巴顿"，天怒法师被错误指向另一个英雄 Arc Warden 的真名"天穹守望者"（已用 Stratz `constants.heroes(language: S_CHINESE)` 核实正确官方名）；受影响的本地 `counters`/`supMap` 对位数据之前因为 key 名字不对，在 Draft 打分里一直没被用上。修了英雄档案页切换英雄卡顿（`HeroCard` 加 `React.memo`，配合按英雄缓存的位置数组避免 prop 引用每次变化）。修了页面内容变高时整个窗口跟着滚动、连带侧边导航栏一起挪动的问题——`AppShell` 最外层容器改成固定 `h-[100dvh]`（原来是 `min-h-[100dvh]`，内容一高就跟着长高，导致溢出滚动被甩到整个文档而不是 `<main>` 内部）。
 - Phase 29.3：位置热门英雄改为可实时同步（配置了 Stratz API Key 时）——`heroStats.stats(groupByPosition)` 一次请求拿全部 127 个英雄在 5 个位置的选取数据（实测约 0.75 秒），按位置内 pick 数排名取 Top 12，权重按 pick 数归一化到最热门英雄 = 1.0；沿用设置页里 matchup/timing 共用的单一 `rankBracket`。未配置 Stratz Key 时回退到仓库里手写的静态快照（`source: 'manual'`）。之前这块数据完全是每月手工维护的固定文件，从未接入过实时数据源。
 - Phase 29.2：Timing 数据源改为优先 Stratz（配置了 Stratz API Key 时）——`heroStats.stats(groupByTime)` 一次请求拿全部 127 个英雄的分钟级数据（实测约 1.3 秒），相邻分钟做差分还原成和 OpenDota `/durations` 一致的离散分桶（Stratz 返回的是"对局时长 ≥ 该分钟"的累计生存计数，不能直接当离散分桶用）。未配置 Stratz Key 时回退到原有 OpenDota 逐英雄同步（已加限流重试）。
 - Phase 29.1：Timing 同步加进度上报（无 API Key 时单个英雄请求可能要数秒，127 个英雄全量同步实测约 13-15 分钟，之前界面无进度提示容易被误认为卡死）；OpenDota 逐英雄同步遇到限流会重试（5s/15s）而不是直接放弃该英雄；英雄档案页新增 Timing 强势期展示。

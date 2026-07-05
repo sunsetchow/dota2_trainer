@@ -49,7 +49,7 @@ export default function AppShell({ children }: AppShellProps) {
   const pendingSetup = setups.find(s => s.id === appState?.pendingPreGameSetupId)
 
   return (
-    <div className="flex min-h-[100dvh] overflow-hidden bg-[var(--bg)] text-[var(--text-primary)]">
+    <div className="flex h-[100dvh] overflow-hidden bg-[var(--bg)] text-[var(--text-primary)]">
       <aside className="hidden w-[188px] shrink-0 border-r border-[var(--border)] bg-[rgba(18,15,13,0.94)] px-3 py-4 backdrop-blur md:flex md:flex-col">
         <div className="mb-6 px-2">
           <div className="text-sm font-bold tracking-tight text-[var(--text-primary)]">Dota2 Trainer <span className="number text-[10px] font-medium text-[var(--text-muted)]">v{packageJson.version}</span></div>
