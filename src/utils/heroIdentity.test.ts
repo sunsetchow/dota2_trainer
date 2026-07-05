@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compactHeroIdMap, compactHeroIds, getCanonicalHeroName, getCanonicalHeroNameByReference, getHeroIdByName, getHeroNameById, sameHeroReference } from './heroIdentity.ts'
+import { compactHeroIdMap, compactHeroIds, getCanonicalHeroName, getCanonicalHeroNameByReference, getDisplayHeroName, getHeroIdByName, getHeroNameById, sameHeroReference } from './heroIdentity.ts'
 
 describe('hero identity helpers', () => {
   it('resolves display names, English names, raw OpenDota names, and aliases to stable hero ids', () => {
@@ -32,6 +32,21 @@ describe('hero identity helpers', () => {
     expect(getHeroNameById(113)).toBe('天穹守望者')
     expect(getHeroIdByName('天怒法师')).toBe(101)
     expect(getHeroIdByName('SM')).toBe(101)
+  })
+
+  it('switches hero display name with language while leaving the canonical zh string untouched', () => {
+    expect(getDisplayHeroName('斧王', 'zh')).toBe('斧王')
+    expect(getDisplayHeroName('斧王', 'en')).toBe('Axe')
+    // The three heroes fixed in the alias-table bugfix are exactly where a wrong
+    // resolution would previously have surfaced (either falling through to the
+    // canonical zh string unresolved, or resolving to the wrong hero's English name).
+    expect(getDisplayHeroName('杰奇洛', 'en')).toBe('Jakiro')
+    expect(getDisplayHeroName('亚巴顿', 'en')).toBe('Abaddon')
+    expect(getDisplayHeroName('天怒法师', 'en')).toBe('Skywrath Mage')
+    // Unresolvable input falls back to the input itself rather than an empty string.
+    expect(getDisplayHeroName('不存在的英雄', 'en')).toBe('不存在的英雄')
+    expect(getDisplayHeroName(undefined, 'en')).toBe('')
+    expect(getDisplayHeroName('  ', 'en')).toBe('')
   })
 
   it('compares renamed hero records by id and falls back to resolved names', () => {

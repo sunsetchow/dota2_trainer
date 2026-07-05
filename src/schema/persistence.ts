@@ -41,6 +41,7 @@ export const HeroConfigSchema = z.object({
 }).strict()
 
 export const AppStateSchema = z.object({
+  language: z.enum(['zh', 'en']).optional(),
   activeCycleId: z.string(),
   heroPool: z.array(HeroConfigSchema),
   currentStreak: z.number().int().nonnegative().default(0),
@@ -53,6 +54,7 @@ export const AppStateSchema = z.object({
 }).strict()
 
 export const AppStatePatchSchema = z.object({
+  language: z.enum(['zh', 'en']).optional(),
   activeCycleId: z.string().optional(),
   heroPool: z.array(HeroConfigSchema).optional(),
   currentStreak: z.number().int().nonnegative().optional(),

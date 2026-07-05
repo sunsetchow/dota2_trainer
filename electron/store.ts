@@ -8,6 +8,7 @@ const store = new Store({
   defaults: {
     schemaVersion: CURRENT_SCHEMA_VERSION,
     appState: {
+      language: 'zh',
       activeCycleId: '',
       heroPool: [],
       currentStreak: 0,

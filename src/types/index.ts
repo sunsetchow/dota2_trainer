@@ -215,6 +215,7 @@ export interface HeroConfig {
 
 // ── 应用状态（electron-store 持久化）
 export interface AppState {
+  language?: 'zh' | 'en';
   activeCycleId: string;
   heroPool: HeroConfig[];
   currentStreak: number;
@@ -417,6 +418,7 @@ declare global {
       addDailyCheckin(checkin: DailyCheckin): Promise<void>;
       getDailyCheckins(): Promise<DailyCheckin[]>;
       addMMRLog(log: MMRLog): Promise<void>;
+      upsertMMRLog(log: MMRLog): Promise<void>;
       getMMRLogs(): Promise<MMRLog[]>;
       getHeroNotes(): Promise<HeroNote[]>;
       upsertHeroNote(note: HeroNote): Promise<void>;

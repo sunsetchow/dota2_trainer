@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  AppStateSchema,
   CURRENT_SCHEMA_VERSION,
   parseAppStatePatch,
   parseBackupData,
@@ -41,6 +42,12 @@ describe('persistence runtime schemas', () => {
 
     expect(parsed.schemaVersion).toBe(CURRENT_SCHEMA_VERSION)
     expect(parsed.appState?.heroPool?.[1]?.positions).toEqual([])
+  })
+
+  it('accepts legacy appState with no language field (added after initial release)', () => {
+    expect(AppStateSchema.safeParse(validAppState).success).toBe(true)
+    expect(AppStateSchema.safeParse({ ...validAppState, language: 'en' }).success).toBe(true)
+    expect(AppStateSchema.safeParse({ ...validAppState, language: 'fr' }).success).toBe(false)
   })
 
   it('rejects malformed backup data before anything is written', () => {

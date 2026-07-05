@@ -8,15 +8,13 @@ import ChecklistPanel from '../components/ChecklistPanel.tsx'
 import { calcLongestStreak, calcStreak, countRecentLosses, todayStr } from '../utils/cycle.ts'
 import { grantFreezeTokenIfEarned, hitMilestoneToday, reconcileStreakFreeze } from '../utils/streakFreeze.ts'
 import { isDueForReview } from '../utils/srs.ts'
+import { getDisplayHeroName } from '../utils/heroIdentity.ts'
+import { useLanguage, useT } from '../i18n/index.ts'
 import type { MatchLog, DailyCheckin, MMRLog } from '../types'
 import Button from '../components/ui/Button.tsx'
 import Card from '../components/ui/Card.tsx'
 import Badge from '../components/ui/Badge.tsx'
 import Banner from '../components/ui/Banner.tsx'
-
-function formatDate(ts: number) {
-  return new Date(ts).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })
-}
 
 export default function Home() {
   const navigate = useNavigate()
@@ -28,6 +26,10 @@ export default function Home() {
   const { heroNotes } = useHeroNotes()
   const [dismissedBanner, setDismissedBanner] = useState(false)
   const [milestoneBanner, setMilestoneBanner] = useState('')
+  const t = useT()
+  const language = useLanguage()
+
+  const formatDate = (ts: number) => new Date(ts).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US', { month: '2-digit', day: '2-digit' })
 
   const activeCycle = cycles.find(c => c.cycleId === appState?.activeCycleId)
   const recentLosses = countRecentLosses(matchLogs)
@@ -64,12 +66,12 @@ export default function Home() {
     updateAppState({ checklistFreezeTokens: nextTokens, freezeUsedDates: result.freezeUsedDates })
 
     const milestone = hitMilestoneToday(previousStreak, nextStreak)
-    if (milestone) setMilestoneBanner(`连训 ${milestone} 天，一个完整的训练阶段！`)
+    if (milestone) setMilestoneBanner(t('home.milestoneBanner', { days: milestone }))
   }, [checkins, appState])
 
   const handleStartGame = async () => {
     if (appState?.pendingPreGameSetupId) {
-      const ok = window.confirm('上一条赛前设定还未关联对局，是否放弃？')
+      const ok = window.confirm(t('home.confirmDiscardSetup'))
       if (!ok) return
       await updateAppState({ pendingPreGameSetupId: undefined })
     }
@@ -81,10 +83,10 @@ export default function Home() {
     .slice(0, 3)
 
   const primaryAction = appState?.pendingPreGameSetupId
-    ? { label: '记录赛后', onClick: () => navigate('/post-game'), helper: '有一局赛前设定正在等待关联。' }
+    ? { label: t('appShell.recordPostGame'), onClick: () => navigate('/post-game'), helper: t('home.primaryActionPostGameHelper') }
     : todayCheckin
-      ? { label: '进入 Draft', onClick: () => navigate('/draft'), helper: '今日已打卡，可以开始下一局训练。' }
-      : { label: '完成今日打卡', onClick: () => document.getElementById('today-checkin')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), helper: '先选训练档位，再进入实战。' }
+      ? { label: t('appShell.enterDraft'), onClick: () => navigate('/draft'), helper: t('home.primaryActionDraftHelper') }
+      : { label: t('home.primaryActionCheckin'), onClick: () => document.getElementById('today-checkin')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), helper: t('home.primaryActionCheckinHelper') }
 
   return (
     <div className="mx-auto max-w-[1280px] space-y-6 px-4 py-6 md:px-6">
@@ -93,14 +95,14 @@ export default function Home() {
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0">
               <div className="mb-3 flex flex-wrap items-center gap-2">
-                <Badge tone={todayCheckin ? 'success' : 'accent'}>{todayCheckin ? '今日已打卡' : '今日待打卡'}</Badge>
-                <Badge tone="neutral" className="number">连训 {streak} 天</Badge>
-                <Badge tone="neutral" className="number">Freeze {freezeTokens}/2</Badge>
-                {longestStreak > 0 && <Badge tone="neutral" className="number">最长 {longestStreak} 天</Badge>}
+                <Badge tone={todayCheckin ? 'success' : 'accent'}>{todayCheckin ? t('home.todayCheckedIn') : t('home.todayPending')}</Badge>
+                <Badge tone="neutral" className="number">{t('appShell.streak', { days: streak })}</Badge>
+                <Badge tone="neutral" className="number">{t('home.freeze', { tokens: freezeTokens })}</Badge>
+                {longestStreak > 0 && <Badge tone="neutral" className="number">{t('home.longestStreak', { days: longestStreak })}</Badge>}
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] md:text-3xl">今日训练驾驶舱</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] md:text-3xl">{t('home.title')}</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
-                先在 Draft 锁定英雄和敌方阵容，赛前只看英雄笔记与对位提醒；赛后记录最大错误和下局唯一改进点。
+                {t('home.subtitle')}
               </p>
             </div>
             <div className="shrink-0">
@@ -118,16 +120,16 @@ export default function Home() {
         <Card tone="accent" className="p-5 md:p-6">
           <div className="flex h-full flex-col justify-between gap-5">
             <div>
-              <div className="text-sm font-semibold text-[var(--accent-strong)]">下一步行动</div>
+              <div className="text-sm font-semibold text-[var(--accent-strong)]">{t('home.nextAction')}</div>
               <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{primaryAction.helper}</p>
             </div>
             <div className="grid gap-2">
               <Button variant="primary" size="lg" fullWidth onClick={primaryAction.onClick}>{primaryAction.label}</Button>
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="secondary" onClick={() => navigate('/draft')}>Draft 助手</Button>
-                <Button variant="secondary" onClick={handleStartGame}>开始新局</Button>
+                <Button variant="secondary" onClick={() => navigate('/draft')}>{t('home.draftAssistant')}</Button>
+                <Button variant="secondary" onClick={handleStartGame}>{t('appShell.startNewGame')}</Button>
               </div>
-              <Button variant="ghost" onClick={() => navigate('/post-game')}>手动记录赛后</Button>
+              <Button variant="ghost" onClick={() => navigate('/post-game')}>{t('home.manualPostGame')}</Button>
             </div>
           </div>
         </Card>
@@ -137,8 +139,8 @@ export default function Home() {
         <section id="today-checkin" className="space-y-3 scroll-mt-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-semibold text-[var(--text-primary)]">今日打卡</h2>
-              <p className="mt-1 text-sm text-[var(--text-muted)]">记录训练档位和完成项，计划页只负责回看。</p>
+              <h2 className="text-base font-semibold text-[var(--text-primary)]">{t('home.todayCheckinTitle')}</h2>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">{t('home.todayCheckinDesc')}</p>
             </div>
             {todayCheckin && <Badge tone="success">{todayCheckin.sessionType}</Badge>}
           </div>
@@ -159,50 +161,50 @@ export default function Home() {
                   const nextTokens = previousStreak !== nextStreak ? grantFreezeTokenIfEarned(nextStreak, freezeTokens) : freezeTokens
                   if (nextTokens !== freezeTokens) await updateAppState({ checklistFreezeTokens: nextTokens })
                   const milestone = hitMilestoneToday(previousStreak, nextStreak)
-                  if (milestone) setMilestoneBanner(`连训 ${milestone} 天，一个完整的训练阶段！`)
+                  if (milestone) setMilestoneBanner(t('home.milestoneBanner', { days: milestone }))
                 }}
               />
             </Card>
           ) : (
-            <Card className="p-5 text-sm text-[var(--text-muted)]">训练周期正在初始化。</Card>
+            <Card className="p-5 text-sm text-[var(--text-muted)]">{t('home.cycleInitializing')}</Card>
           )}
         </section>
 
         <aside className="space-y-4">
           {milestoneBanner && (
-            <Banner tone="success" action={<Button variant="ghost" size="sm" onClick={() => setMilestoneBanner('')}>收起</Button>}>
+            <Banner tone="success" action={<Button variant="ghost" size="sm" onClick={() => setMilestoneBanner('')}>{t('home.collapse')}</Button>}>
               {milestoneBanner}
             </Banner>
           )}
 
           {dueNotesCount > 0 && (
-            <Banner tone="info" action={<Button variant="secondary" size="sm" onClick={() => navigate(firstDueHero ? `/hero-notes?hero=${encodeURIComponent(firstDueHero)}&filter=due` : '/hero-notes?filter=due')}>去复习</Button>}>
-              今天有 {dueNotesCount} 条英雄笔记到期复习。
+            <Banner tone="info" action={<Button variant="secondary" size="sm" onClick={() => navigate(firstDueHero ? `/hero-notes?hero=${encodeURIComponent(firstDueHero)}&filter=due` : '/hero-notes?filter=due')}>{t('home.goReview')}</Button>}>
+              {t('home.dueReviewBanner', { count: dueNotesCount })}
             </Banner>
           )}
 
           {showLossBanner && (
             <Banner
               tone="warning"
-              action={<Button variant="ghost" size="sm" onClick={() => setDismissedBanner(true)}>知道了</Button>}
+              action={<Button variant="ghost" size="sm" onClick={() => setDismissedBanner(true)}>{t('home.gotIt')}</Button>}
             >
-              已连败 {recentLosses} 把。建议先复盘上一局最大错误，再决定是否继续排位。
+              {t('home.lossBanner', { count: recentLosses })}
             </Banner>
           )}
 
           {appState?.pendingPreGameSetupId && (
-            <Banner tone="info" action={<Button variant="secondary" size="sm" onClick={() => navigate('/post-game')}>去记录</Button>}>
-              有一条赛前设定等待关联，完成赛后记录后训练闭环才算结束。
+            <Banner tone="info" action={<Button variant="secondary" size="sm" onClick={() => navigate('/post-game')}>{t('home.goRecord')}</Button>}>
+              {t('home.pendingSetupBanner')}
             </Banner>
           )}
 
           <Card className="p-4 md:p-5">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-base font-semibold text-[var(--text-primary)]">最近对局</h2>
-                <p className="mt-1 text-sm text-[var(--text-muted)]">看重复错误，不看流水账。</p>
+                <h2 className="text-base font-semibold text-[var(--text-primary)]">{t('home.recentMatches')}</h2>
+                <p className="mt-1 text-sm text-[var(--text-muted)]">{t('home.recentMatchesDesc')}</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/history')}>全部</Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/history')}>{t('home.all')}</Button>
             </div>
 
             {recentMatches.length > 0 ? (
@@ -215,15 +217,15 @@ export default function Home() {
                     className="w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-2)] p-3 text-left transition-all hover:border-[var(--accent-border)] hover:bg-[var(--surface-3)] active:translate-y-px"
                   >
                     <div className="flex items-center gap-2">
-                      <Badge tone={log.result === 'win' ? 'success' : 'danger'}>{log.result === 'win' ? '胜' : '败'}</Badge>
-                      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--text-primary)]">{log.hero}</span>
+                      <Badge tone={log.result === 'win' ? 'success' : 'danger'}>{log.result === 'win' ? t('home.win') : t('home.loss')}</Badge>
+                      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--text-primary)]">{getDisplayHeroName(log.hero, language)}</span>
                       <span className="number text-xs text-[var(--text-muted)]">{log.durationMin}m</span>
                       <span className="number text-xs text-[var(--text-muted)]">{formatDate(log.timestamp)}</span>
                     </div>
                     {(log.biggestMistake || log.nextGameFocus) && (
                       <div className="mt-2 space-y-1 text-xs leading-5 text-[var(--text-secondary)]">
-                        {log.biggestMistake && <div className="line-clamp-1">错点：{log.biggestMistake}</div>}
-                        {log.nextGameFocus && <div className="line-clamp-1 text-[var(--accent-strong)]">下局：{log.nextGameFocus}</div>}
+                        {log.biggestMistake && <div className="line-clamp-1">{t('home.mistakeLabel', { text: log.biggestMistake })}</div>}
+                        {log.nextGameFocus && <div className="line-clamp-1 text-[var(--accent-strong)]">{t('home.nextFocusLabel', { text: log.nextGameFocus })}</div>}
                       </div>
                     )}
                   </button>
@@ -231,7 +233,7 @@ export default function Home() {
               </div>
             ) : (
               <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm leading-6 text-[var(--text-muted)]">
-                还没有对局记录。打一局后，用 2 分钟写下最大错误和下局唯一改进点。
+                {t('home.noMatches')}
               </div>
             )}
           </Card>

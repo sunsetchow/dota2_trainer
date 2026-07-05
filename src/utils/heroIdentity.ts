@@ -59,6 +59,18 @@ export function getHeroNameById(heroId?: number | null): string | undefined {
   return hero?.displayName || hero?.localizedName
 }
 
+// 展示层专用：内部存储/打分/对位表全部继续用中文 canonical 名（不做数据迁移），
+// 只有渲染给用户看的地方在英文模式下才换成 Valve 官方英文名。传入的 heroName
+// 预期已经是 canonical 中文名（从存储/打分逻辑里拿到的），不会再走一遍 alias 解析。
+export function getDisplayHeroName(heroName: string | undefined | null, language: 'zh' | 'en'): string {
+  const canonical = heroName?.trim()
+  if (!canonical) return ''
+  if (language === 'zh') return canonical
+  const id = getHeroIdByName(canonical)
+  const hero = id !== undefined ? byId.get(id) : undefined
+  return hero?.localizedName || canonical
+}
+
 export function getCanonicalHeroName(heroName?: string | null): string | undefined {
   const heroId = getHeroIdByName(heroName)
   return getHeroNameById(heroId) ?? (heroName?.trim() || undefined)

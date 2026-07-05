@@ -3,6 +3,8 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import packageJson from '../../package.json'
 import { useAppState, useCycles, useDailyCheckins, usePreGameSetups } from '../store/useStore.ts'
 import { calcStreak, getCurrentWeek } from '../utils/cycle.ts'
+import { getDisplayHeroName } from '../utils/heroIdentity.ts'
+import { useLanguage, useT } from '../i18n/index.ts'
 import Badge from '../components/ui/Badge.tsx'
 import Button from '../components/ui/Button.tsx'
 
@@ -11,19 +13,19 @@ interface AppShellProps {
 }
 
 const mainNav = [
-  { to: '/', label: '首页', end: true },
-  { to: '/draft', label: 'Draft' },
-  { to: '/pre-game', label: '赛前' },
-  { to: '/post-game', label: '赛后' },
-  { to: '/plan', label: '计划' },
-  { to: '/history', label: '历史' },
-  { to: '/progress', label: '进步' },
-  { to: '/hero-notes', label: '英雄中心' },
+  { to: '/', labelKey: 'nav.home', end: true },
+  { to: '/draft', labelKey: 'nav.draft' },
+  { to: '/pre-game', labelKey: 'nav.preGame' },
+  { to: '/post-game', labelKey: 'nav.postGame' },
+  { to: '/plan', labelKey: 'nav.plan' },
+  { to: '/history', labelKey: 'nav.history' },
+  { to: '/progress', labelKey: 'nav.progress' },
+  { to: '/hero-notes', labelKey: 'nav.heroNotes' },
 ]
 
 const mobileNav = [
   ...mainNav,
-  { to: '/settings', label: '设置' },
+  { to: '/settings', labelKey: 'nav.settings' },
 ]
 
 function navClass({ isActive }: { isActive: boolean }) {
@@ -41,6 +43,8 @@ export default function AppShell({ children }: AppShellProps) {
   const { cycles } = useCycles()
   const { checkins } = useDailyCheckins()
   const { setups } = usePreGameSetups()
+  const t = useT()
+  const language = useLanguage()
 
   const activeCycle = cycles.find(c => c.cycleId === appState?.activeCycleId)
   const currentWeek = activeCycle ? getCurrentWeek(activeCycle) : undefined
@@ -53,19 +57,19 @@ export default function AppShell({ children }: AppShellProps) {
       <aside className="hidden w-[188px] shrink-0 border-r border-[var(--border)] bg-[rgba(18,15,13,0.94)] px-3 py-4 backdrop-blur md:flex md:flex-col">
         <div className="mb-6 px-2">
           <div className="text-sm font-bold tracking-tight text-[var(--text-primary)]">Dota2 Trainer <span className="number text-[10px] font-medium text-[var(--text-muted)]">v{packageJson.version}</span></div>
-          <div className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">战术训练控制台</div>
+          <div className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{t('appShell.subtitle')}</div>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1" aria-label="主导航">
+        <nav className="flex flex-1 flex-col gap-1" aria-label={t('appShell.mainNavLabel')}>
           {mainNav.map(item => (
             <NavLink key={item.to} to={item.to} end={item.end} className={navClass}>
-              <span>{item.label}</span>
+              <span>{t(item.labelKey)}</span>
             </NavLink>
           ))}
         </nav>
 
         <NavLink to="/settings" className={({ isActive }) => `${navClass({ isActive })} mt-3`}>
-          <span>设置</span>
+          <span>{t('nav.settings')}</span>
         </NavLink>
       </aside>
 
@@ -73,33 +77,33 @@ export default function AppShell({ children }: AppShellProps) {
         <header className="flex min-h-[64px] shrink-0 items-center justify-between gap-4 border-b border-[var(--border)] bg-[rgba(27,23,20,0.88)] px-4 backdrop-blur md:px-6">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone="accent">{currentWeek === undefined ? '周期加载中' : `第 ${currentWeek} 周`}</Badge>
+              <Badge tone="accent">{currentWeek === undefined ? t('appShell.weekLoading') : t('appShell.weekLabel', { week: currentWeek })}</Badge>
               {weekTheme && <span className="truncate text-sm font-medium text-[var(--text-primary)]">{weekTheme.theme}</span>}
-              {!weekTheme && <span className="text-sm text-[var(--text-muted)]">训练周期待初始化</span>}
+              {!weekTheme && <span className="text-sm text-[var(--text-muted)]">{t('appShell.cycleUninitialized')}</span>}
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[var(--text-muted)]">
-              <span className="number">连训 {streak} 天</span>
-              {pendingSetup && <span>待记录：{pendingSetup.hero}</span>}
-              <span>本地优先</span>
+              <span className="number">{t('appShell.streak', { days: streak })}</span>
+              {pendingSetup && <span>{t('appShell.pendingRecord', { hero: getDisplayHeroName(pendingSetup.hero, language) })}</span>}
+              <span>{t('appShell.localFirst')}</span>
             </div>
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
             {pendingSetup ? (
-              <Button variant="primary" size="sm" onClick={() => navigate('/post-game')}>记录赛后</Button>
+              <Button variant="primary" size="sm" onClick={() => navigate('/post-game')}>{t('appShell.recordPostGame')}</Button>
             ) : (
-              <Button variant="primary" size="sm" onClick={() => navigate('/draft')}>进入 Draft</Button>
+              <Button variant="primary" size="sm" onClick={() => navigate('/draft')}>{t('appShell.enterDraft')}</Button>
             )}
-            <Button variant="secondary" size="sm" onClick={() => navigate('/draft')}>开始新局</Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>设置</Button>
+            <Button variant="secondary" size="sm" onClick={() => navigate('/draft')}>{t('appShell.startNewGame')}</Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>{t('nav.settings')}</Button>
           </div>
         </header>
 
         <div className="border-b border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 md:hidden">
-          <nav className="flex gap-1 overflow-x-auto" aria-label="移动导航">
+          <nav className="flex gap-1 overflow-x-auto" aria-label={t('appShell.mobileNavLabel')}>
             {mobileNav.map(item => (
               <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `whitespace-nowrap rounded-[var(--radius-sm)] px-3 py-1.5 text-xs font-medium ${isActive ? 'bg-[var(--accent-muted)] text-[var(--accent-strong)]' : 'text-[var(--text-muted)]'}`}>
-                {item.label}
+                {t(item.labelKey)}
               </NavLink>
             ))}
           </nav>
