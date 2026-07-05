@@ -9,6 +9,7 @@ interface MMRInputProps {
 
 export default function MMRInput({ onAdd }: MMRInputProps) {
   const [open, setOpen] = useState(false)
+  const [date, setDate] = useState(todayStr())
   const [mmr, setMmr] = useState('')
   const [notes, setNotes] = useState('')
 
@@ -17,11 +18,12 @@ export default function MMRInput({ onAdd }: MMRInputProps) {
     if (isNaN(val)) return
     const log: MMRLog = {
       id: nanoid(),
-      date: todayStr(),
+      date: date || todayStr(),
       mmr: val,
       notes: notes.trim() || undefined,
     }
     onAdd(log)
+    setDate(todayStr())
     setMmr('')
     setNotes('')
     setOpen(false)
@@ -48,6 +50,16 @@ export default function MMRInput({ onAdd }: MMRInputProps) {
           >
             <h3 className="text-base font-semibold text-[var(--text-primary)] mb-4">录入 MMR</h3>
             <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-[var(--text-muted)] mb-1">日期（漏打可以改成之前的日期补录）</label>
+                <input
+                  type="date"
+                  value={date}
+                  max={todayStr()}
+                  onChange={e => setDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-border)]"
+                />
+              </div>
               <div>
                 <label className="block text-xs text-[var(--text-muted)] mb-1">当前 MMR</label>
                 <input

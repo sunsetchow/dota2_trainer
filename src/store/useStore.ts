@@ -95,8 +95,9 @@ export function useMMRLogs() {
 
   useEffect(() => { refresh() }, [refresh])
 
+  // 同一天已经有记录时替换掉（补录漏打的某一天），而不是不断堆出重复记录。
   const add = useCallback(async (log: MMRLog) => {
-    await window.electronStore.addMMRLog(log)
+    await window.electronStore.upsertMMRLog(log)
     await refresh()
   }, [refresh])
 

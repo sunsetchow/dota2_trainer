@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('electronStore', {
   addDailyCheckin:      (c: unknown)       => ipcRenderer.invoke('store:addDailyCheckin', c),
   getDailyCheckins:     ()         => ipcRenderer.invoke('store:getDailyCheckins'),
   addMMRLog:            (l: unknown)       => ipcRenderer.invoke('store:addMMRLog', l),
+  upsertMMRLog:         (l: unknown)       => ipcRenderer.invoke('store:upsertMMRLog', l),
   getMMRLogs:           ()         => ipcRenderer.invoke('store:getMMRLogs'),
   getHeroNotes:         ()         => ipcRenderer.invoke('store:getHeroNotes'),
   upsertHeroNote:       (n: unknown)       => ipcRenderer.invoke('store:upsertHeroNote', n),

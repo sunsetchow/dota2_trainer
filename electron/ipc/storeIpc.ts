@@ -582,6 +582,17 @@ export function registerStoreIpcHandlers(store: ElectronStoreLike, todayKey: () 
     const parsed = parseMMRLog(l) as MMRLog
     store.set('mmrLogs', [...logs, parsed])
   })
+  // 补录漏打的某一天：同一天已经有记录时替换掉，而不是不断堆出同一天的多条重复记录
+  // （MMRTrend 图表本身按 date 去重只认最后一条，addMMRLog 直接 push 会在存储里留下用不到的孤儿记录）。
+  ipcMain.handle('store:upsertMMRLog', (_, l: unknown) => {
+    const logs = getValidatedMMRLogs(store)
+    const parsed = parseMMRLog(l) as MMRLog
+    const next = [
+      ...logs.filter(item => item.date !== parsed.date),
+      parsed,
+    ].sort((a, b) => a.date.localeCompare(b.date))
+    store.set('mmrLogs', next)
+  })
   ipcMain.handle('store:getMMRLogs', () => getValidatedMMRLogs(store))
 
   ipcMain.handle('store:getHeroNotes', () => getValidatedHeroNotes(store))
