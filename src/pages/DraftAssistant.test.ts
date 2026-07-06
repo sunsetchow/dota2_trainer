@@ -45,4 +45,15 @@ describe('DraftAssistant enemy input placeholders', () => {
     expect(getPositionHotHeroPlaceholder('4', meta)).toBe('如：拉比克、巨牙海民、森海飞霞')
     expect(getPositionHotHeroPlaceholder('5', meta)).toBe('如：水晶室女、巫医、术士')
   })
+
+  it('switches to English hero names when the language is en', () => {
+    expect(getPositionHotHeroPlaceholder('1', meta, 'en')).toBe('e.g. Anti-Mage, Slark, Juggernaut')
+    expect(getPositionHotHeroPlaceholder('3', meta, 'en')).toBe('e.g. Axe, Centaur Warrunner, Tidehunter')
+  })
+
+  it('falls back to a generic search placeholder when there is no meta data for a position', () => {
+    const empty = { ...meta, positions: { ...meta.positions, '1': [] } }
+    expect(getPositionHotHeroPlaceholder('1', empty)).toBe('搜索敌方英雄')
+    expect(getPositionHotHeroPlaceholder('1', empty, 'en')).toBe('Search enemy hero')
+  })
 })

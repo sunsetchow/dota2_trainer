@@ -7,16 +7,9 @@ import type {
   PositionMetaSnapshot,
   RankedDraftHero,
 } from '../types'
+import { getDisplayHeroName } from './heroIdentity.ts'
 
 export const POSITIONS = ['1', '2', '3', '4', '5'] as const
-
-export const POSITION_LABELS: Record<DotaPosition, string> = {
-  '1': '1号位',
-  '2': '2号位',
-  '3': '3号位',
-  '4': '4号位',
-  '5': '5号位',
-}
 
 export const POSITION_WEIGHTS: Record<DotaPosition, number> = {
   '1': 1.35,
@@ -36,6 +29,27 @@ const PROFICIENCY_WEIGHTS: Record<NonNullable<HeroConfig['tier']>, number> = {
   backup: -4,
 }
 
+type Translate = (key: string, vars?: Record<string, string | number>) => string
+type Language = 'zh' | 'en'
+
+export function positionLabel(position: DotaPosition, t: Translate): string {
+  return t('draft.positionLabel', { n: position })
+}
+
+export function tierLabel(tier: HeroConfig['tier'] | undefined, active: boolean, t: Translate): string {
+  if (!active) return t('draft.tierOutOfPool')
+  if (tier === 'main') return t('draft.tierMain')
+  if (tier === 'practice' || !tier) return t('draft.tierPractice')
+  if (tier === 'backup') return t('draft.tierBackup')
+  return t('draft.tierOutOfPool')
+}
+
+function getProficiencyScore(config?: HeroConfig): number {
+  if (!config?.active) return -12
+  if (!config.tier) return PROFICIENCY_WEIGHTS.practice
+  return PROFICIENCY_WEIGHTS[config.tier]
+}
+
 interface MatchupLookup {
   advantage: number
   gamesPlayed?: number
@@ -52,24 +66,12 @@ interface RankDraftHeroesInput {
   counters: Record<string, Record<string, number>>
   countered: Record<string, Record<string, number>>
   supportMap: Record<string, Record<string, number>>
+  t: Translate
+  language: Language
 }
 
 function signed(value: number): string {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}`
-}
-
-function tierLabel(tier?: HeroConfig['tier'], active = false): string {
-  if (!active) return '池外'
-  if (tier === 'main') return '主力'
-  if (tier === 'practice' || !tier) return '练习'
-  if (tier === 'backup') return '备用'
-  return '池外'
-}
-
-function getProficiencyScore(config?: HeroConfig): number {
-  if (!config?.active) return -12
-  if (!config.tier) return PROFICIENCY_WEIGHTS.practice
-  return PROFICIENCY_WEIGHTS[config.tier]
 }
 
 function getDynamicLookup(
@@ -122,12 +124,25 @@ function getMatchupLookup(
     ?? getStaticLookup(candidate, enemy, input.counters, input.countered, input.supportMap)
 }
 
-function knownReason(position: DotaPosition, enemy: string, lookup: MatchupLookup, weightedScore: number): DraftReason {
-  const games = lookup.gamesPlayed ? `（${lookup.gamesPlayed}局）` : ''
-  const source = lookup.source === 'static' ? '本地表' : lookup.source === 'stratz' ? 'Stratz' : 'OpenDota'
+function sourceLabel(source: MatchupLookup['source'], t: Translate): string {
+  if (source === 'static') return t('draft.sourceLocalTable')
+  if (source === 'stratz') return 'Stratz'
+  return 'OpenDota'
+}
+
+function knownReason(position: DotaPosition, enemy: string, lookup: MatchupLookup, weightedScore: number, t: Translate, language: Language): DraftReason {
+  const games = lookup.gamesPlayed ? t('draft.gamesSuffix', { n: lookup.gamesPlayed }) : ''
   return {
     type: weightedScore >= 0 ? 'known-counter' : 'known-risk',
-    label: `${weightedScore >= 0 ? '反制' : '风险'}：${POSITION_LABELS[position]} ${enemy} 胜率 ${signed(lookup.advantage)}%${games} · ${source} ×${POSITION_WEIGHTS[position]}`,
+    label: t('draft.knownReasonLabel', {
+      opportunity: weightedScore >= 0 ? t('draft.counterWord') : t('draft.riskWord'),
+      position: positionLabel(position, t),
+      enemy: getDisplayHeroName(enemy, language),
+      advantage: signed(lookup.advantage),
+      games,
+      source: sourceLabel(lookup.source, t),
+      weight: POSITION_WEIGHTS[position],
+    }),
     score: weightedScore,
     position,
     enemy,
@@ -142,6 +157,7 @@ function rankReason(reason: DraftReason): number {
 }
 
 export function rankDraftHeroes(input: RankDraftHeroesInput): RankedDraftHero[] {
+  const { t, language } = input
   const poolByHero = new Map(input.heroPool.map(item => [item.name, item]))
   const knownEntries = POSITIONS
     .map(position => ({ position, enemy: input.enemyByPosition[position] }))
@@ -151,7 +167,7 @@ export function rankDraftHeroes(input: RankDraftHeroesInput): RankedDraftHero[] 
   return input.candidates.map(hero => {
     const config = poolByHero.get(hero)
     const proficiencyScore = getProficiencyScore(config)
-    const proficiencyLabel = tierLabel(config?.tier, Boolean(config?.active))
+    const proficiencyLabel = tierLabel(config?.tier, Boolean(config?.active), t)
     const reasons: DraftReason[] = []
 
     let knownScore = 0
@@ -165,7 +181,7 @@ export function rankDraftHeroes(input: RankDraftHeroesInput): RankedDraftHero[] 
       knownScore += weightedScore
       if (weightedScore >= 0) knownCounterScore += weightedScore
       else knownRiskScore += Math.abs(weightedScore)
-      reasons.push(knownReason(position, enemy, lookup, weightedScore))
+      reasons.push(knownReason(position, enemy, lookup, weightedScore, t, language))
     }
 
     let unknownScore = 0
@@ -197,11 +213,16 @@ export function rankDraftHeroes(input: RankDraftHeroesInput): RankedDraftHero[] 
       const top = contributors
         .sort((a, b) => Math.abs(b.score * b.weight) - Math.abs(a.score * a.weight))
         .slice(0, 3)
-        .map(item => `${item.enemy} ${signed(item.score)}%`)
+        .map(item => `${getDisplayHeroName(item.enemy, language)} ${signed(item.score)}%`)
         .join(' / ')
       reasons.push({
         type: score >= 0 ? 'unknown-counter' : 'unknown-risk',
-        label: `${score >= 0 ? '机会' : '风险'}：未知 ${POSITION_LABELS[position]} 热门预期 ${signed(score)}（${top}）`,
+        label: t('draft.unknownReasonLabel', {
+          opportunity: score >= 0 ? t('draft.opportunityWord') : t('draft.riskWord'),
+          position: positionLabel(position, t),
+          score: `${signed(score)}%`,
+          top,
+        }),
         score,
         position,
         source: 'meta',
@@ -210,7 +231,7 @@ export function rankDraftHeroes(input: RankDraftHeroesInput): RankedDraftHero[] 
 
     reasons.push({
       type: 'proficiency',
-      label: `熟练度：${proficiencyLabel} ${signed(proficiencyScore)}`,
+      label: t('draft.proficiencyReasonLabel', { tier: proficiencyLabel, score: signed(proficiencyScore) }),
       score: proficiencyScore,
       source: 'meta',
     })
@@ -233,8 +254,13 @@ export function rankDraftHeroes(input: RankDraftHeroesInput): RankedDraftHero[] 
   }).sort((a, b) => b.totalScore - a.totalScore)
 }
 
-export function scoreFormula(item: RankedDraftHero): string {
-  return `综合 ${Math.round(item.totalScore)} = 已知 ${signed(item.knownScore)} + 未知 ${signed(item.unknownScore)} + 熟练度 ${signed(item.proficiencyScore)}`
+export function scoreFormula(item: RankedDraftHero, t: Translate): string {
+  return t('draft.scoreFormula', {
+    total: Math.round(item.totalScore),
+    known: signed(item.knownScore),
+    unknown: signed(item.unknownScore),
+    proficiency: signed(item.proficiencyScore),
+  })
 }
 
 export function recommendationTone(item: RankedDraftHero, index: number): 'success' | 'accent' | 'warning' {
@@ -243,8 +269,8 @@ export function recommendationTone(item: RankedDraftHero, index: number): 'succe
   return 'accent'
 }
 
-export function recommendationLabel(item: RankedDraftHero, index: number): string {
-  if (index <= 2 && item.totalScore > 0 && item.knownRiskScore < KNOWN_RISK_WARNING) return '推荐'
-  if (item.knownRiskScore >= KNOWN_RISK_WARNING || item.totalScore < 0) return '谨慎'
-  return '可选'
+export function recommendationLabel(item: RankedDraftHero, index: number, t: Translate): string {
+  if (index <= 2 && item.totalScore > 0 && item.knownRiskScore < KNOWN_RISK_WARNING) return t('draft.recommended')
+  if (item.knownRiskScore >= KNOWN_RISK_WARNING || item.totalScore < 0) return t('draft.caution')
+  return t('draft.optional')
 }

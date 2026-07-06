@@ -5,7 +5,8 @@ import { useAppState } from '../store/useStore.ts'
 import { resolve, getSugg, getPool, getSupMap, getCounters, getCountered } from '../utils/heroes.ts'
 import {
   POSITIONS,
-  POSITION_LABELS,
+  positionLabel,
+  tierLabel,
   recommendationLabel,
   recommendationTone,
   rankDraftHeroes,
@@ -13,9 +14,11 @@ import {
 } from '../utils/draftScoring.ts'
 import positionMetaJson from '../data/positionMetaHeroes.json'
 import { isHeroPlayableAtPosition } from '../utils/heroPool.ts'
-import { compactHeroIdMap, compactHeroIds, getHeroIdByName } from '../utils/heroIdentity.ts'
+import { compactHeroIdMap, compactHeroIds, getDisplayHeroName, getHeroIdByName } from '../utils/heroIdentity.ts'
 import type { DotaPosition, EnemyByPosition, HeroConfig, HeroMatchupCache, HeroTimingCache, PositionMetaSnapshot, PreGameSetup, RankedDraftHero } from '../types'
-import { TIMING_LABEL_ZH, timingBadgeTone } from '../utils/heroTiming.ts'
+import { getTimingLabel, timingBadgeTone } from '../utils/heroTiming.ts'
+import { useLanguage, useT } from '../i18n/index.ts'
+import type { Language } from '../i18n/index.ts'
 import Button from '../components/ui/Button.tsx'
 import Card from '../components/ui/Card.tsx'
 import Badge from '../components/ui/Badge.tsx'
@@ -28,32 +31,26 @@ const COUNTERS = getCounters()
 const COUNTERED = getCountered()
 const POSITION_META = positionMetaJson as PositionMetaSnapshot
 
-function tierLabel(tier?: HeroConfig['tier'], active = false): string {
-  if (!active) return '池外'
-  if (tier === 'main') return '主力'
-  if (tier === 'practice' || !tier) return '练习'
-  if (tier === 'backup') return '备用'
-  return '池外'
-}
-
 function signed(value: number): string {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}`
 }
 
-export function getPositionHotHeroPlaceholder(position: DotaPosition, meta: PositionMetaSnapshot = POSITION_META): string {
+export function getPositionHotHeroPlaceholder(position: DotaPosition, meta: PositionMetaSnapshot = POSITION_META, language: Language = 'zh'): string {
   const heroes = meta.positions[position]?.slice(0, 3).map(item => item.hero).filter(Boolean) ?? []
-  return heroes.length > 0 ? `如：${heroes.join('、')}` : '搜索敌方英雄'
+  if (heroes.length === 0) return language === 'zh' ? '搜索敌方英雄' : 'Search enemy hero'
+  const displayHeroes = heroes.map(hero => getDisplayHeroName(hero, language))
+  return language === 'zh' ? `如：${displayHeroes.join('、')}` : `e.g. ${displayHeroes.join(', ')}`
 }
 
 function PercentBadge({ value, tone }: { value: number; tone: 'success' | 'danger' }) {
   return <Badge tone={tone} className="number">{value > 0 ? '+' : ''}{value.toFixed(1)}%</Badge>
 }
 
-function buildRisk(item: RankedDraftHero): string {
-  if (item.knownRiskScore >= 5) return '已知阵容里有明显克制压力，开局先保经验和关键补刀，不要为了换血把线打崩。'
-  if (item.unknownRiskScore >= 2) return '未知位置热门英雄对这个选择有潜在风险，后续看到高机动/强消耗英雄时要及时调整出装。'
-  if (item.totalScore < 0) return '综合分偏低，除非这是今天明确要练的英雄，否则锁定前再确认熟练度和打法。'
-  return '分数结构健康；如果对方后续补出高机动核心，第一件关键装前不要硬接无视野团。'
+function buildRisk(item: RankedDraftHero, t: ReturnType<typeof useT>): string {
+  if (item.knownRiskScore >= 5) return t('draft.riskHighKnown')
+  if (item.unknownRiskScore >= 2) return t('draft.riskUnknownMeta')
+  if (item.totalScore < 0) return t('draft.riskLowScore')
+  return t('draft.riskHealthy')
 }
 
 function SuggestionBox({ items, onSelect }: { items: string[]; onSelect: (hero: string) => void }) {
@@ -119,6 +116,8 @@ function DraftHeroCard({
   tier,
   timingProfile,
   onClick,
+  t,
+  language,
 }: {
   item: RankedDraftHero
   index: number
@@ -127,9 +126,12 @@ function DraftHeroCard({
   tier?: HeroConfig['tier']
   timingProfile?: HeroTimingCache['profiles'][string]
   onClick: () => void
+  t: ReturnType<typeof useT>
+  language: Language
 }) {
   const tone = recommendationTone(item, index)
   const visibleReasons = item.reasons.slice(0, 3)
+  const displayName = getDisplayHeroName(item.hero, language)
 
   return (
     <button
@@ -145,23 +147,23 @@ function DraftHeroCard({
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--surface-2)] text-sm font-semibold text-[var(--text-secondary)]">
-              {item.hero.slice(0, 1)}
+              {displayName.slice(0, 1)}
             </span>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-1">
-                <div className="truncate text-sm font-semibold text-[var(--text-primary)]">{item.hero}</div>
+                <div className="truncate text-sm font-semibold text-[var(--text-primary)]">{displayName}</div>
                 {timingProfile && timingProfile.timingLabel !== 'insufficient_data' && (
-                  <Badge tone={timingBadgeTone(timingProfile.timingLabel)}>{TIMING_LABEL_ZH[timingProfile.timingLabel]}</Badge>
+                  <Badge tone={timingBadgeTone(timingProfile.timingLabel)}>{getTimingLabel(timingProfile.timingLabel, language)}</Badge>
                 )}
-                {timingProfile?.timingLabel === 'insufficient_data' && <Badge tone="warning">数据少</Badge>}
+                {timingProfile?.timingLabel === 'insufficient_data' && <Badge tone="warning">{t('draft.insufficientData')}</Badge>}
               </div>
-              <div className="number mt-0.5 text-xs text-[var(--text-muted)]">{scoreFormula(item)}</div>
+              <div className="number mt-0.5 text-xs text-[var(--text-muted)]">{scoreFormula(item, t)}</div>
             </div>
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-1">
-          <Badge tone={tone}>{recommendationLabel(item, index)}</Badge>
-          <Badge tone={isInPool ? 'neutral' : 'warning'}>{tierLabel(tier, isInPool)}</Badge>
+          <Badge tone={tone}>{recommendationLabel(item, index, t)}</Badge>
+          <Badge tone={isInPool ? 'neutral' : 'warning'}>{tierLabel(tier, isInPool, t)}</Badge>
         </div>
       </div>
       <div className="mt-3 space-y-1 text-xs leading-5 text-[var(--text-secondary)]">
@@ -178,7 +180,7 @@ function DraftHeroCard({
   )
 }
 
-function DetailList({ title, data, tone }: { title: string; data: Record<string, number>; tone: 'success' | 'danger' }) {
+function DetailList({ title, data, tone, language, t }: { title: string; data: Record<string, number>; tone: 'success' | 'danger'; language: Language; t: ReturnType<typeof useT> }) {
   const entries = Object.entries(data).sort((a, b) => b[1] - a[1]).slice(0, 6)
   return (
     <div>
@@ -187,13 +189,13 @@ function DetailList({ title, data, tone }: { title: string; data: Record<string,
         <div className="space-y-1">
           {entries.map(([hero, value]) => (
             <div key={hero} className="flex items-center justify-between gap-2 rounded-[var(--radius-sm)] bg-[var(--surface-2)] px-2 py-1.5">
-              <span className="truncate text-xs text-[var(--text-secondary)]">{hero}</span>
+              <span className="truncate text-xs text-[var(--text-secondary)]">{getDisplayHeroName(hero, language)}</span>
               <PercentBadge value={tone === 'success' ? value : -value} tone={tone} />
             </div>
           ))}
         </div>
       ) : (
-        <div className="rounded-[var(--radius-sm)] border border-dashed border-[var(--border)] px-3 py-4 text-xs text-[var(--text-muted)]">暂无数据</div>
+        <div className="rounded-[var(--radius-sm)] border border-dashed border-[var(--border)] px-3 py-4 text-xs text-[var(--text-muted)]">{t('draft.noData')}</div>
       )}
     </div>
   )
@@ -208,6 +210,8 @@ function reasonClass(score: number, type: string): string {
 export default function DraftAssistant() {
   const navigate = useNavigate()
   const { appState, update: updateAppState } = useAppState()
+  const t = useT()
+  const language = useLanguage()
   const [targetPosition, setTargetPosition] = useState<DotaPosition>('3')
   const [enemyByPosition, setEnemyByPosition] = useState<EnemyByPosition>({})
   const [focusedPosition, setFocusedPosition] = useState<DotaPosition | null>(null)
@@ -261,7 +265,7 @@ export default function DraftAssistant() {
       })
       .catch(() => undefined)
 
-    setSyncStatus('正在检查本周 matchup 矩阵缓存')
+    setSyncStatus(t('draft.checkingMatchupCache'))
     window.electronStore.syncOpenDotaHeroMatchups(false)
       .then(result => {
         if (cancelled) return
@@ -279,11 +283,13 @@ export default function DraftAssistant() {
             if (!cancelled && cache) setTimingCache(cache)
           })
           .catch(() => undefined)
-        setTimingSyncStatus('正在检查英雄 timing 缓存')
+        setTimingSyncStatus(t('draft.checkingTimingCache'))
         window.electronStore.syncHeroTimings(false)
           .then(result => {
             if (cancelled) return
-            setTimingSyncStatus(result.cached ? `Timing 缓存仍有效（${result.heroCount} 个英雄）` : `已同步 Timing 数据（${result.heroCount} 个英雄${result.errors.length ? `，${result.errors.length} 个失败` : ''}）`)
+            setTimingSyncStatus(result.cached
+              ? t('draft.timingCacheStillValid', { n: result.heroCount })
+              : t('draft.timingSyncedInline', { n: result.heroCount, errors: result.errors.length ? t('draft.timingSyncedErrorsSuffix', { n: result.errors.length }) : '' }))
             return window.electronStore.getHeroTimingCache()
           })
           .then(cache => {
@@ -319,7 +325,9 @@ export default function DraftAssistant() {
     counters: COUNTERS,
     countered: COUNTERED,
     supportMap: SUP_MAP,
-  }), [candidatePool, resolvedEnemyByPosition, configuredPool, matchupCache, positionMeta, minGames])
+    t,
+    language,
+  }), [candidatePool, resolvedEnemyByPosition, configuredPool, matchupCache, positionMeta, minGames, t, language])
 
   useEffect(() => {
     const topHero = ranked[0]?.hero
@@ -367,9 +375,9 @@ export default function DraftAssistant() {
   const selectedCounters = hasDynamicCounters ? dynamicCounters : (selected ? COUNTERS[selected.hero] || {} : {})
   const selectedCountered = hasDynamicCountered ? dynamicCountered : (selected ? COUNTERED[selected.hero] || {} : {})
   const matchupSourceLabel = matchupCache?.source === 'stratz' ? 'Stratz' : 'OpenDota'
-  const counterSource = hasDynamicCounters ? `${matchupSourceLabel} ≥${minGames} 局` : '本地表'
-  const counteredSource = hasDynamicCountered ? `${matchupSourceLabel} ≥${minGames} 局` : '本地表'
-  const positionMetaSource = `${positionMeta.source === 'stratz' ? 'Stratz' : '本地默认'} ${positionMeta.rankBracket ?? 'ALL'} ${positionMeta.weekKey}`
+  const counterSource = hasDynamicCounters ? t('draft.sourceWithMinGames', { source: matchupSourceLabel, n: minGames }) : t('draft.sourceLocalTable')
+  const counteredSource = hasDynamicCountered ? t('draft.sourceWithMinGames', { source: matchupSourceLabel, n: minGames }) : t('draft.sourceLocalTable')
+  const positionMetaSource = `${positionMeta.source === 'stratz' ? 'Stratz' : t('draft.positionMetaLocalDefault')} ${positionMeta.rankBracket ?? 'ALL'} ${positionMeta.weekKey}`
 
   const handleEnemyChange = (position: DotaPosition, value: string) => {
     setEnemyByPosition(current => ({ ...current, [position]: value }))
@@ -378,7 +386,7 @@ export default function DraftAssistant() {
   const handleSelectHero = async (hero: string) => {
     if (!appState) return
     if (appState.pendingPreGameSetupId) {
-      const ok = window.confirm('上一条赛前设定还未关联对局，是否放弃？')
+      const ok = window.confirm(t('home.confirmDiscardSetup'))
       if (!ok) return
     }
 
@@ -418,18 +426,18 @@ export default function DraftAssistant() {
           <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="mb-2 flex flex-wrap items-center gap-2">
-                <Badge tone={matchupCache ? 'info' : 'neutral'}>{matchupCache ? `Matchup ${matchupCache.weekKey ?? matchupCache.date}` : '本地克制表'}</Badge>
-                <Badge tone="success">推荐：{POSITION_LABELS[targetPosition]}</Badge>
-                <Badge tone="accent">已识别 {enemyHeroes.length}/5 个敌方位置</Badge>
-                {unknownPositions.length > 0 && <Badge tone="neutral">未知：{unknownPositions.map(position => POSITION_LABELS[position]).join('、')}</Badge>}
+                <Badge tone={matchupCache ? 'info' : 'neutral'}>{matchupCache ? t('draft.matchupBadge', { week: matchupCache.weekKey ?? matchupCache.date }) : t('draft.localCounterTable')}</Badge>
+                <Badge tone="success">{t('draft.recommendFor', { position: positionLabel(targetPosition, t) })}</Badge>
+                <Badge tone="accent">{t('draft.identifiedPositions', { n: enemyHeroes.length })}</Badge>
+                {unknownPositions.length > 0 && <Badge tone="neutral">{t('draft.unknownPositionsBadge', { positions: unknownPositions.map(position => positionLabel(position, t)).join(language === 'zh' ? '、' : ', ') })}</Badge>}
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] md:text-3xl">Draft 助手</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">先选择你要出的目标位置；推荐列表只保留能打该位置、且未被对方选择的英雄，再按 matchup 和熟练度排序。</p>
+              <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] md:text-3xl">{t('draft.title')}</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">{t('draft.subtitle')}</p>
             </div>
           </div>
 
           <div className="mb-5 space-y-2">
-            <div className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">我要出的位置</div>
+            <div className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">{t('draft.targetPositionLabel')}</div>
             <div className="grid grid-cols-5 gap-2">
               {POSITIONS.map(position => (
                 <button
@@ -442,7 +450,7 @@ export default function DraftAssistant() {
                       : 'border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-secondary)] hover:border-[var(--accent-border)]'
                   }`}
                 >
-                  {POSITION_LABELS[position]}
+                  {positionLabel(position, t)}
                 </button>
               ))}
             </div>
@@ -455,17 +463,19 @@ export default function DraftAssistant() {
               return (
                 <EnemyInput
                   key={position}
-                  label={`对方 ${POSITION_LABELS[position]}`}
+                  label={t('draft.enemyPositionLabel', { position: positionLabel(position, t) })}
                   value={value}
-                  suggestions={(focused || value ? getSugg(value, 200) : []).filter(hero => {
-                    const currentResolved = resolve(value)
-                    return hero === currentResolved || !POSITIONS.some(other => other !== position && resolvedEnemyByPosition[other] === hero)
-                  })}
+                  suggestions={(focused || value ? getSugg(value, 200) : [])
+                    .filter(hero => {
+                      const currentResolved = resolve(value)
+                      return hero === currentResolved || !POSITIONS.some(other => other !== position && resolvedEnemyByPosition[other] === hero)
+                    })
+                    .map(hero => getDisplayHeroName(hero, language))}
                   focused={focused}
                   setFocused={isFocused => {
                     setFocusedPosition(current => (isFocused ? position : current === position ? null : current))
                   }}
-                  placeholder={getPositionHotHeroPlaceholder(position, positionMeta)}
+                  placeholder={getPositionHotHeroPlaceholder(position, positionMeta, language)}
                   onChange={nextValue => handleEnemyChange(position, nextValue)}
                 />
               )
@@ -474,21 +484,21 @@ export default function DraftAssistant() {
         </Card>
 
         <Card className="p-5 md:p-6">
-          <div className="text-sm font-semibold text-[var(--text-primary)]">数据源状态</div>
-          <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{syncStatus || '等待同步状态'}</p>
+          <div className="text-sm font-semibold text-[var(--text-primary)]">{t('draft.dataSourceStatus')}</div>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{syncStatus || t('draft.waitingSyncStatus')}</p>
           <div className="mt-3 space-y-1 text-xs text-[var(--text-muted)]">
-            <div>Matchup：{matchupCache ? `${matchupSourceLabel} ${matchupCache.rankBracket ?? ''} ${matchupCache.weekKey ?? matchupCache.date}` : '本地表'}</div>
-            <div>Timing：{timingCache ? `${timingCache.date} · ${timingCache.heroCount} 英雄` : (timingSyncStatus || '未同步')}</div>
-            <div>位置热门：{positionMetaSource}</div>
+            <div>{t('draft.matchupStatusLine', { value: matchupCache ? `${matchupSourceLabel} ${matchupCache.rankBracket ?? ''} ${matchupCache.weekKey ?? matchupCache.date}` : t('draft.sourceLocalTable') })}</div>
+            <div>{t('draft.timingStatusLine', { value: timingCache ? t('draft.timingStatusValue', { date: timingCache.date, n: timingCache.heroCount }) : (timingSyncStatus || t('draft.timingNotSynced')) })}</div>
+            <div>{t('draft.positionMetaStatusLine', { value: positionMetaSource })}</div>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <div className="rounded-[var(--radius-md)] bg-[var(--surface-2)] p-3">
               <div className="number text-lg font-semibold text-[var(--text-primary)]">{ranked.length}</div>
-              <div className="text-xs text-[var(--text-muted)]">候选英雄</div>
+              <div className="text-xs text-[var(--text-muted)]">{t('draft.candidateCount')}</div>
             </div>
             <div className="rounded-[var(--radius-md)] bg-[var(--surface-2)] p-3">
               <div className="number text-lg font-semibold text-[var(--text-primary)]">{activeCandidateCount}</div>
-              <div className="text-xs text-[var(--text-muted)]">该位置英雄池内</div>
+              <div className="text-xs text-[var(--text-muted)]">{t('draft.inPoolCount')}</div>
             </div>
           </div>
         </Card>
@@ -496,7 +506,7 @@ export default function DraftAssistant() {
 
       {riskItems.length > 0 && (
         <Banner tone="danger">
-          已知克制风险警告：{riskItems.map(item => `${item.hero} -${item.knownRiskScore.toFixed(1)}`).join('，')}
+          {t('draft.riskWarningBanner', { list: riskItems.map(item => `${getDisplayHeroName(item.hero, language)} -${item.knownRiskScore.toFixed(1)}`).join(language === 'zh' ? '，' : ', ') })}
         </Banner>
       )}
 
@@ -504,8 +514,8 @@ export default function DraftAssistant() {
         <div className="space-y-3 lg:h-[calc(100vh-220px)] lg:overflow-hidden lg:flex lg:flex-col">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-semibold text-[var(--text-primary)]">推荐列表</h2>
-              <p className="mt-1 text-sm text-[var(--text-muted)]">当前只推荐可出 {POSITION_LABELS[targetPosition]} 的英雄，并排除对方已选英雄；再综合已知对手、未知位置热门预期和自身熟练度排序。</p>
+              <h2 className="text-base font-semibold text-[var(--text-primary)]">{t('draft.recommendListTitle')}</h2>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">{t('draft.recommendListDesc', { position: positionLabel(targetPosition, t) })}</p>
             </div>
           </div>
           <div className="grid gap-3 lg:overflow-y-auto lg:pr-1">
@@ -517,6 +527,8 @@ export default function DraftAssistant() {
                 selected={selected?.hero === item.hero}
                 isInPool={activePool.includes(item.hero)}
                 tier={item.poolTier}
+                t={t}
+                language={language}
                 timingProfile={timingCache?.profiles[String(getHeroIdByName(item.hero))]}
                 onClick={() => { userSelectedRef.current = true; setSelectedHero(item.hero) }}
               />
@@ -529,66 +541,66 @@ export default function DraftAssistant() {
             <Card tone="raised" className="p-5 md:p-6">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <Badge tone={recommendationTone(selected, ranked.findIndex(item => item.hero === selected.hero))}>{recommendationLabel(selected, ranked.findIndex(item => item.hero === selected.hero))}</Badge>
-                  <h2 className="mt-3 text-2xl font-bold tracking-tight text-[var(--text-primary)]">{selected.hero}</h2>
-                  <p className="number mt-1 text-sm text-[var(--text-muted)]">{scoreFormula(selected)}</p>
+                  <Badge tone={recommendationTone(selected, ranked.findIndex(item => item.hero === selected.hero))}>{recommendationLabel(selected, ranked.findIndex(item => item.hero === selected.hero), t)}</Badge>
+                  <h2 className="mt-3 text-2xl font-bold tracking-tight text-[var(--text-primary)]">{getDisplayHeroName(selected.hero, language)}</h2>
+                  <p className="number mt-1 text-sm text-[var(--text-muted)]">{scoreFormula(selected, t)}</p>
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <Badge tone={selected.knownScore >= 0 ? 'success' : 'danger'}>已知 {signed(selected.knownScore)}</Badge>
-                    <Badge tone={selected.unknownScore >= 0 ? 'accent' : 'warning'}>未知 {signed(selected.unknownScore)}</Badge>
-                    <Badge tone={selected.proficiencyScore >= 0 ? 'accent' : 'warning'}>熟练度 {signed(selected.proficiencyScore)}</Badge>
-                    {selectedTimingProfile && <Badge tone={timingBadgeTone(selectedTimingProfile.timingLabel)}>Timing {TIMING_LABEL_ZH[selectedTimingProfile.timingLabel]}</Badge>}
+                    <Badge tone={selected.knownScore >= 0 ? 'success' : 'danger'}>{t('draft.knownScoreBadge', { score: signed(selected.knownScore) })}</Badge>
+                    <Badge tone={selected.unknownScore >= 0 ? 'accent' : 'warning'}>{t('draft.unknownScoreBadge', { score: signed(selected.unknownScore) })}</Badge>
+                    <Badge tone={selected.proficiencyScore >= 0 ? 'accent' : 'warning'}>{t('draft.proficiencyScoreBadge', { score: signed(selected.proficiencyScore) })}</Badge>
+                    {selectedTimingProfile && <Badge tone={timingBadgeTone(selectedTimingProfile.timingLabel)}>{t('draft.timingBadge', { label: getTimingLabel(selectedTimingProfile.timingLabel, language) })}</Badge>}
                   </div>
                 </div>
-                <Badge tone={activePool.includes(selected.hero) ? 'neutral' : 'warning'}>{tierLabel(selected.poolTier, activePool.includes(selected.hero))}</Badge>
+                <Badge tone={activePool.includes(selected.hero) ? 'neutral' : 'warning'}>{tierLabel(selected.poolTier, activePool.includes(selected.hero), t)}</Badge>
               </div>
 
-              <Button variant="primary" size="lg" fullWidth className="mt-4" onClick={() => handleSelectHero(selected.hero)}>锁定并进入赛前</Button>
+              <Button variant="primary" size="lg" fullWidth className="mt-4" onClick={() => handleSelectHero(selected.hero)}>{t('draft.lockInButton')}</Button>
 
               <div className="mt-5 space-y-4">
                 <div>
-                  <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">已知对手 matchup</div>
+                  <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">{t('draft.knownMatchupSection')}</div>
                   {knownReasons.length > 0 ? (
                     <div className="space-y-1 rounded-[var(--radius-sm)] bg-[var(--surface-2)] p-2 text-xs leading-5">
                       {knownReasons.map(reason => <div key={reason.label} className={reasonClass(reason.score, reason.type)}>{reason.label}</div>)}
                     </div>
                   ) : (
-                    <p className="text-sm text-[var(--text-muted)]">还没有足够已知对手数据。</p>
+                    <p className="text-sm text-[var(--text-muted)]">{t('draft.knownMatchupEmpty')}</p>
                   )}
                 </div>
 
                 <div>
-                  <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">未知位置预期</div>
+                  <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">{t('draft.unknownExpectationSection')}</div>
                   {unknownReasons.length > 0 ? (
                     <div className="space-y-1 rounded-[var(--radius-sm)] bg-[var(--surface-2)] p-2 text-xs leading-5">
                       {unknownReasons.map(reason => <div key={reason.label} className={reasonClass(reason.score, reason.type)}>{reason.label}</div>)}
                     </div>
                   ) : (
-                    <p className="text-sm text-[var(--text-muted)]">敌方 5 个位置已完整，或缺少热门英雄 matchup 数据。</p>
+                    <p className="text-sm text-[var(--text-muted)]">{t('draft.unknownExpectationEmpty')}</p>
                   )}
                 </div>
 
                 <div>
-                  <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">熟练度</div>
+                  <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">{t('draft.proficiencySection')}</div>
                   <div className="space-y-1 rounded-[var(--radius-sm)] bg-[var(--surface-2)] p-2 text-xs leading-5">
                     {proficiencyReasons.map(reason => <div key={reason.label} className={reasonClass(reason.score, reason.type)}>{reason.label}</div>)}
                   </div>
                 </div>
 
                 <div>
-                  <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">需要注意</div>
-                  <p className="text-sm leading-6 text-[var(--text-secondary)]">{buildRisk(selected)}</p>
+                  <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">{t('draft.attentionSection')}</div>
+                  <p className="text-sm leading-6 text-[var(--text-secondary)]">{buildRisk(selected, t)}</p>
                 </div>
 
                 <CompositionTimeline selectedHeroId={selectedHeroId} enemyHeroIds={enemyHeroIds} timingCache={timingCache} />
               </div>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                <DetailList title={`克制对手 · ${counterSource}`} data={selectedCounters} tone="success" />
-                <DetailList title={`注意被克 · ${counteredSource}`} data={selectedCountered} tone="danger" />
+                <DetailList title={t('draft.counterListTitle', { source: counterSource })} data={selectedCounters} tone="success" language={language} t={t} />
+                <DetailList title={t('draft.counteredListTitle', { source: counteredSource })} data={selectedCountered} tone="danger" language={language} t={t} />
               </div>
             </Card>
           ) : (
-            <Card className="p-6 text-sm text-[var(--text-muted)]">暂无推荐结果。</Card>
+            <Card className="p-6 text-sm text-[var(--text-muted)]">{t('draft.noRecommendation')}</Card>
           )}
         </div>
       </section>

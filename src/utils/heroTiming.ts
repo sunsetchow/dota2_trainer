@@ -112,6 +112,19 @@ export const TIMING_LABEL_ZH: Record<HeroTimingLabel, string> = {
   insufficient_data: '数据少',
 }
 
+const TIMING_LABEL_EN: Record<HeroTimingLabel, string> = {
+  early: 'Early',
+  mid: 'Mid',
+  late: 'Late',
+  very_late: 'Very Late',
+  balanced: 'Balanced',
+  insufficient_data: 'Low Data',
+}
+
+export function getTimingLabel(label: HeroTimingLabel, language: 'zh' | 'en'): string {
+  return language === 'zh' ? TIMING_LABEL_ZH[label] : TIMING_LABEL_EN[label]
+}
+
 export function timingBadgeTone(label?: string): 'neutral' | 'accent' | 'success' | 'danger' | 'warning' | 'info' {
   if (label === 'early') return 'info'
   if (label === 'mid') return 'accent'

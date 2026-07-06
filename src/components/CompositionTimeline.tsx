@@ -1,10 +1,11 @@
 import type { HeroTimingCache, HeroTimingProfile } from '../types'
+import { useT } from '../i18n/index.ts'
 
-const SEGMENTS: Array<{ key: keyof Pick<HeroTimingProfile, 'early' | 'mid' | 'late' | 'veryLate'>; label: string }> = [
-  { key: 'early', label: '前期' },
-  { key: 'mid', label: '中期' },
-  { key: 'late', label: '后期' },
-  { key: 'veryLate', label: '大后期' },
+const SEGMENTS: Array<{ key: keyof Pick<HeroTimingProfile, 'early' | 'mid' | 'late' | 'veryLate'>; labelKey: string }> = [
+  { key: 'early', labelKey: 'timing.early' },
+  { key: 'mid', labelKey: 'timing.mid' },
+  { key: 'late', labelKey: 'timing.late' },
+  { key: 'veryLate', labelKey: 'timing.veryLate' },
 ]
 
 function percent(value: number): string {
@@ -32,6 +33,7 @@ export default function CompositionTimeline({
   enemyHeroIds: number[]
   timingCache: HeroTimingCache | null
 }) {
+  const t = useT()
   if (!selectedHeroId || enemyHeroIds.length === 0 || !timingCache) return null
   const selectedProfile = timingCache.profiles[String(selectedHeroId)]
   if (!selectedProfile) return null
@@ -41,6 +43,7 @@ export default function CompositionTimeline({
     const enemy = averageEnemyWinRate(enemyHeroIds, timingCache, segment.key)
     return {
       ...segment,
+      label: t(segment.labelKey),
       mine,
       enemy,
       diff: mine !== null && enemy !== null ? mine - enemy : null,
@@ -55,7 +58,7 @@ export default function CompositionTimeline({
 
   return (
     <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-1)] p-3">
-      <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">我的英雄 vs 敌方已知阵容时间线</div>
+      <div className="mb-2 text-sm font-semibold text-[var(--text-primary)]">{t('compositionTimeline.title')}</div>
       <div className="space-y-2">
         {rows.map(row => {
           const diff = row.diff ?? 0
@@ -72,7 +75,7 @@ export default function CompositionTimeline({
                 {signedPct(diff)}
               </span>
               <span className="col-start-2 col-span-2 text-[11px] text-[var(--text-muted)]">
-                我的英雄 {percent(row.mine as number)} · 敌方均值 {percent(row.enemy as number)}
+                {t('compositionTimeline.rowSummary', { mine: percent(row.mine as number), enemy: percent(row.enemy as number) })}
               </span>
             </div>
           )
@@ -81,11 +84,11 @@ export default function CompositionTimeline({
       {strongest ? (
         <p className="mt-3 text-xs leading-5 text-[var(--text-secondary)]">
           {strongest.diff && strongest.diff > 0
-            ? `你的英雄${strongest.label}比敌方已知阵容高 ${signedPct(strongest.diff)}，可以把这个时间段当成主要行动窗口。`
-            : `敌方${strongest.label}更强（${signedPct(strongest.diff ?? 0)}），这个阶段优先稳线、换资源，避免无目标团。`}
+            ? t('compositionTimeline.strongerMine', { label: strongest.label, diff: signedPct(strongest.diff) })
+            : t('compositionTimeline.strongerEnemy', { label: strongest.label, diff: signedPct(strongest.diff ?? 0) })}
         </p>
       ) : (
-        <p className="mt-3 text-xs leading-5 text-[var(--text-muted)]">双方时间线接近，优先看 matchup、熟练度和关键装。</p>
+        <p className="mt-3 text-xs leading-5 text-[var(--text-muted)]">{t('compositionTimeline.balanced')}</p>
       )}
     </div>
   )
