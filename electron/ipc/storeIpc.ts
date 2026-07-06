@@ -537,7 +537,14 @@ export function registerStoreIpcHandlers(store: ElectronStoreLike, todayKey: () 
   ipcMain.handle('store:addMatchLog', (_, log: unknown) => {
     const logs = getValidatedMatchLogs(store)
     const parsed = enrichMatchLog(parseMatchLog(log) as MatchLog)
+    // matchId 去重放在这里而不是只靠前端检查：PostGame.tsx 保存后不会刷新自己那份
+    // matchLogs（历史上直接调 window.electronStore.addMatchLog 而不是 hook 的 add()），
+    // 同一次页面会话里重复点保存时前端的重复检查会一直用旧快照，检测不出刚保存的记录。
+    if (parsed.matchId && logs.some(item => item.matchId === parsed.matchId)) {
+      return { added: false, log: logs.find(item => item.matchId === parsed.matchId) }
+    }
     store.set('matchLogs', [...logs, parsed])
+    return { added: true, log: parsed }
   })
   ipcMain.handle('store:getMatchLogs', () => getValidatedMatchLogs(store))
   ipcMain.handle('store:updateMatchLog', (_, id: string, patch: unknown) => {

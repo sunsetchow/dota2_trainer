@@ -34,8 +34,9 @@ export function useMatchLogs() {
   useEffect(() => { refresh() }, [refresh])
 
   const add = useCallback(async (log: MatchLog) => {
-    await window.electronStore.addMatchLog(log)
+    const result = await window.electronStore.addMatchLog(log)
     await refresh()
+    return result
   }, [refresh])
 
   const update = useCallback(async (id: string, patch: Partial<MatchLog>) => {

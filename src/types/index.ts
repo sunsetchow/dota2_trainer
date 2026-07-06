@@ -408,7 +408,7 @@ declare global {
     electronStore: {
       getAppState(): Promise<AppState>;
       setAppState(partial: Partial<AppState>): Promise<void>;
-      addMatchLog(log: MatchLog): Promise<void>;
+      addMatchLog(log: MatchLog): Promise<{ added: boolean; log: MatchLog }>;
       getMatchLogs(): Promise<MatchLog[]>;
       updateMatchLog(id: string, patch: Partial<MatchLog>): Promise<void>;
       addPreGameSetup(setup: PreGameSetup): Promise<void>;

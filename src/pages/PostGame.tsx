@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid'
 import { useAppState, useHeroNotes, useMatchLogs, useCycles } from '../store/useStore.ts'
 import HeroSelector from '../components/HeroSelector.tsx'
 import QuickSelect from '../components/QuickSelect.tsx'
-import { REVIEW_DIMENSIONS } from '../data/reviewDimensions.ts'
+import { getReviewDimensions } from '../data/reviewDimensions.ts'
 import type { HeroMatchupNote, HeroNote, MatchLog, PreGameSetup, OpenDotaImportedMatch, OpenDotaRecentMatch, TrainingDimension } from '../types'
 import { FOCUS_OPTIONS_BY_DIMENSION, FOCUS_OPTIONS_BY_LANE_RESULT, FOCUS_OPTIONS_BY_WEEK, compactMistake, compactPreviousFocus, getHeroFocusOptions, getHeroNoteFocusOptions, uniqueOptions, type LaneResult } from '../features/postgame/focusSuggestions.ts'
 import { buildPostGameMatchLog } from '../features/postgame/matchLogBuilder.ts'
@@ -12,9 +12,10 @@ import SrsReviewPrompt from '../features/postgame/SrsReviewPrompt.tsx'
 import OpenDotaImportPanel from '../features/postgame/OpenDotaImportPanel.tsx'
 import { getCurrentWeek, todayStr } from '../utils/cycle.ts'
 import { getOpenDotaHeroName } from '../utils/opendotaHeroes.ts'
-import { getHeroIdByName, sameHeroReference } from '../utils/heroIdentity.ts'
+import { getDisplayHeroName, getHeroIdByName, sameHeroReference } from '../utils/heroIdentity.ts'
 import { isDueForReview } from '../utils/srs.ts'
 import { formatOpenDotaErrorMessage, isOpenDotaParseRequestCandidate, normalizeOpenDotaError, createOpenDotaError } from '../utils/openDotaErrors.ts'
+import { useLanguage, useT } from '../i18n/index.ts'
 
 const OPEN_DOTA_ANALYZE_INITIAL_WAIT_MS = 120_000
 const OPEN_DOTA_ANALYZE_POLL_INTERVAL_MS = 30_000
@@ -45,9 +46,12 @@ export function buildMatchupTargets(selectedHero: string, pendingSetup: PreGameS
 export default function PostGame() {
   const navigate = useNavigate()
   const { appState } = useAppState()
-  const { matchLogs, add: addMatchLog } = useMatchLogs()
+  const { matchLogs, add: addMatchLogEntry } = useMatchLogs()
   const { heroNotes, upsert: upsertHeroNote } = useHeroNotes()
   const { cycles } = useCycles()
+  const t = useT()
+  const language = useLanguage()
+  const REVIEW_DIMENSIONS = getReviewDimensions(language)
 
   // 必填字段
   const [hero, setHero] = useState('')
@@ -133,7 +137,7 @@ export default function PostGame() {
     ...(FOCUS_OPTIONS_BY_WEEK[currentWeek] ?? []),
     compactMistake(biggestMistake),
     compactMistake(lastMatch?.biggestMistake),
-    '下一局只改这一个点，结束后只按这个点复盘',
+    t('postGame.lastFocusPractice'),
   ])
 
   const canSave =
@@ -219,7 +223,7 @@ export default function PostGame() {
       const currentAppState = await window.electronStore.getAppState()
       const cleanMatchId = matchId.trim()
       if (cleanMatchId && matchLogs.some(l => l.matchId === cleanMatchId)) {
-        window.alert('这个 Match ID 已经记录过了。')
+        window.alert(t('postGame.duplicateMatchIdAlert'))
         return
       }
       const logId = nanoid() // ✅ 先生成 id，在对象创建前
@@ -260,14 +264,18 @@ export default function PostGame() {
         await window.electronStore.setAppState({ pendingPreGameSetupId: undefined })
       }
 
-      await window.electronStore.addMatchLog(log)
+      const { added } = await addMatchLogEntry(log)
+      if (!added) {
+        window.alert(t('postGame.duplicateMatchIdAlert'))
+        return
+      }
       await saveMatchupNotesToHeroProfile(logId)
       const relatedHeroNames = new Set([log.hero, ...(log.enemyHeroes ?? []), ...(log.enemySupports ?? []), log.enemyCarry].filter((value): value is string => Boolean(value)))
       const relatedHeroIds = new Set([log.heroId, ...(log.enemyHeroIds ?? []), ...(log.enemySupportHeroIds ?? []), log.enemyCarryHeroId].filter((value): value is number => value !== undefined))
       const dueNotes = heroNotes.filter(note => (relatedHeroIds.has(note.heroId ?? -1) || relatedHeroNames.has(note.hero)) && isDueForReview(note, todayStr()))
       if (dueNotes.length > 0) {
         setSrsPromptNotes(dueNotes)
-        setSaveStatus('对局已保存。可以顺手给相关英雄笔记打个复习分，或直接跳过。')
+        setSaveStatus(t('postGame.savedWithDueNotes'))
       } else {
         navigate('/')
       }
@@ -279,11 +287,11 @@ export default function PostGame() {
   const handleImportOpenDota = async () => {
     const cleanMatchId = matchId.trim()
     if (!cleanMatchId) {
-      setOpenDotaStatus('请先输入 Match ID。')
+      setOpenDotaStatus(t('postGame.matchIdRequired'))
       return
     }
     if (matchLogs.some(l => l.matchId === cleanMatchId)) {
-      setOpenDotaStatus('这个 Match ID 已经记录过了。')
+      setOpenDotaStatus(t('postGame.matchIdAlreadyRecorded'))
       return
     }
 
@@ -305,13 +313,13 @@ export default function PostGame() {
   const handleAutoImportOpenDota = async (silent = false) => {
     if (autoImportingOpenDota || importingOpenDota || analyzingOpenDota || importedMatch) return
     if (!appState?.openDota?.accountId?.trim()) {
-      if (!silent) setOpenDotaStatus('请先在设置页填写 OpenDota Account ID。')
+      if (!silent) setOpenDotaStatus(t('postGame.accountIdRequired'))
       return
     }
 
     setAutoImportingOpenDota(true)
     setCanRequestParse(false)
-    if (!silent) setOpenDotaStatus('正在从 OpenDota 自动同步最近一局未记录比赛…')
+    if (!silent) setOpenDotaStatus(t('postGame.autoSyncing'))
     try {
       const existingMatchIds = matchLogs.map(log => log.matchId).filter((id): id is string => Boolean(id))
       const data = await window.electronStore.autoImportLatestOpenDotaMatch(existingMatchIds)
@@ -327,16 +335,16 @@ export default function PostGame() {
 
   const handleLoadRecentOpenDotaMatches = async () => {
     if (!appState?.openDota?.accountId?.trim()) {
-      setOpenDotaStatus('请先在设置页填写 OpenDota Account ID。')
+      setOpenDotaStatus(t('postGame.accountIdRequired'))
       return
     }
     setLoadingRecentMatches(true)
-    setOpenDotaStatus('正在拉取 OpenDota 最近 10 场…')
+    setOpenDotaStatus(t('postGame.fetchingRecent'))
     try {
       const existingMatchIds = matchLogs.map(log => log.matchId).filter((id): id is string => Boolean(id))
       const rows = await window.electronStore.getRecentOpenDotaMatches(existingMatchIds)
       setRecentMatches(rows)
-      setOpenDotaStatus(rows.length ? '已拉取最近 10 场，可选择一场导入。' : 'OpenDota 没有返回最近对局。')
+      setOpenDotaStatus(rows.length ? t('postGame.fetchedRecent') : t('postGame.noRecentMatches'))
     } catch (e) {
       setRecentMatches([])
       setOpenDotaStatus(e instanceof Error ? e.message : String(e))
@@ -347,13 +355,13 @@ export default function PostGame() {
 
   const handleImportRecentMatch = async (row: OpenDotaRecentMatch) => {
     if (row.recorded || matchLogs.some(l => l.matchId === row.matchId)) {
-      setOpenDotaStatus('这场比赛已经记录过了。')
+      setOpenDotaStatus(t('postGame.matchAlreadyRecorded'))
       return
     }
     setMatchId(row.matchId)
     setImportingOpenDota(true)
     setCanRequestParse(false)
-    setOpenDotaStatus(`正在导入 ${row.heroName ?? '这场比赛'}…`)
+    setOpenDotaStatus(t('postGame.importingRow', { name: row.heroName ? getDisplayHeroName(row.heroName, language) : t('postGame.importingRowFallback') }))
     try {
       const data = await window.electronStore.importOpenDotaMatch(row.matchId)
       applyImportedOpenDota(data)
@@ -381,12 +389,18 @@ export default function PostGame() {
       .map(v => v ?? '-')
       .join('/')
     const keyItem = data.firstKeyItemName && data.firstKeyItemMin
-      ? ` · ${data.firstKeyItemName} ${data.firstKeyItemMin}分`
+      ? t('postGame.keyItemSuffix', { item: data.firstKeyItemName, min: data.firstKeyItemMin })
       : ''
     const laneText = data.laneResult
-      ? ` · 对线${data.laneResult === 'dominated' ? '压制' : data.laneResult === 'even' ? '持平' : '被压'}`
+      ? t('postGame.laneTextSuffix', { result: data.laneResult === 'dominated' ? t('common.laneDominated') : data.laneResult === 'even' ? t('common.laneEven') : t('common.laneLost') })
       : ''
-    setOpenDotaStatus(`已导入：${getOpenDotaHeroName(data.heroId)} · ${data.result === 'win' ? '胜利' : '失败'} · KDA ${kda}${laneText}${keyItem}`)
+    setOpenDotaStatus(t('postGame.importedStatus', {
+      hero: getDisplayHeroName(getOpenDotaHeroName(data.heroId), language),
+      result: data.result === 'win' ? t('postGame.win') : t('postGame.loss'),
+      kda,
+      lane: laneText,
+      item: keyItem,
+    }))
   }
 
   useEffect(() => {
@@ -399,11 +413,11 @@ export default function PostGame() {
   const handleAnalyzeAndImportOpenDota = async () => {
     const cleanMatchId = matchId.trim()
     if (!cleanMatchId) {
-      setOpenDotaStatus('请先输入 Match ID。')
+      setOpenDotaStatus(t('postGame.matchIdRequired'))
       return
     }
     if (matchLogs.some(l => l.matchId === cleanMatchId)) {
-      setOpenDotaStatus('这个 Match ID 已经记录过了。')
+      setOpenDotaStatus(t('postGame.matchIdAlreadyRecorded'))
       return
     }
 
@@ -412,19 +426,19 @@ export default function PostGame() {
     const isCurrentRun = () => openDotaAnalysisRunRef.current === runId
 
     setAnalyzingOpenDota(true)
-    setOpenDotaStatus('正在向 OpenDota 提交解析请求…提交成功后会先等待 2 分钟，再每 30 秒尝试导入一次，最多等到 5 分钟；拿到详细数据就填入赛后表单，仍需要你手动保存复盘。')
+    setOpenDotaStatus(t('postGame.analyzeSubmitting'))
     setCanRequestParse(false)
     try {
       await window.electronStore.requestOpenDotaParse(cleanMatchId)
       if (!isCurrentRun()) return
-      setOpenDotaStatus('已提交解析请求。先等待 2 分钟让 OpenDota 生成详细数据，然后开始自动导入轮询。')
+      setOpenDotaStatus(t('postGame.analyzeSubmitted'))
       await wait(OPEN_DOTA_ANALYZE_INITIAL_WAIT_MS)
       if (!isCurrentRun()) return
 
       let lastError: Error | null = null
       for (let attempt = 1; attempt <= OPEN_DOTA_ANALYZE_POLL_ATTEMPTS; attempt += 1) {
         if (!isCurrentRun()) return
-        setOpenDotaStatus(`已提交解析请求，正在尝试自动导入…第 ${attempt}/${OPEN_DOTA_ANALYZE_POLL_ATTEMPTS} 次检查；会持续到 5 分钟。成功后会自动填入赛后表单。`)
+        setOpenDotaStatus(t('postGame.analyzePolling', { attempt, total: OPEN_DOTA_ANALYZE_POLL_ATTEMPTS }))
         try {
           const data = await window.electronStore.importOpenDotaMatch(cleanMatchId)
           if (!isCurrentRun()) return
@@ -437,7 +451,7 @@ export default function PostGame() {
         }
       }
 
-      throw lastError ?? createOpenDotaError('PARSE_PENDING', 'OpenDota 已收到解析请求，但几分钟内还没有返回详细数据。请稍后再点“导入”。')
+      throw lastError ?? createOpenDotaError('PARSE_PENDING', t('postGame.analyzeTimedOut'))
     } catch (e) {
       if (!isCurrentRun()) return
       setImportedMatch(null)
@@ -470,12 +484,15 @@ export default function PostGame() {
       />
       <div>
         <button type="button" onClick={() => navigate(-1)} className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] mb-3 flex items-center gap-1">
-          ← 返回
+          {t('common.back')}
         </button>
-        <h1 className="text-xl font-bold text-[var(--text-primary)]">赛后记录</h1>
+        <h1 className="text-xl font-bold text-[var(--text-primary)]">{t('postGame.title')}</h1>
         {pendingSetup && (
           <p className="text-sm text-[var(--accent-strong)] mt-1">
-            关联赛前设定：{pendingSetup.hero}{pendingSetup.targetPosition ? ` · ${pendingSetup.targetPosition}号位` : ''}{pendingSetup.trainingGoal ? ` · ${pendingSetup.trainingGoal}` : ''}{pendingSetup.enemyCarry ? ` · 对方1号位 ${pendingSetup.enemyCarry}` : ''}
+            {t('postGame.linkedSetup', { hero: getDisplayHeroName(pendingSetup.hero, language) })}
+            {pendingSetup.targetPosition ? t('postGame.positionSuffix', { position: pendingSetup.targetPosition }) : ''}
+            {pendingSetup.trainingGoal ? t('postGame.goalSuffix', { goal: pendingSetup.trainingGoal }) : ''}
+            {pendingSetup.enemyCarry ? t('postGame.enemyCarrySuffix', { enemy: getDisplayHeroName(pendingSetup.enemyCarry, language) }) : ''}
           </p>
         )}
       </div>
@@ -501,7 +518,7 @@ export default function PostGame() {
 
       {/* 必填：英雄 */}
       <HeroSelector
-        label="本局英雄 *"
+        label={t('postGame.heroFieldLabel')}
         value={hero}
         onChange={setHero}
         heroPool={heroPool.length > 0 ? heroPool : undefined}
@@ -509,24 +526,29 @@ export default function PostGame() {
 
       {/* 必填：胜负 */}
       <div className="space-y-2">
-        <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">胜负 *</label>
+        <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">{t('postGame.resultLabel')}</label>
         <div className="flex gap-2">
-          <button type="button" onClick={() => setResult('win')} className={`${btnBase} flex-1 ${result === 'win' ? 'border-green-500 bg-[var(--bg-success)] text-[var(--text-success)]' : btnInactive}`}>胜利</button>
-          <button type="button" onClick={() => setResult('loss')} className={`${btnBase} flex-1 ${result === 'loss' ? 'border-red-500 bg-[var(--bg-danger)] text-[var(--text-danger)]' : btnInactive}`}>失败</button>
+          <button type="button" onClick={() => setResult('win')} className={`${btnBase} flex-1 ${result === 'win' ? 'border-green-500 bg-[var(--bg-success)] text-[var(--text-success)]' : btnInactive}`}>{t('postGame.win')}</button>
+          <button type="button" onClick={() => setResult('loss')} className={`${btnBase} flex-1 ${result === 'loss' ? 'border-red-500 bg-[var(--bg-danger)] text-[var(--text-danger)]' : btnInactive}`}>{t('postGame.loss')}</button>
         </div>
       </div>
 
       {/* 必填：时长 */}
       <div className="space-y-2">
-        <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">时长（分钟）*</label>
-        <input type="number" value={durationMin} onChange={e => setDurationMin(e.target.value)} placeholder="如：42" className={inputCls} />
+        <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">{t('postGame.durationLabel')}</label>
+        <input type="number" value={durationMin} onChange={e => setDurationMin(e.target.value)} placeholder={t('postGame.durationPlaceholder')} className={inputCls} />
       </div>
 
       {/* 必填：训练目标完成了吗 */}
       <div className="space-y-2">
         <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
-          训练目标完成了吗？*
-          {pendingSetup && <span className="ml-2 text-[var(--accent-strong)] font-normal normal-case">赛前：{pendingSetup.hero}{pendingSetup.targetPosition ? ` · ${pendingSetup.targetPosition}号位` : ''}</span>}
+          {t('postGame.goalMetLabel')}
+          {pendingSetup && (
+            <span className="ml-2 text-[var(--accent-strong)] font-normal normal-case">
+              {t('postGame.goalMetPreGameHint', { hero: getDisplayHeroName(pendingSetup.hero, language) })}
+              {pendingSetup.targetPosition ? t('postGame.positionSuffix', { position: pendingSetup.targetPosition }) : ''}
+            </span>
+          )}
         </label>
         <div className="flex gap-2">
           {(['yes', 'partial', 'no'] as const).map(v => (
@@ -536,7 +558,7 @@ export default function PostGame() {
               onClick={() => setTrainingGoalMet(v)}
               className={`${btnBase} flex-1 ${trainingGoalMet === v ? btnActive : btnInactive}`}
             >
-              {v === 'yes' ? '完成' : v === 'partial' ? '部分' : '未完成'}
+              {v === 'yes' ? t('postGame.goalYes') : v === 'partial' ? t('postGame.goalPartial') : t('postGame.goalNo')}
             </button>
           ))}
         </div>
@@ -544,11 +566,11 @@ export default function PostGame() {
 
       {/* 必填：最大错误 */}
       <div className="space-y-2">
-        <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">最大错误（一句话）*</label>
+        <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">{t('postGame.mistakeLabel')}</label>
         <textarea
           value={biggestMistake}
           onChange={e => setBiggestMistake(e.target.value)}
-          placeholder="这局最大的失误是什么？"
+          placeholder={t('postGame.mistakePlaceholder')}
           rows={2}
           className={`${inputCls} resize-none`}
         />
@@ -556,7 +578,7 @@ export default function PostGame() {
 
       {/* 复盘归因 */}
       <div className="space-y-3">
-        <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">这局主要问题属于哪个判断？</label>
+        <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">{t('postGame.reviewDimensionQuestion')}</label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {REVIEW_DIMENSIONS.map(item => (
             <button
@@ -577,18 +599,18 @@ export default function PostGame() {
         </div>
         {selectedReviewDimension && (
           <QuickSelect
-            label="具体判断问题"
+            label={t('postGame.reviewTopicLabel')}
             options={selectedReviewDimension.topics}
             value={reviewTopic}
             onChange={setReviewTopic}
-            placeholder="自定义判断问题…"
+            placeholder={t('postGame.reviewTopicPlaceholder')}
           />
         )}
       </div>
 
       {/* 必填：下局改进点 */}
       <QuickSelect
-        label="下局唯一改进点 *"
+        label={t('postGame.nextFocusLabel')}
         options={quickFocusOptions}
         value={nextGameFocus}
         onChange={setNextGameFocus}
@@ -596,47 +618,47 @@ export default function PostGame() {
       />
       {lastSameHeroMatch && previousHeroFocus && (
         <p className="text-xs text-[var(--text-muted)] -mt-4">
-          已提取上次使用 {selectedHero} 的改进点：{previousHeroFocus}
-          <span className="ml-1">（{new Date(lastSameHeroMatch.timestamp).toLocaleDateString('zh-CN')}）</span>
+          {t('postGame.previousFocusHint', { hero: getDisplayHeroName(selectedHero, language), focus: previousHeroFocus })}
+          <span className="ml-1">（{new Date(lastSameHeroMatch.timestamp).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US')}）</span>
         </p>
       )}
 
       {/* P1：3 片段复盘 */}
       <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-4">
         <div>
-          <h2 className="text-sm font-semibold text-[var(--text-primary)]">3 片段复盘</h2>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">每个片段只写时间点和一句判断，下次复盘才有抓手。</p>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">{t('postGame.clipSection')}</h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">{t('postGame.clipSectionDesc')}</p>
         </div>
         <label className="block space-y-1">
-          <span className="block text-xs font-medium text-[var(--text-muted)]">关键死亡片段</span>
-          <textarea value={reviewClipDeath} onChange={e => setReviewClipDeath(e.target.value)} placeholder="如：18:40 红区收线没看到双辅助，应该先等线进塔。" rows={2} className={`${inputCls} resize-none`} />
+          <span className="block text-xs font-medium text-[var(--text-muted)]">{t('postGame.clipDeathLabel')}</span>
+          <textarea value={reviewClipDeath} onChange={e => setReviewClipDeath(e.target.value)} placeholder={t('postGame.clipDeathPlaceholder')} rows={2} className={`${inputCls} resize-none`} />
         </label>
         <label className="block space-y-1">
-          <span className="block text-xs font-medium text-[var(--text-muted)]">关键团战片段</span>
-          <textarea value={reviewClipFight} onChange={e => setReviewClipFight(e.target.value)} placeholder="如：26:10 先手目标错了，应该等对方核心露头。" rows={2} className={`${inputCls} resize-none`} />
+          <span className="block text-xs font-medium text-[var(--text-muted)]">{t('postGame.clipFightLabel')}</span>
+          <textarea value={reviewClipFight} onChange={e => setReviewClipFight(e.target.value)} placeholder={t('postGame.clipFightPlaceholder')} rows={2} className={`${inputCls} resize-none`} />
         </label>
         <label className="block space-y-1">
-          <span className="block text-xs font-medium text-[var(--text-muted)]">关键目标片段</span>
-          <textarea value={reviewClipObjective} onChange={e => setReviewClipObjective(e.target.value)} placeholder="如：32:00 赢团后追人，没有转 Roshan 或推塔。" rows={2} className={`${inputCls} resize-none`} />
+          <span className="block text-xs font-medium text-[var(--text-muted)]">{t('postGame.clipObjectiveLabel')}</span>
+          <textarea value={reviewClipObjective} onChange={e => setReviewClipObjective(e.target.value)} placeholder={t('postGame.clipObjectivePlaceholder')} rows={2} className={`${inputCls} resize-none`} />
         </label>
       </div>
 
       {matchupTargets.length > 0 && (
         <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-4">
           <div>
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">沉淀对位英雄笔记</h2>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">把这局对某个英雄的心得保存到当前英雄档案。选择“风险/被克制”会同步写入 counteredBy；选择“优势/克制”会同步写入 counters。</p>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">{t('postGame.matchupNotesSection')}</h2>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">{t('postGame.matchupNotesDesc')}</p>
           </div>
           <div className="space-y-3">
             {matchupTargets.map(opponent => (
               <div key={opponent} className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-sm font-semibold text-[var(--text-primary)]">{selectedHero || '当前英雄'} vs {opponent}</div>
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">{t('postGame.matchupVsLine', { hero: selectedHero ? getDisplayHeroName(selectedHero, language) : t('postGame.currentHeroFallback'), opponent: getDisplayHeroName(opponent, language) })}</div>
                   <div className="flex gap-1">
                     {([
-                      ['counteredBy', '风险/被克制'],
-                      ['counters', '优势/克制'],
-                      ['general', '心得'],
+                      ['counteredBy', t('postGame.stanceCounteredBy')],
+                      ['counters', t('postGame.stanceCounters')],
+                      ['general', t('postGame.stanceGeneral')],
                     ] as Array<[NonNullable<HeroMatchupNote['stance']>, string]>).map(([stance, label]) => (
                       <button
                         key={stance}
@@ -654,7 +676,7 @@ export default function PostGame() {
                 <textarea
                   value={matchupNoteDrafts[opponent] ?? ''}
                   onChange={e => setMatchupNoteDrafts(prev => ({ ...prev, [opponent]: e.target.value }))}
-                  placeholder={`例如：${opponent}：这局哪里难打/怎么处理，下次怎么调整…`}
+                  placeholder={t('postGame.matchupNotePlaceholder', { opponent: getDisplayHeroName(opponent, language) })}
                   rows={2}
                   className={`${inputCls} resize-none`}
                 />
@@ -671,15 +693,15 @@ export default function PostGame() {
           onClick={() => setShowOptional(o => !o)}
           className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg border border-dashed border-[var(--border)] text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
         >
-          <span>选填项（对线结果、首件、补刀等）</span>
-          <span>{showOptional ? '▲ 收起' : '▼ 展开'}</span>
+          <span>{t('postGame.optionalToggleLabel')}</span>
+          <span>{showOptional ? t('postGame.collapse') : t('postGame.expand')}</span>
         </button>
 
         {showOptional && (
           <div className="mt-3 space-y-4 px-1">
             {/* 死亡区域 */}
             <div className="space-y-2">
-              <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">最蠢死亡区域</label>
+              <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">{t('postGame.deathZoneLabel')}</label>
               <div className="flex gap-2">
                 {(['green', 'orange', 'red'] as const).map(z => (
                   <button
@@ -688,7 +710,7 @@ export default function PostGame() {
                     onClick={() => setWorstDeathZone(z === worstDeathZone ? '' : z)}
                     className={`${btnBase} flex-1 ${worstDeathZone === z ? btnActive : btnInactive}`}
                   >
-                    {z === 'green' ? '绿区' : z === 'orange' ? '橙区' : '红区'}
+                    {z === 'green' ? t('common.zoneGreen') : z === 'orange' ? t('common.zoneOrange') : t('common.zoneRed')}
                   </button>
                 ))}
               </div>
@@ -696,7 +718,7 @@ export default function PostGame() {
 
             {/* 对线结果 */}
             <div className="space-y-2">
-              <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">对线结果</label>
+              <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">{t('postGame.laneResultLabel')}</label>
               <div className="flex gap-2">
                 {(['dominated', 'even', 'lost'] as const).map(lr => (
                   <button
@@ -705,7 +727,7 @@ export default function PostGame() {
                     onClick={() => setLaneResult(lr === laneResult ? '' : lr)}
                     className={`${btnBase} flex-1 ${laneResult === lr ? btnActive : btnInactive}`}
                   >
-                    {lr === 'dominated' ? '压制' : lr === 'even' ? '持平' : '被压'}
+                    {lr === 'dominated' ? t('common.laneDominated') : lr === 'even' ? t('common.laneEven') : t('common.laneLost')}
                   </button>
                 ))}
               </div>
@@ -714,23 +736,23 @@ export default function PostGame() {
             {/* 首件时间 */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-[var(--text-muted)]">第一件关键装（分钟）</label>
-                <input type="number" value={firstKeyItemMin} onChange={e => setFirstKeyItemMin(e.target.value)} placeholder="如：18" className={inputCls} />
+                <label className="block text-xs font-medium text-[var(--text-muted)]">{t('postGame.firstKeyItemLabel')}</label>
+                <input type="number" value={firstKeyItemMin} onChange={e => setFirstKeyItemMin(e.target.value)} placeholder={t('postGame.firstKeyItemPlaceholder')} className={inputCls} />
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-[var(--text-muted)]">10 分钟补刀</label>
-                <input type="number" value={csAt10} onChange={e => setCsAt10(e.target.value)} placeholder="如：65" className={inputCls} />
+                <label className="block text-xs font-medium text-[var(--text-muted)]">{t('postGame.csAt10Label')}</label>
+                <input type="number" value={csAt10} onChange={e => setCsAt10(e.target.value)} placeholder={t('postGame.csAt10Placeholder')} className={inputCls} />
               </div>
             </div>
 
             {/* 开团次数 + Draft 评分 */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-[var(--text-muted)]">开团成功次数</label>
-                <input type="number" value={goodInitiations} onChange={e => setGoodInitiations(e.target.value)} placeholder="如：3" className={inputCls} />
+                <label className="block text-xs font-medium text-[var(--text-muted)]">{t('postGame.goodInitiationsLabel')}</label>
+                <input type="number" value={goodInitiations} onChange={e => setGoodInitiations(e.target.value)} placeholder={t('postGame.goodInitiationsPlaceholder')} className={inputCls} />
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-[var(--text-muted)]">Draft 评分（1-5）</label>
+                <label className="block text-xs font-medium text-[var(--text-muted)]">{t('postGame.draftScoreLabel')}</label>
                 <div className="flex gap-1">
                   {([1, 2, 3, 4, 5] as const).map(n => (
                     <button
@@ -748,24 +770,24 @@ export default function PostGame() {
 
             {/* Match ID */}
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-[var(--text-muted)]">Match ID</label>
+              <label className="block text-xs font-medium text-[var(--text-muted)]">{t('postGame.matchIdLabel')}</label>
               <input
                 type="text"
                 inputMode="numeric"
                 value={matchId}
                 onChange={e => handleMatchIdChange(e.target.value)}
-                placeholder="可手动填写或从 OpenDota 导入"
+                placeholder={t('postGame.matchIdPlaceholder')}
                 className={inputCls}
               />
             </div>
 
             {/* 备注 */}
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-[var(--text-muted)]">备注</label>
+              <label className="block text-xs font-medium text-[var(--text-muted)]">{t('postGame.notesLabel')}</label>
               <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
-                placeholder="自由文本备注…"
+                placeholder={t('postGame.notesPlaceholder')}
                 rows={2}
                 className={`${inputCls} resize-none`}
               />
@@ -779,10 +801,10 @@ export default function PostGame() {
         <button
           type="button"
           onClick={handleSave}
-          disabled={!canSave || saving}
+          disabled={!canSave || saving || srsPromptNotes.length > 0}
           className="w-full py-3 rounded-xl font-semibold text-sm bg-[var(--accent)] text-[var(--text-primary)] hover:bg-[var(--accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
-          {saving ? '保存中…' : '保存对局记录'}
+          {saving ? t('postGame.saving') : t('postGame.saveButton')}
         </button>
       </div>
     </div>
