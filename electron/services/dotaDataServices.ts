@@ -177,6 +177,59 @@ const KEY_ITEM_LABELS: Record<string, string> = {
   aghanims_shard: '阿哈利姆魔晶',
 }
 
+// Stratz 的 itemPurchases 只给数字 itemId，不像 OpenDota 那样给字符串 key；已用 OpenDota 公开、
+// 免鉴权的 /constants/items 接口核对过，数字 item id 是 Valve 的通用编号，OpenDota/Stratz 通用
+// （比如 137 号在两边都是辉耀，用真实对局数据核对过购买时间点对得上）。
+const KEY_ITEM_LABELS_BY_ID: Record<number, string> = {
+  1: '闪烁匕首',
+  116: '黑皇杖',
+  127: '刃甲',
+  125: '先锋盾',
+  242: '赤红甲',
+  90: '洞察烟斗',
+  226: '清莲宝珠',
+  119: '希瓦的守护',
+  112: '强袭胸甲',
+  137: '辉耀',
+  114: '恐鳌之心',
+  110: '刷新球',
+  96: '邪恶镰刀',
+  98: '紫怨',
+  250: '血棘',
+  229: '炎阳纹章',
+  210: '天堂之戟',
+  151: '莫尔迪基安的臂章',
+  164: '支配头盔',
+  635: '统御头盔',
+  939: '鱼叉',
+  252: '回音战刃',
+  168: '黯灭',
+  147: '幻影斧',
+  174: '净魂之刃',
+  692: '永恒之盘',
+  256: '永恒之盘',
+  231: '卫士胫甲',
+  79: '梅肯斯姆',
+  131: '挑战头巾',
+  598: '法师克星',
+  273: '散慧对剑',
+  154: '散夜对剑',
+  108: '阿哈利姆神杖',
+  609: '阿哈利姆魔晶',
+}
+
+function getFirstKeyItemFromStratzPurchases(purchases?: Array<{ time: number; itemId: number }>): { minute: number; name: string } | null {
+  const match = [...(purchases ?? [])]
+    .filter(item => item.time > 0 && KEY_ITEM_LABELS_BY_ID[item.itemId])
+    .sort((a, b) => a.time - b.time)[0]
+
+  if (!match) return null
+  return {
+    minute: Math.max(1, Math.ceil(match.time / 60)),
+    name: KEY_ITEM_LABELS_BY_ID[match.itemId],
+  }
+}
+
 function getFirstKeyItem(purchaseLog?: OpenDotaPurchaseLogItem[]): { minute: number; name: string } | null {
   const match = [...(purchaseLog ?? [])]
     .filter(item => item.key && item.time !== undefined && item.time > 0 && KEY_ITEM_LABELS[item.key])
@@ -545,7 +598,10 @@ async function fetchOpenDotaImportedMatch(matchId: string, accountId: string, ti
   }
 }
 
-async function autoImportLatestOpenDotaMatch(existingMatchIds: string[] = []): Promise<OpenDotaImportedMatch> {
+// 发现"最近有哪些新比赛"始终走 OpenDota 的 recentMatches（不需要额外接一个 Stratz 版本）；
+// 只有"拉某一场比赛详情"这一步在配置了 Stratz Key 时优先走 Stratz，跟 matchup/timing/位置
+// 热门那几个同步功能的"有 Key 优先 Stratz"规则保持一致。
+async function autoImportLatestOpenDotaMatch(existingMatchIds: string[] = [], stratzApiKey?: string): Promise<OpenDotaImportedMatch> {
   const accountId = getOpenDotaAccountId()
   const known = getKnownMatchIdSet(existingMatchIds)
   const recent = await fetchOpenDotaJson<OpenDotaRecentMatchResponseItem[]>(`/players/${accountId}/recentMatches`, 15_000)
@@ -562,6 +618,7 @@ async function autoImportLatestOpenDotaMatch(existingMatchIds: string[] = []): P
   let lastError: Error | null = null
   for (const matchId of candidates.slice(0, 5)) {
     try {
+      if (stratzApiKey) return await fetchStratzImportedMatch(matchId, accountId, stratzApiKey)
       return await fetchOpenDotaImportedMatch(matchId, accountId, 20_000)
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))
@@ -974,6 +1031,205 @@ async function fetchStratzGraphQL<T>(apiKey: string, query: string, variables: R
   }
 }
 
+interface StratzMatchPlayer {
+  steamAccountId?: number
+  heroId?: number
+  isRadiant?: boolean
+  isVictory?: boolean
+  kills?: number
+  deaths?: number
+  assists?: number
+  numLastHits?: number
+  numDenies?: number
+  goldPerMinute?: number
+  experiencePerMinute?: number
+  level?: number
+  heroDamage?: number
+  lane?: 'ROAMING' | 'SAFE_LANE' | 'MID_LANE' | 'OFF_LANE' | 'JUNGLE' | 'UNKNOWN'
+  position?: string
+  stats?: {
+    lastHitsPerMinute?: number[]
+    deniesPerMinute?: number[]
+    goldPerMinute?: number[]
+    itemPurchases?: Array<{ time: number; itemId: number }>
+  }
+}
+
+interface StratzMatchData {
+  match?: {
+    id: number
+    durationSeconds?: number
+    startDateTime?: number
+    isStats?: boolean
+    bottomLaneOutcome?: 'TIE' | 'RADIANT_VICTORY' | 'RADIANT_STOMP' | 'DIRE_VICTORY' | 'DIRE_STOMP'
+    midLaneOutcome?: 'TIE' | 'RADIANT_VICTORY' | 'RADIANT_STOMP' | 'DIRE_VICTORY' | 'DIRE_STOMP'
+    topLaneOutcome?: 'TIE' | 'RADIANT_VICTORY' | 'RADIANT_STOMP' | 'DIRE_VICTORY' | 'DIRE_STOMP'
+    players?: StratzMatchPlayer[]
+  }
+}
+
+const STRATZ_MATCH_QUERY = `
+  query ($id: Long!) {
+    match(id: $id) {
+      id
+      durationSeconds
+      startDateTime
+      isStats
+      bottomLaneOutcome
+      midLaneOutcome
+      topLaneOutcome
+      players {
+        steamAccountId
+        heroId
+        isRadiant
+        isVictory
+        kills
+        deaths
+        assists
+        numLastHits
+        numDenies
+        goldPerMinute
+        experiencePerMinute
+        level
+        heroDamage
+        lane
+        position
+        stats {
+          lastHitsPerMinute
+          deniesPerMinute
+          goldPerMinute
+          itemPurchases { time itemId }
+        }
+      }
+    }
+  }
+`
+
+// Stratz 的逐分钟数组是"这一分钟里发生了多少"（离散分桶），跟 OpenDota lh_t/dn_t/gold_t
+// 那种"到这一分钟为止的累计值"完全不同口径——已用真实对局数据核对过：把 lastHitsPerMinute
+// 前 10 项加起来算出的 csAt10，跟同一场比赛 OpenDota 独立算出的 csAt10 完全一致。
+function sumStratzMinutes(values: number[] | undefined, endMinuteExclusive: number): number | undefined {
+  if (!values?.length) return undefined
+  const end = Math.min(endMinuteExclusive, values.length)
+  let total = 0
+  for (let i = 0; i < end; i += 1) total += values[i] ?? 0
+  return total
+}
+
+function computeStratzPhaseGpm(goldPerMinute: number[] | undefined, durationMin: number): { laningGpm?: number; midGpm?: number; lateGpm?: number } {
+  if (!goldPerMinute?.length) return {}
+  const laningEnd = Math.min(10, durationMin)
+  const midEnd = Math.min(25, durationMin)
+  const laningSum = sumStratzMinutes(goldPerMinute, laningEnd)
+  const midSum = midEnd > laningEnd ? sumStratzMinutes(goldPerMinute, midEnd) : undefined
+  const lateSum = durationMin > midEnd ? sumStratzMinutes(goldPerMinute, durationMin) : undefined
+  return {
+    laningGpm: laningEnd > 0 && laningSum !== undefined ? laningSum / laningEnd : undefined,
+    midGpm: midEnd > laningEnd && midSum !== undefined && laningSum !== undefined ? (midSum - laningSum) / (midEnd - laningEnd) : undefined,
+    lateGpm: durationMin > midEnd && lateSum !== undefined && midSum !== undefined ? (lateSum - midSum) / (durationMin - midEnd) : undefined,
+  }
+}
+
+// Stratz 直接给三路对线结果（TIE/RADIANT_VICTORY/RADIANT_STOMP/DIRE_VICTORY/DIRE_STOMP），
+// 不需要像 OpenDota 那样靠 lane_efficiency 差值猜——用玩家的 lane（角色：安全/中路/劣势）
+// 加上边路（天辉/夜魇）换算出该看哪一路的结果，再按己方/对方视角映射成 dominated/even/lost。
+function mapStratzLaneResult(player: StratzMatchPlayer, match: NonNullable<StratzMatchData['match']>): 'dominated' | 'even' | 'lost' | undefined {
+  if (player.isRadiant === undefined || !player.lane) return undefined
+
+  let outcome: typeof match.bottomLaneOutcome
+  if (player.lane === 'MID_LANE') {
+    outcome = match.midLaneOutcome
+  } else if (player.lane === 'SAFE_LANE') {
+    outcome = player.isRadiant ? match.bottomLaneOutcome : match.topLaneOutcome
+  } else if (player.lane === 'OFF_LANE') {
+    outcome = player.isRadiant ? match.topLaneOutcome : match.bottomLaneOutcome
+  } else {
+    return undefined
+  }
+  if (!outcome) return undefined
+
+  if (outcome === 'TIE') return 'even'
+  const wonByRadiant = outcome === 'RADIANT_VICTORY' || outcome === 'RADIANT_STOMP'
+  return wonByRadiant === player.isRadiant ? 'dominated' : 'lost'
+}
+
+async function fetchStratzImportedMatch(matchId: string, accountId: string, apiKey: string): Promise<OpenDotaImportedMatch> {
+  const data = await fetchStratzGraphQL<StratzMatchData>(apiKey, STRATZ_MATCH_QUERY, { id: Number(matchId) })
+  const match = data.match
+  if (!match) {
+    throw createOpenDotaError('MATCH_NOT_FOUND', 'Stratz 没有找到这场比赛，或比赛还没有解析。可以先请求解析，几分钟后重试。')
+  }
+  if (!match.isStats || !match.players?.length) {
+    throw createOpenDotaError('PARSE_PENDING', 'Stratz 还没有这场比赛的详细数据，可以先请求解析，几分钟后重试。')
+  }
+  const player = match.players.find(p => String(p.steamAccountId) === accountId)
+  if (!player) {
+    throw createOpenDotaError('ACCOUNT_MISMATCH', '这场比赛里没有找到设置中的 Account ID。')
+  }
+  if (!player.heroId) {
+    throw createOpenDotaError('PARSE_PENDING', 'Stratz 返回的数据缺少英雄信息。')
+  }
+
+  const durationSeconds = match.durationSeconds ?? 0
+  const durationMin = Math.max(1, Math.round(durationSeconds / 60))
+  const firstKeyItem = getFirstKeyItemFromStratzPurchases(player.stats?.itemPurchases)
+  const isRadiant = player.isRadiant
+  const enemyPlayers = (match.players ?? []).filter(p => p.isRadiant === (isRadiant === undefined ? undefined : !isRadiant))
+  const enemyHeroIds = enemyPlayers
+    .map(p => p.heroId)
+    .filter((id): id is number => Number.isFinite(id) && Boolean(id))
+    .filter((id, index, array) => array.indexOf(id) === index)
+  const enemyHeroes = enemyHeroIds
+    .map(id => openDotaHeroNameById.get(id))
+    .filter((name): name is string => Boolean(name))
+
+  const imported: OpenDotaImportedMatch = {
+    matchId,
+    timestamp: match.startDateTime ? match.startDateTime * 1000 : Date.now(),
+    durationMin,
+    result: player.isVictory ? 'win' : 'loss',
+    heroId: player.heroId,
+    kills: player.kills,
+    deaths: player.deaths,
+    assists: player.assists,
+    lastHits: player.numLastHits,
+    denies: player.numDenies,
+    csAt10: sumStratzMinutes(player.stats?.lastHitsPerMinute, 10),
+    dnAt10: sumStratzMinutes(player.stats?.deniesPerMinute, 10),
+    firstKeyItemMin: firstKeyItem?.minute,
+    firstKeyItemName: firstKeyItem?.name,
+    gpm: player.goldPerMinute,
+    xpm: player.experiencePerMinute,
+    level: player.level,
+    laneResult: mapStratzLaneResult(player, match),
+    isRadiant: player.isRadiant,
+    enemyHeroes,
+    enemyHeroIds,
+    source: 'stratz',
+    ...computeStratzPhaseGpm(player.stats?.goldPerMinute, durationMin),
+  }
+  return await enrichImportedMatchWithBenchmarks(imported, { gold_per_min: player.goldPerMinute, xp_per_min: player.experiencePerMinute, last_hits: player.numLastHits, hero_damage: player.heroDamage } as OpenDotaPlayer)
+}
+
+// Stratz 有自己独立的比赛下载/解析流水线，不依赖 OpenDota 的 /request 接口——已用 Stratz
+// GraphQL schema introspection 核实过存在 retryMatchDownload(matchId) 这个 mutation
+// （返回 Boolean，没有官方文档描述，但字段名和参数明确对应"重新触发这场比赛的下载"）。
+const STRATZ_RETRY_DOWNLOAD_MUTATION = `
+  mutation ($id: Long!) {
+    retryMatchDownload(matchId: $id)
+  }
+`
+
+async function requestStratzMatchDownload(matchId: string, apiKey: string): Promise<OpenDotaParseRequestResult> {
+  const data = await fetchStratzGraphQL<{ retryMatchDownload?: boolean }>(apiKey, STRATZ_RETRY_DOWNLOAD_MUTATION, { id: Number(matchId) })
+  return {
+    matchId,
+    message: data.retryMatchDownload
+      ? '已通过 Stratz 提交解析请求。请等待几分钟后重新导入。'
+      : 'Stratz 解析请求未被接受，这场比赛可能已经解析过，或暂时无法处理。',
+  }
+}
+
 async function syncStratzHeroMatchups(apiKey: string, rankBracket: StratzRankBracket, force = false): Promise<HeroMatchupSyncResult> {
   const currentRaw = store.get('heroMatchupCache', null)
   const current = currentRaw ? parseHeroMatchupCache(currentRaw) as HeroMatchupCache : null
@@ -1309,9 +1565,11 @@ export function createDotaDataServices() {
     normalizeMatchId,
     getOpenDotaAccountId,
     fetchOpenDotaImportedMatch,
+    fetchStratzImportedMatch,
     autoImportLatestOpenDotaMatch,
     listRecentOpenDotaMatches,
     requestOpenDotaParse,
+    requestStratzMatchDownload,
     syncHeroTimings,
     syncStratzHeroTimings,
     getHeroTimingSyncProgress,

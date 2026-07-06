@@ -3,6 +3,7 @@ import { useT } from '../../i18n/index.ts'
 import type { OpenDotaImportedMatch, OpenDotaRecentMatch } from '../../types'
 
 interface OpenDotaImportPanelProps {
+  dataSourceLabel: string
   matchId: string
   importedMatch: OpenDotaImportedMatch | null
   recentMatches: OpenDotaRecentMatch[]
@@ -22,6 +23,7 @@ interface OpenDotaImportPanelProps {
 }
 
 export default function OpenDotaImportPanel({
+  dataSourceLabel,
   matchId,
   importedMatch,
   recentMatches,
@@ -44,7 +46,7 @@ export default function OpenDotaImportPanel({
     <div className="space-y-2 p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-1)]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">OpenDota</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">{dataSourceLabel}</h2>
           <p className="text-xs text-[var(--text-muted)] mt-1">进入页面会尝试同步最近一局；也可手动输入 Match ID</p>
         </div>
         {importedMatch && (
@@ -148,7 +150,7 @@ export default function OpenDotaImportPanel({
               对线 <span className="text-[var(--text-primary)]">
                 {importedMatch.laneResult
                   ? `${importedMatch.laneResult === 'dominated' ? '压制' : importedMatch.laneResult === 'even' ? '持平' : '被压'}${importedMatch.laneEfficiency !== undefined ? ` · 效率 ${Math.round(importedMatch.laneEfficiency)}%` : ''}${importedMatch.laneKills !== undefined ? ` · 对线单位击杀 ${importedMatch.laneKills}` : ''}`
-                  : 'OpenDota 未返回对线明细'}
+                  : `${dataSourceLabel} 未返回对线明细`}
               </span>
             </div>
             <div className="px-2 py-1.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)] col-span-3">

@@ -73,7 +73,7 @@ export function buildPostGameMatchLog(input: PostGameMatchLogInput): MatchLog {
     ...(enemyHeroIds?.length && { enemyHeroIds }),
     ...(cleanMatchId && { matchId: cleanMatchId }),
     ...(imported && {
-      source: 'opendota' as const,
+      source: imported.source ?? 'opendota',
       heroId: imported.heroId,
       kills: imported.kills,
       deaths: imported.deaths,

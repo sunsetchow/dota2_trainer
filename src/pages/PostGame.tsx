@@ -513,6 +513,7 @@ export default function PostGame() {
       </div>
 
       <OpenDotaImportPanel
+        dataSourceLabel={appState?.stratz?.apiKey?.trim() ? 'Stratz' : 'OpenDota'}
         matchId={matchId}
         importedMatch={importedMatch}
         recentMatches={recentMatches}

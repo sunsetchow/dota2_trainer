@@ -22,9 +22,11 @@ export interface OpenDotaIpcServices {
   normalizeMatchId: (matchIdInput: string) => string
   getOpenDotaAccountId: () => string
   fetchOpenDotaImportedMatch: (matchId: string, accountId: string, timeoutMs?: number) => Promise<OpenDotaImportedMatch>
-  autoImportLatestOpenDotaMatch: (existingMatchIds?: string[]) => Promise<OpenDotaImportedMatch>
+  fetchStratzImportedMatch: (matchId: string, accountId: string, apiKey: string) => Promise<OpenDotaImportedMatch>
+  autoImportLatestOpenDotaMatch: (existingMatchIds?: string[], stratzApiKey?: string) => Promise<OpenDotaImportedMatch>
   listRecentOpenDotaMatches: (existingMatchIds?: string[]) => Promise<OpenDotaRecentMatch[]>
   requestOpenDotaParse: (matchId: string, timeoutMs?: number) => Promise<OpenDotaParseRequestResult>
+  requestStratzMatchDownload: (matchId: string, apiKey: string) => Promise<OpenDotaParseRequestResult>
   syncOpenDotaHeroMatchups: (force?: boolean) => Promise<HeroMatchupSyncResult>
   syncStratzHeroMatchups: (apiKey: string, rankBracket: StratzRankBracket, force?: boolean) => Promise<HeroMatchupSyncResult>
   syncHeroTimings: (force?: boolean) => Promise<HeroTimingSyncResult>
@@ -37,11 +39,17 @@ export interface OpenDotaIpcServices {
 export function registerOpenDotaIpcHandlers(store: ElectronStoreLike, services: OpenDotaIpcServices) {
   ipcMain.handle('opendota:importMatch', async (_, matchIdInput: string): Promise<OpenDotaImportedMatch> => {
     const matchId = services.normalizeMatchId(matchIdInput)
-    return services.fetchOpenDotaImportedMatch(matchId, services.getOpenDotaAccountId())
+    const accountId = services.getOpenDotaAccountId()
+    const appState = store.get('appState') as AppState
+    const stratzApiKey = appState.stratz?.apiKey?.trim()
+    if (stratzApiKey) return services.fetchStratzImportedMatch(matchId, accountId, stratzApiKey)
+    return services.fetchOpenDotaImportedMatch(matchId, accountId)
   })
 
   ipcMain.handle('opendota:autoImportLatestMatch', async (_, existingMatchIds?: string[]): Promise<OpenDotaImportedMatch> => {
-    return services.autoImportLatestOpenDotaMatch(Array.isArray(existingMatchIds) ? existingMatchIds : [])
+    const appState = store.get('appState') as AppState
+    const stratzApiKey = appState.stratz?.apiKey?.trim()
+    return services.autoImportLatestOpenDotaMatch(Array.isArray(existingMatchIds) ? existingMatchIds : [], stratzApiKey)
   })
 
   ipcMain.handle('opendota:getRecentMatches', async (_, existingMatchIds?: string[]): Promise<OpenDotaRecentMatch[]> => {
@@ -50,6 +58,9 @@ export function registerOpenDotaIpcHandlers(store: ElectronStoreLike, services: 
 
   ipcMain.handle('opendota:requestParse', async (_, matchIdInput: string): Promise<OpenDotaParseRequestResult> => {
     const matchId = services.normalizeMatchId(matchIdInput)
+    const appState = store.get('appState') as AppState
+    const stratzApiKey = appState.stratz?.apiKey?.trim()
+    if (stratzApiKey) return services.requestStratzMatchDownload(matchId, stratzApiKey)
     return services.requestOpenDotaParse(matchId)
   })
 

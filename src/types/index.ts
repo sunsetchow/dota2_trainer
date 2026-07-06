@@ -152,7 +152,7 @@ export interface MatchLog {
   enemyHeroes?: string[];
   enemyHeroIds?: number[];
   matchId?: string;
-  source?: 'manual' | 'opendota';
+  source?: 'manual' | 'opendota' | 'stratz';
   heroId?: number;
   kills?: number;
   deaths?: number;
@@ -262,6 +262,7 @@ export interface OpenDotaImportedMatch {
   laningGpm?: number;
   midGpm?: number;
   lateGpm?: number;
+  source?: 'opendota' | 'stratz';
 }
 
 export type OpenDotaErrorCode =
