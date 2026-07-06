@@ -375,7 +375,7 @@ const zh = {
   },
   compositionTimeline: {
     title: '我的英雄 vs 敌方已知阵容时间线',
-    rowSummary: '我的英雄 {mine}% · 敌方均值 {enemy}%',
+    rowSummary: '我的英雄 {mine} · 敌方均值 {enemy}',
     strongerMine: '你的英雄{label}比敌方已知阵容高 {diff}，可以把这个时间段当成主要行动窗口。',
     strongerEnemy: '敌方{label}更强（{diff}），这个阶段优先稳线、换资源，避免无目标团。',
     balanced: '双方时间线接近，优先看 matchup、熟练度和关键装。',

@@ -377,7 +377,7 @@ const en: Dictionary = {
   },
   compositionTimeline: {
     title: 'My hero vs known enemy lineup timeline',
-    rowSummary: 'My hero {mine}% · Enemy avg {enemy}%',
+    rowSummary: 'My hero {mine} · Enemy avg {enemy}',
     strongerMine: 'Your hero is {diff} stronger in the {label} phase than the known enemy lineup — treat this window as your main action window.',
     strongerEnemy: 'The enemy is stronger in the {label} phase ({diff}) — prioritize holding the lane and trading resources, and avoid fighting without a clear objective.',
     balanced: 'Both timelines are close — prioritize matchups, proficiency, and key items instead.',
