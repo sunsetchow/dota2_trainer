@@ -2,7 +2,8 @@ import type { TrainingDimension } from '../types'
 import zh from '../i18n/zh.ts'
 import en from '../i18n/en.ts'
 
-const REVIEW_DIMENSION_LABELS = { zh: zh.reviewDimensions, en: en.reviewDimensions }
+const REVIEW_DIMENSION_DICTS = { zh: zh.reviewDimensions, en: en.reviewDimensions }
+const DIMENSION_IDS: TrainingDimension[] = ['ops', 'pregame', 'economy', 'combat', 'objective']
 
 export interface ReviewDimensionOption {
   id: TrainingDimension;
@@ -11,40 +12,15 @@ export interface ReviewDimensionOption {
   topics: string[];
 }
 
-export const REVIEW_DIMENSIONS: ReviewDimensionOption[] = [
-  {
-    id: 'ops',
-    label: '操作基础',
-    description: '能不能稳定执行',
-    topics: ['补刀 / Deny', '技能连招', '走位 / Attack-move', '快捷键与操作习惯'],
-  },
-  {
-    id: 'pregame',
-    label: '局外判断',
-    description: '上场前是否想清楚',
-    topics: ['英雄克制关系', '阵容构成判断', '本英雄强弱势期', '己方胜利条件与优先任务'],
-  },
-  {
-    id: 'economy',
-    label: '局内经济线',
-    description: '钱从哪里来',
-    topics: ['补刀与对线管理', '刷钱路线规划', '中立资源时机', '安全区 / 争夺区 / 危险区'],
-  },
-  {
-    id: 'combat',
-    label: '局内战斗',
-    description: '什么时候打、怎么打',
-    topics: ['参团 vs 继续发育', '装备选择', '先手 / 切入时机与站位', '地图意识与视野支撑'],
-  },
-  {
-    id: 'objective',
-    label: '局内目标',
-    description: '打完之后做什么',
-    topics: ['推进时机选择', '大地图目标优先级', '建筑 / 肉山 / 装备交换', '兵线处理后再行动'],
-  },
-]
+// 中文版本作为默认/legacy 调用点的 fallback；需要英文版就用 getReviewDimensions('en')。
+export const REVIEW_DIMENSIONS: ReviewDimensionOption[] = getReviewDimensions('zh')
+
+export function getReviewDimensions(language: 'zh' | 'en' = 'zh'): ReviewDimensionOption[] {
+  const dict = REVIEW_DIMENSION_DICTS[language]
+  return DIMENSION_IDS.map(id => ({ id, ...dict[id] }))
+}
 
 export function getReviewDimensionLabel(id?: TrainingDimension, language: 'zh' | 'en' = 'zh'): string | undefined {
   if (!id) return undefined
-  return REVIEW_DIMENSION_LABELS[language][id]
+  return REVIEW_DIMENSION_DICTS[language][id].label
 }

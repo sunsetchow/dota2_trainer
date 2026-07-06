@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useT } from '../i18n/index.ts'
 
 interface QuickSelectProps {
   label: string
@@ -14,10 +15,12 @@ export default function QuickSelect({
   options,
   value,
   onChange,
-  placeholder = '或自定义输入…',
+  placeholder,
   allowCustom = true,
 }: QuickSelectProps) {
+  const t = useT()
   const [customMode, setCustomMode] = useState(false)
+  const resolvedPlaceholder = placeholder ?? t('quickSelect.customPlaceholder')
 
   return (
     <div className="space-y-2">
@@ -47,7 +50,7 @@ export default function QuickSelect({
                 : 'border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-muted)] hover:border-[var(--accent-border)]'
             }`}
           >
-            自定义
+            {t('quickSelect.custom')}
           </button>
         )}
       </div>
@@ -57,7 +60,7 @@ export default function QuickSelect({
           type="text"
           value={options.includes(value) ? '' : value}
           onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent-border)]"
         />
       )}

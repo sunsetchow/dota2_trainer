@@ -45,13 +45,18 @@ export function useSetLanguage(): (language: Language) => Promise<void> {
   return useContext(LanguageContext).setLanguage
 }
 
-export function useT() {
-  const language = useLanguage()
+export type Translate = (path: string, vars?: Record<string, string | number>) => string
+
+// 纯函数版本，给非组件代码（工具函数、单测）用，不依赖 React context。
+export function createTranslator(language: Language): Translate {
   const dict = dictionaries[language]
-  return useMemo(() => {
-    return function t(path: string, vars?: Record<string, string | number>): string {
-      const value = path.split('.').reduce<unknown>((obj, key) => (obj as Record<string, unknown> | undefined)?.[key], dict)
-      return typeof value === 'string' ? format(value, vars) : path
-    }
-  }, [dict])
+  return function t(path: string, vars?: Record<string, string | number>): string {
+    const value = path.split('.').reduce<unknown>((obj, key) => (obj as Record<string, unknown> | undefined)?.[key], dict)
+    return typeof value === 'string' ? format(value, vars) : path
+  }
+}
+
+export function useT(): Translate {
+  const language = useLanguage()
+  return useMemo(() => createTranslator(language), [language])
 }

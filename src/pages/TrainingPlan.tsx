@@ -2,28 +2,15 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppState, useCycles, useDailyCheckins } from '../store/useStore.ts'
 import { calcLongestStreak, calcStreak, dateKeyFromDate, getCurrentWeek, todayStr } from '../utils/cycle.ts'
+import { useLanguage, useT } from '../i18n/index.ts'
 import checklistData from '../data/checklist.json'
 import type { ChecklistItem } from '../types'
 
 const CHECKLIST_ITEMS = checklistData as ChecklistItem[]
 const checklistById = new Map(CHECKLIST_ITEMS.map(item => [item.id, item]))
 
-const dimensionLabels: Record<string, string> = {
-  ops: '操作',
-  pregame: '局外',
-  economy: '经济',
-  combat: '战斗',
-  objective: '目标',
-  discipline: '纪律',
-  review: '复盘',
-}
-
 function getDateStr(date: Date): string {
   return dateKeyFromDate(date)
-}
-
-function weekLabel(week: number): string {
-  return week === 0 ? '基线周' : `第 ${week} 周`
 }
 
 export default function TrainingPlan() {
@@ -31,6 +18,29 @@ export default function TrainingPlan() {
   const { appState } = useAppState()
   const { cycles } = useCycles()
   const { checkins } = useDailyCheckins()
+  const t = useT()
+  const language = useLanguage()
+
+  const getChecklistLabel = (item: ChecklistItem) => t(`checklist.${item.id}`) !== `checklist.${item.id}` ? t(`checklist.${item.id}`) : item.label
+  const dimensionLabels: Record<string, string> = {
+    ops: t('trainingPlan.dimOps'),
+    pregame: t('trainingPlan.dimPregame'),
+    economy: t('trainingPlan.dimEconomy'),
+    combat: t('trainingPlan.dimCombat'),
+    objective: t('trainingPlan.dimObjective'),
+    discipline: t('trainingPlan.dimDiscipline'),
+    review: t('trainingPlan.dimReview'),
+  }
+  const weekdayLabels = [
+    t('trainingPlan.weekdayMon'),
+    t('trainingPlan.weekdayTue'),
+    t('trainingPlan.weekdayWed'),
+    t('trainingPlan.weekdayThu'),
+    t('trainingPlan.weekdayFri'),
+    t('trainingPlan.weekdaySat'),
+    t('trainingPlan.weekdaySun'),
+  ]
+  const weekLabel = (week: number) => week === 0 ? t('trainingPlan.weekBaseline') : t('trainingPlan.weekN', { week })
 
   const activeCycle = cycles.find(c => c.cycleId === appState?.activeCycleId)
   const currentWeek = activeCycle ? getCurrentWeek(activeCycle) : 0
@@ -44,7 +54,7 @@ export default function TrainingPlan() {
   if (!activeCycle) {
     return (
       <div className="p-6 text-center text-[var(--text-muted)]">
-        <p>加载中...</p>
+        <p>{t('trainingPlan.loading')}</p>
       </div>
     )
   }
@@ -70,48 +80,48 @@ export default function TrainingPlan() {
     <div className="p-6 space-y-6 max-w-2xl mx-auto">
       <div>
         <button type="button" onClick={() => navigate('/')} className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] mb-3">
-          ← 返回
+          {t('trainingPlan.back')}
         </button>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold text-[var(--text-primary)]">8 周训练计划</h1>
-            <p className="text-sm text-[var(--text-muted)]">起始日：{activeCycle.startDate}</p>
+            <h1 className="text-xl font-bold text-[var(--text-primary)]">{t('trainingPlan.title')}</h1>
+            <p className="text-sm text-[var(--text-muted)]">{t('trainingPlan.startDate', { date: activeCycle.startDate })}</p>
           </div>
           <button
             type="button"
             onClick={() => navigate('/')}
             className="px-3 py-1.5 rounded-lg bg-[var(--accent)] text-[var(--text-primary)] text-sm font-semibold hover:bg-[var(--accent-strong)] transition-colors"
           >
-            今日打卡
+            {t('trainingPlan.checkinToday')}
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
         <div className="px-3 py-2 rounded-lg bg-[var(--surface-1)] border border-[var(--border)]">
-          <div className="text-xs text-[var(--text-muted)]">当前周</div>
+          <div className="text-xs text-[var(--text-muted)]">{t('trainingPlan.currentWeekLabel')}</div>
           <div className="mt-1 text-lg font-semibold text-[var(--text-primary)]">{weekLabel(currentWeek)}</div>
         </div>
         <div className="px-3 py-2 rounded-lg bg-[var(--surface-1)] border border-[var(--border)]">
-          <div className="text-xs text-[var(--text-muted)]">连训</div>
-          <div className="mt-1 text-lg font-semibold text-[var(--text-primary)]">{streak} 天</div>
+          <div className="text-xs text-[var(--text-muted)]">{t('trainingPlan.streakLabel')}</div>
+          <div className="mt-1 text-lg font-semibold text-[var(--text-primary)]">{t('trainingPlan.days', { n: streak })}</div>
         </div>
         <div className="px-3 py-2 rounded-lg bg-[var(--surface-1)] border border-[var(--border)]">
-          <div className="text-xs text-[var(--text-muted)]">最长</div>
-          <div className="mt-1 text-lg font-semibold text-[var(--text-primary)]">{longestStreak} 天</div>
+          <div className="text-xs text-[var(--text-muted)]">{t('trainingPlan.longestLabel')}</div>
+          <div className="mt-1 text-lg font-semibold text-[var(--text-primary)]">{t('trainingPlan.days', { n: longestStreak })}</div>
         </div>
       </div>
 
       {currentTheme && (
         <section className="space-y-3">
           <div>
-            <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">当周重点</h2>
+            <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">{t('trainingPlan.weekFocus')}</h2>
             <p className="text-sm text-[var(--text-muted)] mt-1">{currentTheme.theme}</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {currentItems.map(item => (
               <div key={item.id} className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)]">
-                <div className="text-sm text-[var(--text-primary)]">{item.label}</div>
+                <div className="text-sm text-[var(--text-primary)]">{getChecklistLabel(item)}</div>
                 <div className="mt-1 text-xs text-[var(--text-muted)]">
                   {dimensionLabels[item.dimension] ?? item.dimension} · {item.sessionTypes.join(' / ')}
                 </div>
@@ -122,7 +132,7 @@ export default function TrainingPlan() {
       )}
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">打卡日历</h2>
+        <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">{t('trainingPlan.calendarTitle')}</h2>
         {calendarWeeks.map(wt => {
           const isCurrentWeek = wt.week === currentWeek
           const isPast = wt.week < currentWeek
@@ -146,7 +156,7 @@ export default function TrainingPlan() {
                   </span>
                   <span className="text-sm text-[var(--text-secondary)] truncate">{wt.theme}</span>
                 </div>
-                {wt.hasCheckin && <span className="text-xs text-green-400 shrink-0">有打卡</span>}
+                {wt.hasCheckin && <span className="text-xs text-green-400 shrink-0">{t('trainingPlan.hasCheckin')}</span>}
               </div>
               <div className="flex gap-1">
                 {wt.days.map((day, i) => {
@@ -169,9 +179,9 @@ export default function TrainingPlan() {
                               ? 'bg-[var(--surface-2)] text-[var(--text-muted)]'
                               : 'bg-red-500/10 text-red-300/50'
                       }`}
-                      title={isFrozen ? `${dateStr} · streak freeze 覆盖` : dateStr}
+                      title={isFrozen ? t('trainingPlan.freezeTooltip', { date: dateStr }) : dateStr}
                     >
-                      {['一', '二', '三', '四', '五', '六', '日'][i]}
+                      {weekdayLabels[i]}
                     </div>
                   )
                 })}
