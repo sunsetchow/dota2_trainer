@@ -501,14 +501,14 @@ export default function DraftAssistant() {
       )}
 
       <section className="grid items-start gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-3">
+        <div className="space-y-3 lg:h-[calc(100vh-220px)] lg:overflow-hidden lg:flex lg:flex-col">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-semibold text-[var(--text-primary)]">推荐列表</h2>
               <p className="mt-1 text-sm text-[var(--text-muted)]">当前只推荐可出 {POSITION_LABELS[targetPosition]} 的英雄，并排除对方已选英雄；再综合已知对手、未知位置热门预期和自身熟练度排序。</p>
             </div>
           </div>
-          <div className="grid gap-3">
+          <div className="grid gap-3 lg:overflow-y-auto lg:pr-1">
             {ranked.map((item, index) => (
               <DraftHeroCard
                 key={item.hero}
@@ -524,7 +524,7 @@ export default function DraftAssistant() {
           </div>
         </div>
 
-        <div className="lg:sticky lg:top-6 lg:self-start">
+        <div className="lg:h-[calc(100vh-220px)] lg:overflow-y-auto lg:pr-1">
           {selected ? (
             <Card tone="raised" className="p-5 md:p-6">
               <div className="flex items-start justify-between gap-3">
