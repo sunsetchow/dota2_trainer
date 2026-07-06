@@ -1,4 +1,8 @@
 import type { TrainingDimension } from '../types'
+import zh from '../i18n/zh.ts'
+import en from '../i18n/en.ts'
+
+const REVIEW_DIMENSION_LABELS = { zh: zh.reviewDimensions, en: en.reviewDimensions }
 
 export interface ReviewDimensionOption {
   id: TrainingDimension;
@@ -40,6 +44,7 @@ export const REVIEW_DIMENSIONS: ReviewDimensionOption[] = [
   },
 ]
 
-export function getReviewDimensionLabel(id?: TrainingDimension): string | undefined {
-  return REVIEW_DIMENSIONS.find(item => item.id === id)?.label
+export function getReviewDimensionLabel(id?: TrainingDimension, language: 'zh' | 'en' = 'zh'): string | undefined {
+  if (!id) return undefined
+  return REVIEW_DIMENSION_LABELS[language][id]
 }

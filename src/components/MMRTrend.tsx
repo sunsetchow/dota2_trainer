@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react'
 import type { MMRLog } from '../types'
+import { useT } from '../i18n/index.ts'
 import Card from './ui/Card.tsx'
 import Badge from './ui/Badge.tsx'
 
@@ -28,11 +29,11 @@ function deltaText(delta: number): string {
   return `${delta > 0 ? '+' : ''}${delta}`
 }
 
-function Sparkline({ points }: { points: DailyMMRPoint[] }) {
+function Sparkline({ points, t }: { points: DailyMMRPoint[]; t: ReturnType<typeof useT> }) {
   if (points.length < 2) {
     return (
       <div className="flex h-28 items-center justify-center rounded-[var(--radius-md)] border border-dashed border-[var(--border)] bg-[var(--surface-2)] text-sm text-[var(--text-muted)]">
-        录入至少 2 天后显示趋势线
+        {t('mmrTrend.needTwoDays')}
       </div>
     )
   }
@@ -49,7 +50,7 @@ function Sparkline({ points }: { points: DailyMMRPoint[] }) {
 
   return (
     <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-2)] p-3">
-      <svg viewBox="0 0 100 90" className="h-28 w-full overflow-visible" role="img" aria-label="MMR 最近趋势">
+      <svg viewBox="0 0 100 90" className="h-28 w-full overflow-visible" role="img" aria-label={t('mmrTrend.chartLabel')}>
         <polyline points={coords} fill="none" stroke="var(--gold-strong)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
         {visible.map((point, index) => {
           const [x, y] = coords.split(' ')[index].split(',').map(Number)
@@ -65,6 +66,7 @@ function Sparkline({ points }: { points: DailyMMRPoint[] }) {
 }
 
 export default function MMRTrend({ logs }: { logs: MMRLog[] }) {
+  const t = useT()
   const dailySeries = useMemo(() => buildDailySeries(logs), [logs])
   const latest = dailySeries[dailySeries.length - 1]
   const previous = dailySeries[dailySeries.length - 2]
@@ -79,10 +81,10 @@ export default function MMRTrend({ logs }: { logs: MMRLog[] }) {
     <Card className="p-4 md:p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-[var(--text-primary)]">MMR 日追踪</h2>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">每天可多次录入，趋势按当天最后一次记录计算。</p>
+          <h2 className="text-base font-semibold text-[var(--text-primary)]">{t('mmrTrend.title')}</h2>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">{t('mmrTrend.subtitle')}</p>
         </div>
-        <Badge tone={latest ? 'accent' : 'neutral'}>{latest ? compactDate(latest.date) : '未录入'}</Badge>
+        <Badge tone={latest ? 'accent' : 'neutral'}>{latest ? compactDate(latest.date) : t('mmrTrend.notRecorded')}</Badge>
       </div>
 
       {latest ? (
@@ -90,19 +92,19 @@ export default function MMRTrend({ logs }: { logs: MMRLog[] }) {
           <div className="mb-4 grid grid-cols-3 gap-2">
             <div className="rounded-[var(--radius-md)] bg-[var(--surface-2)] p-3">
               <div className="number text-xl font-bold text-[var(--text-primary)]">{latest.mmr}</div>
-              <div className="text-xs text-[var(--text-muted)]">当前</div>
+              <div className="text-xs text-[var(--text-muted)]">{t('mmrTrend.current')}</div>
             </div>
             <div className="rounded-[var(--radius-md)] bg-[var(--surface-2)] p-3">
               <div className={`number text-xl font-bold ${deltaWeek >= 0 ? 'text-[var(--text-success)]' : 'text-[var(--text-danger)]'}`}>{deltaText(deltaWeek)}</div>
-              <div className="text-xs text-[var(--text-muted)]">近 7 天</div>
+              <div className="text-xs text-[var(--text-muted)]">{t('mmrTrend.last7Days')}</div>
             </div>
             <div className="rounded-[var(--radius-md)] bg-[var(--surface-2)] p-3">
               <div className={`number text-xl font-bold ${deltaAll >= 0 ? 'text-[var(--text-success)]' : 'text-[var(--text-danger)]'}`}>{deltaText(deltaAll)}</div>
-              <div className="text-xs text-[var(--text-muted)]">周期累计</div>
+              <div className="text-xs text-[var(--text-muted)]">{t('mmrTrend.cycleTotal')}</div>
             </div>
           </div>
 
-          <Sparkline points={dailySeries} />
+          <Sparkline points={dailySeries} t={t} />
 
           <div className="mt-4 space-y-2">
             {recent.map(point => (
@@ -118,7 +120,7 @@ export default function MMRTrend({ logs }: { logs: MMRLog[] }) {
         </>
       ) : (
         <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm leading-6 text-[var(--text-muted)]">
-          点击右下角 M 录入当前 MMR。之后这里会按日展示当前值、近 7 天变化和周期累计变化。
+          {t('mmrTrend.empty')}
         </div>
       )}
     </Card>

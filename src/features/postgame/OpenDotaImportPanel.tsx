@@ -1,4 +1,5 @@
 import PercentileBar, { buildPercentileMetrics } from '../../components/PercentileBar.tsx'
+import { useT } from '../../i18n/index.ts'
 import type { OpenDotaImportedMatch, OpenDotaRecentMatch } from '../../types'
 
 interface OpenDotaImportPanelProps {
@@ -38,6 +39,7 @@ export default function OpenDotaImportPanel({
   onImportRecentMatch,
   onAnalyzeAndImportOpenDota,
 }: OpenDotaImportPanelProps) {
+  const t = useT()
   return (
     <div className="space-y-2 p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-1)]">
       <div className="flex items-center justify-between gap-3">
@@ -131,7 +133,7 @@ export default function OpenDotaImportPanel({
       )}
       {importedMatch && (
         <>
-          <PercentileBar metrics={buildPercentileMetrics(importedMatch)} />
+          <PercentileBar metrics={buildPercentileMetrics(importedMatch, t)} />
           <div className="grid grid-cols-3 gap-2 pt-1 text-xs">
             <div className="px-2 py-1.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)]">
               KDA <span className="text-[var(--text-primary)]">{importedMatch.kills ?? '-'}/{importedMatch.deaths ?? '-'}/{importedMatch.assists ?? '-'}</span>
