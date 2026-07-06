@@ -112,6 +112,12 @@ export default function PostGame() {
     })
   }, [appState?.pendingPreGameSetupId])
 
+  // 取消关联：这局记录的是别的对局，不想让赛前设定继续绑在这次赛后记录上
+  const handleUnlinkPreGameSetup = async () => {
+    setPendingSetup(null)
+    await window.electronStore.setAppState({ pendingPreGameSetupId: undefined })
+  }
+
   // 快速选项
   const activeCycle = cycles.find(c => c.cycleId === appState?.activeCycleId)
   const currentWeek = activeCycle ? getCurrentWeek(activeCycle) : 0
@@ -488,12 +494,21 @@ export default function PostGame() {
         </button>
         <h1 className="text-xl font-bold text-[var(--text-primary)]">{t('postGame.title')}</h1>
         {pendingSetup && (
-          <p className="text-sm text-[var(--accent-strong)] mt-1">
-            {t('postGame.linkedSetup', { hero: getDisplayHeroName(pendingSetup.hero, language) })}
-            {pendingSetup.targetPosition ? t('postGame.positionSuffix', { position: pendingSetup.targetPosition }) : ''}
-            {pendingSetup.trainingGoal ? t('postGame.goalSuffix', { goal: pendingSetup.trainingGoal }) : ''}
-            {pendingSetup.enemyCarry ? t('postGame.enemyCarrySuffix', { enemy: getDisplayHeroName(pendingSetup.enemyCarry, language) }) : ''}
-          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <p className="text-sm text-[var(--accent-strong)]">
+              {t('postGame.linkedSetup', { hero: getDisplayHeroName(pendingSetup.hero, language) })}
+              {pendingSetup.targetPosition ? t('postGame.positionSuffix', { position: pendingSetup.targetPosition }) : ''}
+              {pendingSetup.trainingGoal ? t('postGame.goalSuffix', { goal: pendingSetup.trainingGoal }) : ''}
+              {pendingSetup.enemyCarry ? t('postGame.enemyCarrySuffix', { enemy: getDisplayHeroName(pendingSetup.enemyCarry, language) }) : ''}
+            </p>
+            <button
+              type="button"
+              onClick={handleUnlinkPreGameSetup}
+              className="text-xs text-[var(--text-muted)] underline hover:text-[var(--text-secondary)]"
+            >
+              {t('postGame.unlinkSetup')}
+            </button>
+          </div>
         )}
       </div>
 

@@ -446,6 +446,11 @@ const en: Dictionary = {
   },
   preGame: {
     noContent: 'Nothing here yet',
+    standaloneTitle: 'Look Up Hero Notes',
+    standaloneSubtitle: "No pre-game setup locked in from Draft — pick a hero manually to see notes and past matchup hints; for a real game, go through Draft to lock in the enemy lineup instead.",
+    standaloneHeroLabel: 'Select hero',
+    goToDraftInstead: 'Go lock in a game via Draft',
+    noHeroSelectedHint: 'Pick a hero to see notes.',
     laneGoalLabel: 'Lane goal: {value}',
     firstKeyItemLabel: 'First key item: {value}',
     strongPeriodLabel: 'Strong period: {value}',
@@ -467,7 +472,6 @@ const en: Dictionary = {
     staticAdvantageLine: 'vs {enemy}: the local table shows you have an advantage +{value}.',
     staticRiskLine: 'vs {enemy}: the local table shows this is a risky matchup -{value}.',
     fullCounteredByLabel: 'Full countered-by note: {value}',
-    noSetupWarning: 'The pre-game briefing needs a hero and enemy lineup locked in via the Draft Assistant first. This page no longer starts games manually or re-picks a hero/target.',
     backToDraft: '← Back to Draft',
     lockedInBadge: 'Locked in: {hero}',
     weekBadge: 'Week {week}: {theme}',
@@ -487,6 +491,7 @@ const en: Dictionary = {
   postGame: {
     title: 'Post-Game Log',
     linkedSetup: 'Linked pre-game setup: {hero}',
+    unlinkSetup: 'Unlink',
     positionSuffix: ' · Pos {position}',
     goalSuffix: ' · {goal}',
     enemyCarrySuffix: ' · Enemy pos 1 {enemy}',

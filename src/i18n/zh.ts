@@ -444,6 +444,11 @@ const zh = {
   },
   preGame: {
     noContent: '暂无内容',
+    standaloneTitle: '查看英雄笔记',
+    standaloneSubtitle: '没有 Draft 锁定的赛前设定，可以先手动选一个英雄看笔记和历史对位提示；正式对局建议还是走 Draft 锁定敌方阵容。',
+    standaloneHeroLabel: '选择英雄',
+    goToDraftInstead: '去 Draft 锁定对局',
+    noHeroSelectedHint: '选一个英雄查看笔记。',
     laneGoalLabel: '对线目标：{value}',
     firstKeyItemLabel: '第一件关键装：{value}',
     strongPeriodLabel: '强势期：{value}',
@@ -465,7 +470,6 @@ const zh = {
     staticAdvantageLine: 'vs {enemy}：本地表显示你对其有优势 +{value}。',
     staticRiskLine: 'vs {enemy}：本地表显示这是风险对位 -{value}。',
     fullCounteredByLabel: '完整被克制笔记：{value}',
-    noSetupWarning: '赛前提醒需要先在 Draft 助手里锁定英雄和敌方阵容。这个页面不再手动开始游戏，也不再重复选择英雄/目标。',
     backToDraft: '← 返回 Draft',
     lockedInBadge: '已锁定：{hero}',
     weekBadge: '第 {week} 周：{theme}',
@@ -485,6 +489,7 @@ const zh = {
   postGame: {
     title: '赛后记录',
     linkedSetup: '关联赛前设定：{hero}',
+    unlinkSetup: '取消关联',
     positionSuffix: ' · {position}号位',
     goalSuffix: ' · {goal}',
     enemyCarrySuffix: ' · 对方1号位 {enemy}',

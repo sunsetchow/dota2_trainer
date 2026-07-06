@@ -5,6 +5,7 @@ import Card from '../components/ui/Card.tsx'
 import Badge from '../components/ui/Badge.tsx'
 import Button from '../components/ui/Button.tsx'
 import Banner from '../components/ui/Banner.tsx'
+import HeroSelector from '../components/HeroSelector.tsx'
 import { getCounters, getCountered } from '../utils/heroes.ts'
 import { getCurrentWeek } from '../utils/cycle.ts'
 import { getDisplayHeroName, sameHeroReference } from '../utils/heroIdentity.ts'
@@ -118,6 +119,7 @@ export default function PreGame() {
   const stateSetup = (location.state as { setup?: PreGameSetup } | null)?.setup
   const pendingSetup = setups.find(item => item.id === appState?.pendingPreGameSetupId)
   const setup = stateSetup ?? pendingSetup
+  const [manualHero, setManualHero] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -133,8 +135,8 @@ export default function PreGame() {
   const currentWeek = activeCycle ? getCurrentWeek(activeCycle) : 0
   const weekTheme = activeCycle?.weekThemes.find(item => item.week === currentWeek)
 
-  const hero = setup?.hero ?? ''
-  const heroNote = setup ? heroNotes.find(note => sameHeroReference(note, setup)) : undefined
+  const hero = setup?.hero ?? manualHero.trim()
+  const heroNote = hero ? heroNotes.find(note => sameHeroReference(note, { hero })) : undefined
   const enemyByPosition: EnemyByPosition = setup?.enemyByPosition ?? {
     ...(setup?.enemyCarry && { '1': setup.enemyCarry }),
     ...(setup?.enemySupports?.[0] && { '4': setup.enemySupports[0] }),
@@ -153,10 +155,28 @@ export default function PreGame() {
     return (
       <div className="mx-auto max-w-3xl space-y-4 p-6">
         <button type="button" onClick={() => navigate(-1)} className="mb-3 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]">{t('common.back')}</button>
-        <Banner tone="warning">
-          {t('preGame.noSetupWarning')}
-        </Banner>
-        <Button variant="primary" onClick={() => navigate('/draft')}>{t('appShell.enterDraft')}</Button>
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-[var(--text-primary)]">{t('preGame.standaloneTitle')}</h1>
+            <p className="mt-1 text-sm text-[var(--text-muted)] max-w-2xl">{t('preGame.standaloneSubtitle')}</p>
+          </div>
+          <Button variant="ghost" onClick={() => navigate('/draft')}>{t('preGame.goToDraftInstead')}</Button>
+        </div>
+
+        <HeroSelector label={t('preGame.standaloneHeroLabel')} value={manualHero} onChange={setManualHero} />
+
+        {hero ? (
+          <>
+            <FieldList title={t('preGame.heroNoteRemindersTitle')} items={heroNoteItems} empty={t('preGame.heroNoteRemindersEmpty')} />
+            <FieldList
+              title={t('preGame.userMatchupNotesTitle')}
+              items={counteredByFallback}
+              empty={t('preGame.userMatchupNotesEmpty')}
+            />
+          </>
+        ) : (
+          <Card className="p-5 text-sm text-[var(--text-muted)]">{t('preGame.noHeroSelectedHint')}</Card>
+        )}
       </div>
     )
   }
