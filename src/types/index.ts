@@ -175,6 +175,7 @@ export interface MatchLog {
   towerDamage?: number;
   actualRank?: number;
   openingWinRate?: number;
+  deathPositions?: Array<{ time: number; x: number; y: number }>;
   notes?: string;
   reviewClipDeath?: string;
   reviewClipFight?: string;
@@ -274,6 +275,7 @@ export interface OpenDotaImportedMatch {
   actualRank?: number;
   openingWinRate?: number;
   winRateSwings?: Array<{ approxMinute: number; delta: number; ownWinRate: number }>;
+  deathPositions?: Array<{ time: number; x: number; y: number }>;
 }
 
 export type OpenDotaErrorCode =

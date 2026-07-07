@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useMatchLogs } from '../store/useStore.ts'
 import { getReviewDimensionLabel } from '../data/reviewDimensions.ts'
 import PercentileBar, { buildPercentileMetrics } from '../components/PercentileBar.tsx'
+import DeathPositionMap from '../components/DeathPositionMap.tsx'
 import { getPhaseRelativeScore } from '../utils/phasePerformance.ts'
 import { getDisplayHeroName } from '../utils/heroIdentity.ts'
 import { useLanguage, useT } from '../i18n/index.ts'
@@ -153,6 +154,10 @@ export default function MatchDetail() {
             <Field label={t('matchDetail.phaseLate')} value={formatPhase(log.lateGpm, getPhaseRelativeScore(log.hero, 'late', log.lateGpm, matchLogs, log.id), t)} />
           </div>
         </section>
+      )}
+
+      {log.deathPositions && log.deathPositions.length > 0 && (
+        <DeathPositionMap deathPositions={log.deathPositions} />
       )}
     </div>
   )

@@ -163,6 +163,11 @@ export const MatchLogSchema = z.object({
   towerDamage: z.number().finite().optional(),
   actualRank: z.number().finite().optional(),
   openingWinRate: z.number().finite().optional(),
+  deathPositions: z.array(z.object({
+    time: z.number().finite(),
+    x: z.number().finite(),
+    y: z.number().finite(),
+  })).optional(),
   notes: z.string().optional(),
   reviewClipDeath: z.string().optional(),
   reviewClipFight: z.string().optional(),

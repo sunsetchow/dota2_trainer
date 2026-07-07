@@ -384,6 +384,10 @@ const zh = {
     strongerEnemy: '敌方{label}更强（{diff}），这个阶段优先稳线、换资源，避免无目标团。',
     balanced: '双方时间线接近，优先看 matchup、熟练度和关键装。',
   },
+  deathMap: {
+    title: '本局死亡位置',
+    disclaimer: '树木分布用地图实体坐标自绘，不是官方小地图贴图；坐标是近似换算，仅供大致参考。',
+  },
   quickSelect: {
     custom: '自定义',
     customPlaceholder: '或自定义输入…',

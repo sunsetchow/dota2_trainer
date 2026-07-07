@@ -80,6 +80,18 @@ describe('persistence runtime schemas', () => {
     })).not.toThrow()
   })
 
+  it('accepts matchLog.deathPositions', () => {
+    expect(() => parseMatchLog({
+      ...validMatchLog,
+      source: 'stratz',
+      deathPositions: [{ time: 147, x: 170, y: 90 }],
+    })).not.toThrow()
+    expect(() => parseMatchLog({
+      ...validMatchLog,
+      deathPositions: [{ time: 147, x: 'nope' }],
+    })).toThrow()
+  })
+
   it('rejects malformed backup data before anything is written', () => {
     expect(() => parseBackupData({
       appState: { ...validAppState, heroPool: [{ name: '敌法师', active: 'yes' }] },

@@ -76,18 +76,25 @@ export function registerOpenDotaIpcHandlers(store: ElectronStoreLike, services: 
     const matchId = services.normalizeMatchId(matchIdInput)
     const appState = store.get('appState') as AppState
     const stratzApiKey = appState.stratz?.apiKey?.trim()
-    if (stratzApiKey) {
-      try {
-        return await services.requestStratzMatchDownload(matchId, stratzApiKey)
-      } catch (stratzError) {
-        try {
-          return await services.requestOpenDotaParse(matchId)
-        } catch {
-          throw stratzError
-        }
-      }
+    if (!stratzApiKey) {
+      return services.requestOpenDotaParse(matchId)
     }
-    return services.requestOpenDotaParse(matchId)
+    // 导入那一步是"Stratz 失败就退回 OpenDota"，所以这里请求解析要两边都触发一次——
+    // Stratz 的 retryMatchDownload 哪怕"成功"（不管返回 true 还是 false 都不报错）也不代表
+    // 这场比赛真的会被处理好，实测遇到过 Stratz 卡住好几天不出结果、但 OpenDota 一请求解析
+    // 就好了的情况；只请求 Stratz 会导致 OpenDota 那边一直没被真正触发过解析。
+    const [stratzResult, openDotaResult] = await Promise.allSettled([
+      services.requestStratzMatchDownload(matchId, stratzApiKey),
+      services.requestOpenDotaParse(matchId),
+    ])
+    if (stratzResult.status === 'rejected' && openDotaResult.status === 'rejected') {
+      throw stratzResult.reason
+    }
+    const message = [stratzResult, openDotaResult]
+      .map(result => result.status === 'fulfilled' ? result.value.message : undefined)
+      .filter((msg): msg is string => Boolean(msg))
+      .join(' ')
+    return { matchId, message }
   })
 
   ipcMain.handle('opendota:getHeroMatchupCache', (): HeroMatchupCache | null => {

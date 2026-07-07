@@ -1,4 +1,5 @@
 import PercentileBar, { buildPercentileMetrics } from '../../components/PercentileBar.tsx'
+import DeathPositionMap from '../../components/DeathPositionMap.tsx'
 import { useT } from '../../i18n/index.ts'
 import type { OpenDotaImportedMatch, OpenDotaRecentMatch } from '../../types'
 
@@ -206,6 +207,9 @@ export default function OpenDotaImportPanel({
               </div>
             )}
           </div>
+          {importedMatch.deathPositions && importedMatch.deathPositions.length > 0 && (
+            <DeathPositionMap deathPositions={importedMatch.deathPositions} />
+          )}
         </>
       )}
     </div>

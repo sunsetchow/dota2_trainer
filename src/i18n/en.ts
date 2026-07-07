@@ -386,6 +386,10 @@ const en: Dictionary = {
     strongerEnemy: 'The enemy is stronger in the {label} phase ({diff}) — prioritize holding the lane and trading resources, and avoid fighting without a clear objective.',
     balanced: 'Both timelines are close — prioritize matchups, proficiency, and key items instead.',
   },
+  deathMap: {
+    title: 'Death positions this match',
+    disclaimer: 'Tree layout is redrawn from map entity coordinates, not an official minimap texture; positions are an approximate conversion, for rough reference only.',
+  },
   quickSelect: {
     custom: 'Custom',
     customPlaceholder: 'Or type your own…',

@@ -1064,6 +1064,7 @@ interface StratzMatchPlayer {
     deniesPerMinute?: number[]
     goldPerMinute?: number[]
     itemPurchases?: Array<{ time: number; itemId: number }>
+    deathEvents?: Array<{ time: number; positionX: number; positionY: number }>
   }
 }
 
@@ -1122,6 +1123,7 @@ const STRATZ_MATCH_QUERY = `
           deniesPerMinute
           goldPerMinute
           itemPurchases { time itemId }
+          deathEvents { time positionX positionY }
         }
       }
     }
@@ -1202,7 +1204,10 @@ async function fetchStratzImportedMatch(matchId: string, accountId: string, apiK
   if (!match) {
     throw createOpenDotaError('MATCH_NOT_FOUND', 'Stratz 没有找到这场比赛，或比赛还没有解析。可以先请求解析，几分钟后重试。')
   }
-  if (!match.isStats || !match.players?.length) {
+  // ⚠️ isStats 曾被当作"这场比赛数据是否就绪"的判断依据，但实测发现一场 isStats:false 的
+  // 比赛里 players/lane 结果/逐分钟数据/道具购买记录全都是完整的——isStats 不代表这次查询
+  // 需要的字段是否齐全，真正该判断的是 players 数组和下面这名玩家的 heroId 是否存在。
+  if (!match.players?.length) {
     throw createOpenDotaError('PARSE_PENDING', 'Stratz 还没有这场比赛的详细数据，可以先请求解析，几分钟后重试。')
   }
   const player = match.players.find(p => String(p.steamAccountId) === accountId)
@@ -1262,6 +1267,7 @@ async function fetchStratzImportedMatch(matchId: string, accountId: string, apiK
       ownWinRate: Math.round(swing.ownWinRate * 100),
       delta: Math.round(swing.delta * 100),
     })),
+    deathPositions: player.stats?.deathEvents?.map(d => ({ time: d.time, x: d.positionX, y: d.positionY })),
     ...computeStratzPhaseGpm(player.stats?.goldPerMinute, durationMin),
   }
   return await enrichImportedMatchWithBenchmarks(imported, { gold_per_min: player.goldPerMinute, xp_per_min: player.experiencePerMinute, last_hits: player.numLastHits, hero_damage: player.heroDamage } as OpenDotaPlayer)

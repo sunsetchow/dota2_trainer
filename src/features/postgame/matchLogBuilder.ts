@@ -95,6 +95,7 @@ export function buildPostGameMatchLog(input: PostGameMatchLogInput): MatchLog {
       towerDamage: imported.towerDamage,
       actualRank: imported.actualRank,
       openingWinRate: imported.openingWinRate,
+      deathPositions: imported.deathPositions,
       gpmPercentile: imported.gpmPercentile,
       xpmPercentile: imported.xpmPercentile,
       lastHitsPercentile: imported.lastHitsPercentile,
