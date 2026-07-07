@@ -1075,11 +1075,12 @@ interface StratzMatchData {
     midLaneOutcome?: 'TIE' | 'RADIANT_VICTORY' | 'RADIANT_STOMP' | 'DIRE_VICTORY' | 'DIRE_STOMP'
     topLaneOutcome?: 'TIE' | 'RADIANT_VICTORY' | 'RADIANT_STOMP' | 'DIRE_VICTORY' | 'DIRE_STOMP'
     actualRank?: number
-    // winRates/predictedWinRates 是天辉视角的逐时间点胜率数组，Stratz 没有公开文档说明
-    // 采样间隔，两个数组长度也经常对不上（实测同一场 23 分钟的比赛，一个 24 点一个 41 点）——
-    // 只能把数组下标当"大致第几分钟"来近似换算，换算成己方视角（夜魇要用 1 - 值）。
+    // winRates 是天辉视角的逐时间点胜率数组，Stratz 没有公开文档说明采样间隔——只能把
+    // 数组下标当"大致第几分钟"来近似换算，换算成己方视角（夜魇要用 1 - 值）。
+    // ⚠️ predictedWinRates 曾经也用过，但实测发现它经常跟 winRates/实际胜负方向对不上
+    // （比如一场天辉后来赢了的比赛，predictedWinRates 却从 0.98 一路跌到 0.37），语义
+    // 不可靠，已经不再使用，只留 winRates 这一个可信来源。
     winRates?: number[]
-    predictedWinRates?: number[]
     players?: StratzMatchPlayer[]
   }
 }
@@ -1096,7 +1097,6 @@ const STRATZ_MATCH_QUERY = `
       topLaneOutcome
       actualRank
       winRates
-      predictedWinRates
       players {
         steamAccountId
         heroId
@@ -1256,8 +1256,8 @@ async function fetchStratzImportedMatch(matchId: string, accountId: string, apiK
     heroHealing: player.heroHealing,
     towerDamage: player.towerDamage,
     actualRank: match.actualRank,
-    openingWinRate: match.predictedWinRates?.length
-      ? Math.round((isRadiant === false ? 1 - match.predictedWinRates[0] : match.predictedWinRates[0]) * 100)
+    openingWinRate: match.winRates?.length
+      ? Math.round((isRadiant === false ? 1 - match.winRates[0] : match.winRates[0]) * 100)
       : undefined,
     winRateSwings: findWinRateSwings(match.winRates, durationMin, isRadiant).map(swing => ({
       ...swing,

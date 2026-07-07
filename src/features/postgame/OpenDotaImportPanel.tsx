@@ -181,7 +181,7 @@ export default function OpenDotaImportPanel({
             )}
             {importedMatch.openingWinRate !== undefined && (
               <div className="px-2 py-1.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)] col-span-3">
-                开局预测胜率 <span className="text-[var(--text-primary)]">{importedMatch.openingWinRate}%</span>
+                开局胜率 <span className="text-[var(--text-primary)]">{importedMatch.openingWinRate}%</span>
               </div>
             )}
             {importedMatch.winRateSwings && importedMatch.winRateSwings.length > 0 && (

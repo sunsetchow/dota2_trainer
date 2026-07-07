@@ -388,7 +388,7 @@ const en: Dictionary = {
   },
   deathMap: {
     title: 'Death positions this match',
-    disclaimer: 'Tree layout is redrawn from map entity coordinates, not an official minimap texture; positions are an approximate conversion, for rough reference only.',
+    disclaimer: 'Stretched to fill the frame based on this match\'s own death positions relative to each other — shows how spread out or clustered they are, not their real position on the map.',
   },
   quickSelect: {
     custom: 'Custom',
