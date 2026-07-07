@@ -37,21 +37,11 @@ export interface OpenDotaIpcServices {
 }
 
 export function registerOpenDotaIpcHandlers(store: ElectronStoreLike, services: OpenDotaIpcServices) {
-  // Stratz 偶尔会因为账号 IP 绑定、限流等跟这场比赛数据本身无关的原因整体拒绝请求
-  // （实测遇到过"You cannot use different IP Addresses"这种账号级错误），这类失败没有
-  // 重试价值——直接摔给用户之前，先退回 OpenDota 试一次，两边都失败再把 Stratz 的错误抛出去
-  // （错误信息通常比 OpenDota 那边更贴近真实原因）。
-  async function fetchImportedMatchWithFallback(matchId: string, accountId: string, stratzApiKey: string | undefined): Promise<OpenDotaImportedMatch> {
-    if (!stratzApiKey) return services.fetchOpenDotaImportedMatch(matchId, accountId)
-    try {
-      return await services.fetchStratzImportedMatch(matchId, accountId, stratzApiKey)
-    } catch (stratzError) {
-      try {
-        return await services.fetchOpenDotaImportedMatch(matchId, accountId)
-      } catch {
-        throw stratzError
-      }
-    }
+  // 赛后数据只要 Stratz——配置了 Key 就只走 Stratz，不退回 OpenDota，避免两边数据口径
+  // 不一致（字段覆盖范围、对线结果算法等都不一样）。没配置 Key 时继续用 OpenDota。
+  async function fetchImportedMatch(matchId: string, accountId: string, stratzApiKey: string | undefined): Promise<OpenDotaImportedMatch> {
+    if (stratzApiKey) return services.fetchStratzImportedMatch(matchId, accountId, stratzApiKey)
+    return services.fetchOpenDotaImportedMatch(matchId, accountId)
   }
 
   ipcMain.handle('opendota:importMatch', async (_, matchIdInput: string): Promise<OpenDotaImportedMatch> => {
@@ -59,7 +49,7 @@ export function registerOpenDotaIpcHandlers(store: ElectronStoreLike, services: 
     const accountId = services.getOpenDotaAccountId()
     const appState = store.get('appState') as AppState
     const stratzApiKey = appState.stratz?.apiKey?.trim()
-    return fetchImportedMatchWithFallback(matchId, accountId, stratzApiKey)
+    return fetchImportedMatch(matchId, accountId, stratzApiKey)
   })
 
   ipcMain.handle('opendota:autoImportLatestMatch', async (_, existingMatchIds?: string[]): Promise<OpenDotaImportedMatch> => {
@@ -76,25 +66,8 @@ export function registerOpenDotaIpcHandlers(store: ElectronStoreLike, services: 
     const matchId = services.normalizeMatchId(matchIdInput)
     const appState = store.get('appState') as AppState
     const stratzApiKey = appState.stratz?.apiKey?.trim()
-    if (!stratzApiKey) {
-      return services.requestOpenDotaParse(matchId)
-    }
-    // 导入那一步是"Stratz 失败就退回 OpenDota"，所以这里请求解析要两边都触发一次——
-    // Stratz 的 retryMatchDownload 哪怕"成功"（不管返回 true 还是 false 都不报错）也不代表
-    // 这场比赛真的会被处理好，实测遇到过 Stratz 卡住好几天不出结果、但 OpenDota 一请求解析
-    // 就好了的情况；只请求 Stratz 会导致 OpenDota 那边一直没被真正触发过解析。
-    const [stratzResult, openDotaResult] = await Promise.allSettled([
-      services.requestStratzMatchDownload(matchId, stratzApiKey),
-      services.requestOpenDotaParse(matchId),
-    ])
-    if (stratzResult.status === 'rejected' && openDotaResult.status === 'rejected') {
-      throw stratzResult.reason
-    }
-    const message = [stratzResult, openDotaResult]
-      .map(result => result.status === 'fulfilled' ? result.value.message : undefined)
-      .filter((msg): msg is string => Boolean(msg))
-      .join(' ')
-    return { matchId, message }
+    if (stratzApiKey) return services.requestStratzMatchDownload(matchId, stratzApiKey)
+    return services.requestOpenDotaParse(matchId)
   })
 
   ipcMain.handle('opendota:getHeroMatchupCache', (): HeroMatchupCache | null => {

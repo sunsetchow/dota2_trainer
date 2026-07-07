@@ -615,16 +615,13 @@ async function autoImportLatestOpenDotaMatch(existingMatchIds: string[] = [], st
     throw new Error('OpenDota 最近对局里没有找到未记录的新比赛。')
   }
 
+  // 赛后数据只要 Stratz——配置了 Key 就只走 Stratz，不退回 OpenDota。这里的 OpenDota
+  // recentMatches 调用只是用来发现"最近有哪些新比赛 ID"，跟实际抓取哪个数据源无关。
   let lastError: Error | null = null
   for (const matchId of candidates.slice(0, 5)) {
     try {
       if (stratzApiKey) {
-        try {
-          return await fetchStratzImportedMatch(matchId, accountId, stratzApiKey)
-        } catch {
-          // Stratz 失败可能是账号级问题（IP 绑定、限流），跟这场比赛无关，退回 OpenDota 再试一次。
-          return await fetchOpenDotaImportedMatch(matchId, accountId, 20_000)
-        }
+        return await fetchStratzImportedMatch(matchId, accountId, stratzApiKey)
       }
       return await fetchOpenDotaImportedMatch(matchId, accountId, 20_000)
     } catch (error) {
