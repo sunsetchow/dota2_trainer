@@ -37,13 +37,29 @@ export interface OpenDotaIpcServices {
 }
 
 export function registerOpenDotaIpcHandlers(store: ElectronStoreLike, services: OpenDotaIpcServices) {
+  // Stratz 偶尔会因为账号 IP 绑定、限流等跟这场比赛数据本身无关的原因整体拒绝请求
+  // （实测遇到过"You cannot use different IP Addresses"这种账号级错误），这类失败没有
+  // 重试价值——直接摔给用户之前，先退回 OpenDota 试一次，两边都失败再把 Stratz 的错误抛出去
+  // （错误信息通常比 OpenDota 那边更贴近真实原因）。
+  async function fetchImportedMatchWithFallback(matchId: string, accountId: string, stratzApiKey: string | undefined): Promise<OpenDotaImportedMatch> {
+    if (!stratzApiKey) return services.fetchOpenDotaImportedMatch(matchId, accountId)
+    try {
+      return await services.fetchStratzImportedMatch(matchId, accountId, stratzApiKey)
+    } catch (stratzError) {
+      try {
+        return await services.fetchOpenDotaImportedMatch(matchId, accountId)
+      } catch {
+        throw stratzError
+      }
+    }
+  }
+
   ipcMain.handle('opendota:importMatch', async (_, matchIdInput: string): Promise<OpenDotaImportedMatch> => {
     const matchId = services.normalizeMatchId(matchIdInput)
     const accountId = services.getOpenDotaAccountId()
     const appState = store.get('appState') as AppState
     const stratzApiKey = appState.stratz?.apiKey?.trim()
-    if (stratzApiKey) return services.fetchStratzImportedMatch(matchId, accountId, stratzApiKey)
-    return services.fetchOpenDotaImportedMatch(matchId, accountId)
+    return fetchImportedMatchWithFallback(matchId, accountId, stratzApiKey)
   })
 
   ipcMain.handle('opendota:autoImportLatestMatch', async (_, existingMatchIds?: string[]): Promise<OpenDotaImportedMatch> => {
@@ -60,7 +76,17 @@ export function registerOpenDotaIpcHandlers(store: ElectronStoreLike, services: 
     const matchId = services.normalizeMatchId(matchIdInput)
     const appState = store.get('appState') as AppState
     const stratzApiKey = appState.stratz?.apiKey?.trim()
-    if (stratzApiKey) return services.requestStratzMatchDownload(matchId, stratzApiKey)
+    if (stratzApiKey) {
+      try {
+        return await services.requestStratzMatchDownload(matchId, stratzApiKey)
+      } catch (stratzError) {
+        try {
+          return await services.requestOpenDotaParse(matchId)
+        } catch {
+          throw stratzError
+        }
+      }
+    }
     return services.requestOpenDotaParse(matchId)
   })
 

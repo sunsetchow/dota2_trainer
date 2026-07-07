@@ -618,7 +618,14 @@ async function autoImportLatestOpenDotaMatch(existingMatchIds: string[] = [], st
   let lastError: Error | null = null
   for (const matchId of candidates.slice(0, 5)) {
     try {
-      if (stratzApiKey) return await fetchStratzImportedMatch(matchId, accountId, stratzApiKey)
+      if (stratzApiKey) {
+        try {
+          return await fetchStratzImportedMatch(matchId, accountId, stratzApiKey)
+        } catch {
+          // Stratz 失败可能是账号级问题（IP 绑定、限流），跟这场比赛无关，退回 OpenDota 再试一次。
+          return await fetchOpenDotaImportedMatch(matchId, accountId, 20_000)
+        }
+      }
       return await fetchOpenDotaImportedMatch(matchId, accountId, 20_000)
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))
@@ -959,6 +966,9 @@ interface StratzMatchupVsRow {
   heroId2: number;
   winsAverage: number;
   matchCount: number;
+  // synergy 是 Stratz 自己算好的"克制"百分比，已用官网真实页面逐行核对过（不是简单
+  // winRate-50%，而是先扣掉两个英雄各自整体胜率的差异，只留下真正的对线相性效应）。
+  synergy: number;
 }
 
 interface StratzGraphQLResponse<T> {
@@ -990,7 +1000,7 @@ const HERO_VS_HERO_MATCHUP_QUERY = `
         advantage {
           heroId
           matchCountVs
-          vs { heroId2 winsAverage matchCount }
+          vs { heroId2 winsAverage matchCount synergy }
         }
       }
     }
@@ -1045,6 +1055,8 @@ interface StratzMatchPlayer {
   experiencePerMinute?: number
   level?: number
   heroDamage?: number
+  heroHealing?: number
+  towerDamage?: number
   lane?: 'ROAMING' | 'SAFE_LANE' | 'MID_LANE' | 'OFF_LANE' | 'JUNGLE' | 'UNKNOWN'
   position?: string
   stats?: {
@@ -1064,6 +1076,12 @@ interface StratzMatchData {
     bottomLaneOutcome?: 'TIE' | 'RADIANT_VICTORY' | 'RADIANT_STOMP' | 'DIRE_VICTORY' | 'DIRE_STOMP'
     midLaneOutcome?: 'TIE' | 'RADIANT_VICTORY' | 'RADIANT_STOMP' | 'DIRE_VICTORY' | 'DIRE_STOMP'
     topLaneOutcome?: 'TIE' | 'RADIANT_VICTORY' | 'RADIANT_STOMP' | 'DIRE_VICTORY' | 'DIRE_STOMP'
+    actualRank?: number
+    // winRates/predictedWinRates 是天辉视角的逐时间点胜率数组，Stratz 没有公开文档说明
+    // 采样间隔，两个数组长度也经常对不上（实测同一场 23 分钟的比赛，一个 24 点一个 41 点）——
+    // 只能把数组下标当"大致第几分钟"来近似换算，换算成己方视角（夜魇要用 1 - 值）。
+    winRates?: number[]
+    predictedWinRates?: number[]
     players?: StratzMatchPlayer[]
   }
 }
@@ -1078,6 +1096,9 @@ const STRATZ_MATCH_QUERY = `
       bottomLaneOutcome
       midLaneOutcome
       topLaneOutcome
+      actualRank
+      winRates
+      predictedWinRates
       players {
         steamAccountId
         heroId
@@ -1092,6 +1113,8 @@ const STRATZ_MATCH_QUERY = `
         experiencePerMinute
         level
         heroDamage
+        heroHealing
+        towerDamage
         lane
         position
         stats {
@@ -1133,7 +1156,9 @@ function computeStratzPhaseGpm(goldPerMinute: number[] | undefined, durationMin:
 // Stratz 直接给三路对线结果（TIE/RADIANT_VICTORY/RADIANT_STOMP/DIRE_VICTORY/DIRE_STOMP），
 // 不需要像 OpenDota 那样靠 lane_efficiency 差值猜——用玩家的 lane（角色：安全/中路/劣势）
 // 加上边路（天辉/夜魇）换算出该看哪一路的结果，再按己方/对方视角映射成 dominated/even/lost。
-function mapStratzLaneResult(player: StratzMatchPlayer, match: NonNullable<StratzMatchData['match']>): 'dominated' | 'even' | 'lost' | undefined {
+// STOMP 和 VICTORY 都映射成 dominated/lost，但额外带一个 stomp 标记区分"大胜/大败"还是
+// "小胜/小败"，只在 result 是 dominated/lost 时才有意义（even 时恒为 undefined）。
+function mapStratzLaneResult(player: StratzMatchPlayer, match: NonNullable<StratzMatchData['match']>): { result: 'dominated' | 'even' | 'lost'; stomp?: boolean } | undefined {
   if (player.isRadiant === undefined || !player.lane) return undefined
 
   let outcome: typeof match.bottomLaneOutcome
@@ -1148,9 +1173,27 @@ function mapStratzLaneResult(player: StratzMatchPlayer, match: NonNullable<Strat
   }
   if (!outcome) return undefined
 
-  if (outcome === 'TIE') return 'even'
+  if (outcome === 'TIE') return { result: 'even' }
   const wonByRadiant = outcome === 'RADIANT_VICTORY' || outcome === 'RADIANT_STOMP'
-  return wonByRadiant === player.isRadiant ? 'dominated' : 'lost'
+  const isStomp = outcome === 'RADIANT_STOMP' || outcome === 'DIRE_STOMP'
+  return { result: wonByRadiant === player.isRadiant ? 'dominated' : 'lost', stomp: isStomp }
+}
+
+// winRates 是天辉视角，换算成己方视角（夜魇要用 1 - 值）；数组下标按比例换算成"大致第几分钟"
+// （Stratz 没有公开采样间隔文档，只能近似）。挑变化幅度最大的几个相邻点，作为"势头明显
+// 转变"的参考，不是精确时间点。
+function findWinRateSwings(winRates: number[] | undefined, durationMin: number, isRadiant: boolean | undefined, topN = 2): Array<{ approxMinute: number; delta: number; ownWinRate: number }> {
+  if (!winRates || winRates.length < 2 || isRadiant === undefined) return []
+  const ownRates = winRates.map(rate => isRadiant ? rate : 1 - rate)
+  const swings = ownRates.slice(1).map((rate, i) => ({
+    approxMinute: Math.round(((i + 1) / (ownRates.length - 1)) * durationMin),
+    delta: rate - ownRates[i],
+    ownWinRate: rate,
+  }))
+  return swings
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+    .slice(0, topN)
+    .sort((a, b) => a.approxMinute - b.approxMinute)
 }
 
 async function fetchStratzImportedMatch(matchId: string, accountId: string, apiKey: string): Promise<OpenDotaImportedMatch> {
@@ -1183,6 +1226,7 @@ async function fetchStratzImportedMatch(matchId: string, accountId: string, apiK
     .map(id => openDotaHeroNameById.get(id))
     .filter((name): name is string => Boolean(name))
 
+  const laneOutcome = mapStratzLaneResult(player, match)
   const imported: OpenDotaImportedMatch = {
     matchId,
     timestamp: match.startDateTime ? match.startDateTime * 1000 : Date.now(),
@@ -1201,11 +1245,23 @@ async function fetchStratzImportedMatch(matchId: string, accountId: string, apiK
     gpm: player.goldPerMinute,
     xpm: player.experiencePerMinute,
     level: player.level,
-    laneResult: mapStratzLaneResult(player, match),
+    laneResult: laneOutcome?.result,
+    laneStomp: laneOutcome?.stomp,
     isRadiant: player.isRadiant,
     enemyHeroes,
     enemyHeroIds,
     source: 'stratz',
+    heroHealing: player.heroHealing,
+    towerDamage: player.towerDamage,
+    actualRank: match.actualRank,
+    openingWinRate: match.predictedWinRates?.length
+      ? Math.round((isRadiant === false ? 1 - match.predictedWinRates[0] : match.predictedWinRates[0]) * 100)
+      : undefined,
+    winRateSwings: findWinRateSwings(match.winRates, durationMin, isRadiant).map(swing => ({
+      ...swing,
+      ownWinRate: Math.round(swing.ownWinRate * 100),
+      delta: Math.round(swing.delta * 100),
+    })),
     ...computeStratzPhaseGpm(player.stats?.goldPerMinute, durationMin),
   }
   return await enrichImportedMatchWithBenchmarks(imported, { gold_per_min: player.goldPerMinute, xp_per_min: player.experiencePerMinute, last_hits: player.numLastHits, hero_damage: player.heroDamage } as OpenDotaPlayer)
@@ -1281,7 +1337,7 @@ async function syncStratzHeroMatchups(apiKey: string, rankBracket: StratzRankBra
           gamesPlayed: row.matchCount,
           wins: Math.round(row.matchCount * row.winsAverage),
           winRate,
-          advantage: winRate - 50,
+          advantage: row.synergy,
         }
       }
 

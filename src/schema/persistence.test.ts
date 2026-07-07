@@ -10,7 +10,19 @@ import {
   parseImportedBackupJson,
   parsePreGameSetup,
   parseHeroNote,
+  parseMatchLog,
 } from './persistence.ts'
+
+const validMatchLog = {
+  id: 'log-1',
+  timestamp: 1,
+  hero: '斧王',
+  result: 'win',
+  durationMin: 30,
+  trainingGoalMet: 'yes',
+  biggestMistake: '测试',
+  nextGameFocus: '测试',
+}
 
 const validAppState = {
   activeCycleId: 'default',
@@ -48,6 +60,24 @@ describe('persistence runtime schemas', () => {
     expect(AppStateSchema.safeParse(validAppState).success).toBe(true)
     expect(AppStateSchema.safeParse({ ...validAppState, language: 'en' }).success).toBe(true)
     expect(AppStateSchema.safeParse({ ...validAppState, language: 'fr' }).success).toBe(false)
+  })
+
+  it('accepts matchLog.source "stratz" (regression: schema lagged behind the Stratz import feature and blocked every save with source stratz)', () => {
+    expect(() => parseMatchLog({ ...validMatchLog, source: 'stratz' })).not.toThrow()
+    expect(() => parseMatchLog({ ...validMatchLog, source: 'opendota' })).not.toThrow()
+    expect(() => parseMatchLog({ ...validMatchLog, source: 'manual' })).not.toThrow()
+    expect(() => parseMatchLog({ ...validMatchLog, source: 'bogus' })).toThrow()
+  })
+
+  it('accepts the Stratz-only fields added to matchLog (heroHealing/towerDamage/actualRank/openingWinRate)', () => {
+    expect(() => parseMatchLog({
+      ...validMatchLog,
+      source: 'stratz',
+      heroHealing: 1478,
+      towerDamage: 0,
+      actualRank: 53,
+      openingWinRate: 61,
+    })).not.toThrow()
   })
 
   it('rejects malformed backup data before anything is written', () => {

@@ -23,10 +23,12 @@ function goalLabel(value: 'yes' | 'partial' | 'no', t: ReturnType<typeof useT>) 
   return t('matchDetail.goalNo')
 }
 
-function laneLabel(value: 'dominated' | 'even' | 'lost' | undefined, t: ReturnType<typeof useT>) {
-  if (value === 'dominated') return t('common.laneDominated')
+// stomp 只有 Stratz 数据源才有；OpenDota 或手动填写时是 undefined，退回原来笼统的
+// "压制/被压"，不替没有这个信息的记录瞎猜大胜小胜。
+function laneLabel(value: 'dominated' | 'even' | 'lost' | undefined, stomp: boolean | undefined, t: ReturnType<typeof useT>) {
   if (value === 'even') return t('common.laneEven')
-  if (value === 'lost') return t('common.laneLost')
+  if (value === 'dominated') return stomp === undefined ? t('common.laneDominated') : stomp ? t('common.laneStompWin') : t('common.laneCloseWin')
+  if (value === 'lost') return stomp === undefined ? t('common.laneLost') : stomp ? t('common.laneStompLoss') : t('common.laneCloseLoss')
   return undefined
 }
 
@@ -103,7 +105,7 @@ export default function MatchDetail() {
           <Field label={t('matchDetail.goalLabel')} value={goalLabel(log.trainingGoalMet, t)} />
           <Field label={t('matchDetail.reviewDimensionLabel')} value={getReviewDimensionLabel(log.reviewDimension, language)} />
           <Field label={t('matchDetail.reviewTopicLabel')} value={log.reviewTopic} />
-          <Field label={t('matchDetail.laneResultLabel')} value={laneLabel(log.laneResult, t)} />
+          <Field label={t('matchDetail.laneResultLabel')} value={laneLabel(log.laneResult, log.laneStomp, t)} />
           <Field label={t('matchDetail.laneStatsLabel')} value={laneStatsLabel(log.laneEfficiency, log.laneKills, t)} />
           <Field label={t('matchDetail.deathZoneLabel')} value={zoneLabel(log.worstDeathZone, t)} />
           <Field label={t('matchDetail.enemyCarryLabel')} value={log.enemyCarry ? getDisplayHeroName(log.enemyCarry, language) : undefined} />

@@ -130,6 +130,7 @@ export default function PostGame() {
     : undefined
 
   const heroPool = appState?.heroPool.filter(h => h.active).map(h => h.name) ?? []
+  const dataSourceLabel = appState?.stratz?.apiKey?.trim() ? 'Stratz' : 'OpenDota'
   const selectedReviewDimension = REVIEW_DIMENSIONS.find(item => item.id === reviewDimension)
   const selectedHeroNote = selectedHero ? heroNotes.find(note => sameHeroReference(note, { hero: selectedHero })) : undefined
   const matchupTargets = buildMatchupTargets(selectedHero, pendingSetup, importedMatch)
@@ -432,12 +433,12 @@ export default function PostGame() {
     const isCurrentRun = () => openDotaAnalysisRunRef.current === runId
 
     setAnalyzingOpenDota(true)
-    setOpenDotaStatus(t('postGame.analyzeSubmitting'))
+    setOpenDotaStatus(t('postGame.analyzeSubmitting', { source: dataSourceLabel }))
     setCanRequestParse(false)
     try {
       await window.electronStore.requestOpenDotaParse(cleanMatchId)
       if (!isCurrentRun()) return
-      setOpenDotaStatus(t('postGame.analyzeSubmitted'))
+      setOpenDotaStatus(t('postGame.analyzeSubmitted', { source: dataSourceLabel }))
       await wait(OPEN_DOTA_ANALYZE_INITIAL_WAIT_MS)
       if (!isCurrentRun()) return
 
@@ -457,7 +458,7 @@ export default function PostGame() {
         }
       }
 
-      throw lastError ?? createOpenDotaError('PARSE_PENDING', t('postGame.analyzeTimedOut'))
+      throw lastError ?? createOpenDotaError('PARSE_PENDING', t('postGame.analyzeTimedOut', { source: dataSourceLabel }))
     } catch (e) {
       if (!isCurrentRun()) return
       setImportedMatch(null)
@@ -513,7 +514,7 @@ export default function PostGame() {
       </div>
 
       <OpenDotaImportPanel
-        dataSourceLabel={appState?.stratz?.apiKey?.trim() ? 'Stratz' : 'OpenDota'}
+        dataSourceLabel={dataSourceLabel}
         matchId={matchId}
         importedMatch={importedMatch}
         recentMatches={recentMatches}
@@ -817,7 +818,7 @@ export default function PostGame() {
         <button
           type="button"
           onClick={handleSave}
-          disabled={!canSave || saving || srsPromptNotes.length > 0}
+          disabled={!canSave || saving}
           className="w-full py-3 rounded-xl font-semibold text-sm bg-[var(--accent)] text-[var(--text-primary)] hover:bg-[var(--accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           {saving ? t('postGame.saving') : t('postGame.saveButton')}

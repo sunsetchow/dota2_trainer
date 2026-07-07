@@ -137,7 +137,11 @@ export default function History() {
                 {log.laneResult && (
                   <span className="px-1.5 py-0.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)]">
                     {t('history.laneLabel', {
-                      result: log.laneResult === 'dominated' ? t('common.laneDominated') : log.laneResult === 'even' ? t('common.laneEven') : t('common.laneLost'),
+                      result: log.laneResult === 'even'
+                        ? t('common.laneEven')
+                        : log.laneResult === 'dominated'
+                          ? (log.laneStomp === undefined ? t('common.laneDominated') : log.laneStomp ? t('common.laneStompWin') : t('common.laneCloseWin'))
+                          : (log.laneStomp === undefined ? t('common.laneLost') : log.laneStomp ? t('common.laneStompLoss') : t('common.laneCloseLoss')),
                       efficiency: log.laneEfficiency !== undefined ? ` · ${Math.round(log.laneEfficiency)}%` : '',
                     })}
                   </span>

@@ -140,6 +140,7 @@ export interface MatchLog {
   reviewTopic?: string;
   worstDeathZone?: 'green' | 'orange' | 'red';
   laneResult?: 'dominated' | 'even' | 'lost';
+  laneStomp?: boolean;
   firstKeyItemMin?: number;
   firstKeyItemName?: string;
   goodInitiations?: number;
@@ -170,6 +171,10 @@ export interface MatchLog {
   playerSlot?: number;
   isRadiant?: boolean;
   opendotaImportedAt?: number;
+  heroHealing?: number;
+  towerDamage?: number;
+  actualRank?: number;
+  openingWinRate?: number;
   notes?: string;
   reviewClipDeath?: string;
   reviewClipFight?: string;
@@ -248,6 +253,7 @@ export interface OpenDotaImportedMatch {
   level?: number;
   laneRole?: number;
   laneResult?: 'dominated' | 'even' | 'lost';
+  laneStomp?: boolean;
   laneEfficiency?: number;
   laneKills?: number;
   laneDeaths?: number;
@@ -263,6 +269,11 @@ export interface OpenDotaImportedMatch {
   midGpm?: number;
   lateGpm?: number;
   source?: 'opendota' | 'stratz';
+  heroHealing?: number;
+  towerDamage?: number;
+  actualRank?: number;
+  openingWinRate?: number;
+  winRateSwings?: Array<{ approxMinute: number; delta: number; ownWinRate: number }>;
 }
 
 export type OpenDotaErrorCode =

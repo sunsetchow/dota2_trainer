@@ -2,6 +2,28 @@ import PercentileBar, { buildPercentileMetrics } from '../../components/Percenti
 import { useT } from '../../i18n/index.ts'
 import type { OpenDotaImportedMatch, OpenDotaRecentMatch } from '../../types'
 
+// stomp 只有 Stratz 数据源才有（直接来自它自己的三路对线结果判断）；OpenDota 或手动
+// 填写时 laneStomp 是 undefined，退回原来笼统的"压制/被压"说法，不瞎猜大胜小胜。
+function laneResultLabel(result: 'dominated' | 'even' | 'lost', stomp: boolean | undefined): string {
+  if (result === 'even') return '持平'
+  if (result === 'dominated') return stomp === undefined ? '压制' : stomp ? '大胜' : '小胜'
+  return stomp === undefined ? '被压' : stomp ? '大败' : '小败'
+}
+
+// Stratz 的 actualRank 是 medal*10+star 的标准编码（跟 OpenDota 的 rank_tier 一致），
+// 比如 53 = 传奇 3。冠绝（Immortal）通常没有星级，只显示段位名。
+const RANK_TIER_NAMES: Record<number, string> = {
+  1: '先锋', 2: '卫士', 3: '中军', 4: '统帅', 5: '传奇', 6: '万古', 7: '神话', 8: '冠绝',
+}
+function rankLabel(actualRank: number | undefined): string | undefined {
+  if (actualRank === undefined) return undefined
+  const tier = Math.floor(actualRank / 10)
+  const star = actualRank % 10
+  const tierName = RANK_TIER_NAMES[tier]
+  if (!tierName) return undefined
+  return star > 0 ? `${tierName} ${star}` : tierName
+}
+
 interface OpenDotaImportPanelProps {
   dataSourceLabel: string
   matchId: string
@@ -146,10 +168,32 @@ export default function OpenDotaImportPanel({
             <div className="px-2 py-1.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)]">
               LH/DN <span className="text-[var(--text-primary)]">{importedMatch.lastHits ?? '-'}/{importedMatch.denies ?? '-'}</span>
             </div>
+            {(importedMatch.heroHealing !== undefined || importedMatch.towerDamage !== undefined) && (
+              <div className="px-2 py-1.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)] col-span-3">
+                治疗/塔伤 <span className="text-[var(--text-primary)]">{importedMatch.heroHealing ?? '-'}/{importedMatch.towerDamage ?? '-'}</span>
+              </div>
+            )}
+            {rankLabel(importedMatch.actualRank) && (
+              <div className="px-2 py-1.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)] col-span-3">
+                段位 <span className="text-[var(--text-primary)]">{rankLabel(importedMatch.actualRank)}</span>
+              </div>
+            )}
+            {importedMatch.openingWinRate !== undefined && (
+              <div className="px-2 py-1.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)] col-span-3">
+                开局预测胜率 <span className="text-[var(--text-primary)]">{importedMatch.openingWinRate}%</span>
+              </div>
+            )}
+            {importedMatch.winRateSwings && importedMatch.winRateSwings.length > 0 && (
+              <div className="px-2 py-1.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)] col-span-3">
+                胜率转折点（约） <span className="text-[var(--text-primary)]">
+                  {importedMatch.winRateSwings.map(swing => `第${swing.approxMinute}分钟 ${swing.delta >= 0 ? '+' : ''}${swing.delta}%→${swing.ownWinRate}%`).join(' · ')}
+                </span>
+              </div>
+            )}
             <div className="px-2 py-1.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)] col-span-3">
               对线 <span className="text-[var(--text-primary)]">
                 {importedMatch.laneResult
-                  ? `${importedMatch.laneResult === 'dominated' ? '压制' : importedMatch.laneResult === 'even' ? '持平' : '被压'}${importedMatch.laneEfficiency !== undefined ? ` · 效率 ${Math.round(importedMatch.laneEfficiency)}%` : ''}${importedMatch.laneKills !== undefined ? ` · 对线单位击杀 ${importedMatch.laneKills}` : ''}`
+                  ? `${laneResultLabel(importedMatch.laneResult, importedMatch.laneStomp)}${importedMatch.laneEfficiency !== undefined ? ` · 效率 ${Math.round(importedMatch.laneEfficiency)}%` : ''}${importedMatch.laneKills !== undefined ? ` · 对线单位击杀 ${importedMatch.laneKills}` : ''}`
                   : `${dataSourceLabel} 未返回对线明细`}
               </span>
             </div>
