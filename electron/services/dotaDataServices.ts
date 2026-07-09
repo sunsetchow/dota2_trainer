@@ -727,20 +727,39 @@ async function syncHeroTimingsInner(force: boolean): Promise<HeroTimingSyncResul
   const concurrency = hasApiKey ? HERO_TIMING_API_KEY_CONCURRENCY : HERO_TIMING_PUBLIC_CONCURRENCY
   const delayMs = hasApiKey ? HERO_TIMING_API_KEY_DELAY_MS : HERO_TIMING_PUBLIC_DELAY_MS
 
-  await runLimited(OPEN_DOTA_HEROES, concurrency, delayMs, async hero => {
+  const syncOneHeroTiming = async (hero: OpenDotaHeroMeta): Promise<void> => {
+    const rawBins = await fetchOpenDotaJson<unknown>(`/heroes/${hero.id}/durations`, 20_000)
+    const bins = sanitizeDurationBins(rawBins)
+    if (bins.length === 0) {
+      errors.push(`${hero.displayName || hero.localizedName}: durations 返回空数据`)
+      return
+    }
+    const profile = deriveHeroTimingProfile({
+      id: hero.id,
+      displayName: hero.displayName || hero.localizedName,
+      localizedName: hero.localizedName,
+    }, bins)
+    profiles[String(hero.id)] = profile
+  }
+
+  const firstHero = OPEN_DOTA_HEROES[0]
+  if (firstHero) {
     try {
-      const rawBins = await fetchOpenDotaJson<unknown>(`/heroes/${hero.id}/durations`, 20_000)
-      const bins = sanitizeDurationBins(rawBins)
-      if (bins.length === 0) {
-        errors.push(`${hero.displayName || hero.localizedName}: durations 返回空数据`)
-        return
+      await syncOneHeroTiming(firstHero)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      errors.push(`${firstHero.displayName || firstHero.localizedName}: ${message}`)
+      const isOpenDotaTransportError = error instanceof Error && (error.name === 'OpenDotaError' || error.message.includes('[OPEN_DOTA:'))
+      if (isOpenDotaTransportError) {
+        if (current) return { cached: false, heroCount: current.heroCount, errors }
+        throw new Error(`OpenDota hero timing 数据同步失败：${message}`)
       }
-      const profile = deriveHeroTimingProfile({
-        id: hero.id,
-        displayName: hero.displayName || hero.localizedName,
-        localizedName: hero.localizedName,
-      }, bins)
-      profiles[String(hero.id)] = profile
+    }
+  }
+
+  await runLimited(OPEN_DOTA_HEROES.slice(1), concurrency, delayMs, async hero => {
+    try {
+      await syncOneHeroTiming(hero)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       errors.push(`${hero.displayName || hero.localizedName}: ${message}`)

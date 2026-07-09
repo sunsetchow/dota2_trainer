@@ -130,6 +130,47 @@ describe('Dota data OpenDota hero timing sync', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('fails fast when OpenDota durations are unavailable instead of looking stuck for every hero', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ error: 'forbidden' }, 403))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(createDotaDataServices().syncHeroTimings(true)).rejects.toThrow(/OpenDota hero timing 数据同步失败/)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns the previous timing cache immediately when a forced refresh cannot reach OpenDota durations', async () => {
+    storeState.values.set('heroTimingCache', {
+      source: 'opendota',
+      syncedAt: Date.now() - 10 * 24 * 60 * 60 * 1000,
+      date: '2026-07-03',
+      version: 1,
+      heroCount: 1,
+      profiles: {
+        '155': {
+          heroId: 155,
+          displayName: '朗戈',
+          localizedName: 'Largo',
+          early: { winRate: 0.52, games: 448 },
+          mid: { winRate: 0.55, games: 618 },
+          late: { winRate: null, games: 169 },
+          veryLate: { winRate: null, games: 47 },
+          timingLabel: 'mid',
+          totalGames: 1282,
+          confidence: 'medium',
+        },
+      },
+    })
+    const fetchMock = vi.fn(async () => jsonResponse({ error: 'forbidden' }, 403))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(createDotaDataServices().syncHeroTimings(true)).resolves.toMatchObject({
+      cached: false,
+      heroCount: 1,
+      errors: [expect.stringContaining('OpenDota 请求失败')],
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
   it('syncs durations into canonical display-name timing profiles', async () => {
     vi.useFakeTimers()
     const fetchMock = vi.fn(async (url: string | URL) => {

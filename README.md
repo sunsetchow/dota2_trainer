@@ -83,7 +83,7 @@ Dota2 Trainer 是一个本地 Electron + React 训练闭环工具，面向 Dota 
 - 稳定 `heroId` migration / 读写校验会把历史英文名（例如 `Largo`）规范化为当前中文显示名（例如 `朗戈`），避免赛后、历史、英雄池和 matchup cache 继续使用旧英文 key。
 - 英雄 benchmark percentile enrichment。
 - Stratz-only matchup cache 同步；OpenDota 不再作为 hero matchup 数据源。
-- OpenDota durations / hero Timing Cache 同步，用于 Draft 强势期标签和时间线；不参与 matchup 分数。
+- OpenDota durations / hero Timing Cache 同步，用于 Draft 强势期标签和时间线；不参与 matchup 分数。若 OpenDota durations 当前不可达，会先探测首个英雄并快速失败/回退旧缓存，避免设置页长时间停在“正在同步”。
 - bundled matchup snapshot 冷启动兜底。
 
 ### 数据安全和备份
